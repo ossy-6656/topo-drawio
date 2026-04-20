@@ -1,0 +1,1047 @@
+<!--
+ * @Author: Math-span mapanq123@qq.com
+ * @Date: 2025-09-30 15:38:15
+ * @LastEditors: Math-span mapanq123@qq.com
+ * @LastEditTime: 2025-09-30 15:38:25
+ * @FilePath: \textSvg\pro\map-template.html
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+-->
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>map-export</title>
+  <style>
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .mapdiv {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .fineLine {
+      position: relative;
+      width: calc(100% - 30px);
+      height: calc(100% - 30px);
+      top: 15px;
+      left: 15px;
+    }
+
+    .fineLine::before {
+      border: 5px solid #000;
+      position: fixed;
+      width: calc(100% - 10px);
+      height: calc(100% - 10px);
+      content: '';
+      top: 0;
+      left: 0;
+    }
+
+    .thickLine {
+      position: relative;
+      width: calc(100% - 40px);
+      height: calc(100% - 40px);
+      top: 20px;
+      left: 20px;
+    }
+
+    .thickLine::before {
+      border: 10px solid #000;
+      position: fixed;
+      width: calc(100% - 20px);
+      height: calc(100% - 20px);
+      content: '';
+      top: 0;
+      left: 0;
+    }
+
+    .dualLine {
+      border: 5px solid #000;
+      position: relative;
+      width: calc(100% - 50px);
+      height: calc(100% - 50px);
+      top: 20px;
+      left: 20px;
+    }
+
+    .dualLine::before {
+      border: 10px solid #000;
+      position: fixed;
+      width: calc(100% - 20px);
+      height: calc(100% - 20px);
+      content: '';
+      top: 0;
+      left: 0;
+    }
+
+    .svgContainer {
+      position: absolute;
+      z-index: 100;
+      width: 500px;
+      height: 500px;
+      left: 0px;
+      top: 0px;
+      overflow: visible;
+    }
+
+    #Text_Layer g>text:not(.txtLinkerClick) {
+      fill: rgb(0, 0, 0) !important;
+      font-weight: bold;
+    }
+
+    polygon,
+    rect,
+    circle,
+    path,
+    polyline {
+      vector-effect: non-scaling-stroke;
+    }
+
+    symbol rect,
+    symbol line,
+    symbol polyline,
+    symbol polygon,
+    symbol circle,
+    symbol ellipse,
+    symbol path {
+      vector-effect: non-scaling-stroke;
+      stroke-width: 1;
+    }
+
+    polyline {
+      stroke-width: 1.5;
+    }
+
+    .blodStroke {
+      /* 主干线路加粗css */
+      stroke-width: 3.5;
+    }
+
+    #Substation_Layer polygon {
+      stroke-width: 1;
+    }
+
+    polyline[stroke-width='1.2'] {
+      stroke-width: 3.5;
+      /*stroke: green;*/
+    }
+
+    #BusbarSection_Layer polyline {
+      stroke-width: 3;
+    }
+
+    svg.overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+  </style>
+  <link rel="stylesheet" href="http://25.213.0.139:31005/sgepriamapsdk/css/narimap.umd.css" />
+  <link rel="stylesheet" href="http://25.213.0.139:31005/sgepriamapsdk/css/nrgis-common.min.css" />
+</head>
+
+<body>
+  <div id="map" style="display: none;">
+    <div id="mapdivSvgViewMap" class="mapdiv"></div>
+  </div>
+  <div id="svgContainer" style="display: none;"></div>
+  <script type="text/javascript" src="http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.umd.min.js"></script>
+  <script type="text/javascript"
+    src="http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.components.devicecard.min.js"></script>
+  <script type="text/javascript" src="http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.popup.min.js"></script>
+  <script type="text/javascript" src="http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.psrmap.min.js"></script>
+  <script type="module">
+    window.narimap.publicKey =
+      'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCpXzuOV06wh+b5xUSAc8yuWMiYOR1j+FcpqAi/zzUBvaZXiXwvq6gMND6mBeYVXXNC+AB5xuslufZAO6cF/pSPpoJ58VFNgtufOmd+Cqel4bCcezcJQJX9M/N1f3WKqnjhfSEycibCd3bgZTTXilfMp3fgddHrQhwKCWm7g+yEPwIDAQAB'
+    import NariMapIniter from 'http://localhost:8084/pwtmzx/public/htmlJs/loadMap/NariMapIniter2.js'
+    import SvgView from 'http://localhost:8084/pwtmzx/public/htmlJs/loadMap/SvgView.js'
+    import svgMapAccessories from 'http://localhost:8084/pwtmzx/public/htmlJs/loadMap/tools/svgMapAccessories.js'
+    let exportConfig = null
+    let accessToken = null
+    let map = null
+    let svgView = null
+    let nariMapIniter = null
+    let params = {}
+
+    async function mapcallback(m) {
+      map = m
+      window.nariNewMap = map
+      let dkxid = params.id
+      let qst = params.starttime
+      let qet = params.endtime
+      let titlename = params.titlename
+      let flysb = params.flysb
+      let locatpsrid = params.locatpsrid
+      let szpsrid = params._szpsrid
+      let source = params.type
+      let svgid = params.svgId
+      if (locatpsrid) {
+        const r = await fetch(
+          'http://25.213.110.169:18055/tmzx/admin-api/tmzx/szdwsvg/preview/getSvgGidByPsrid',
+          {
+            method: 'POST',
+            headers: {
+              Authorization: 'Bearer ' + accessToken,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              dkxid: dkxid,
+              locatpsrid: locatpsrid
+            })
+          }
+        )
+        const { code, data: res } = await r.json()
+
+        if (code === 200 && res) {
+          flysb = res
+          svgView = new SvgView(accessToken, dkxid, qst, qet, titlename, flysb, szpsrid)
+          svgView.setExportConfigValue(exportConfig)
+          if (source && source == 'tm') {
+            svgView.renderOuterSvgOnMap(map, svgid, source)
+          } else {
+            svgView.renderSvgOnMap(map)
+          }
+        }
+      } else {
+        svgView = new SvgView(accessToken, dkxid, qst, qet, titlename, flysb)
+        svgView.setExportConfigValue(exportConfig)
+        if (source && source == 'tm') {
+          svgView.renderOuterSvgOnMap(map, svgid, source)
+        } else {
+          svgView.renderSvgOnMap(map)
+        }
+      }
+      window.svgView = svgView
+
+    }
+
+    async function initMap(config) {
+      return new Promise(async (resolve, reject) => {
+        // 初始化地图
+        nariMapIniter = new NariMapIniter(map)
+        await nariMapIniter.go(mapcallback)
+        resolve({
+          accessToken,
+          map,
+          svgView,
+          nariMapIniter,
+          params
+        })
+      })
+    }
+    // 等待地图加载完成
+    const waitLoaded = (window) => {
+      return new Promise((resolve) => {
+        const timer = setInterval(() => {
+          if (window.svgView && window.svgView.get$BusValue("initPrintInfo")) {
+            clearInterval(timer)
+            resolve()
+          }
+        }, 10)
+      });
+    }
+
+    async function initSvg(config) {
+      return new Promise(async (resolve, reject) => {
+        let dkxid = params.id
+        let qst = params.starttime
+        let qet = params.endtime
+        let flysb = params.flysb
+        let locatpsrid = params.locatpsrid
+        let szpsrid = params._szpsrid
+        let source = params.type
+        let svgid = params.svgId
+        let attid = params.attid
+
+        if (locatpsrid) {
+          const r = await fetch(
+            'http://25.213.110.169:18055/tmzx/admin-api/tmzx/szdwsvg/preview/getSvgGidByPsrid',
+            {
+              method: 'POST',
+              headers: {
+                Authorization: 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                dkxid: dkxid,
+                locatpsrid: locatpsrid
+              })
+            }
+          )
+          const { code, data: res } = await r.json()
+          if (code === 200 && res) {
+            flysb = res
+          }
+          svgView = new SvgView(accessToken, dkxid, qst, qet, flysb, szpsrid)
+          svgView.setExportConfigValue(config)
+          if (source && source == 'lg') {
+            svgView.renderOutSvg(svgid, source)
+          } else {
+            svgView.renderSvg()
+          }
+        } else {
+          if (attid) {
+            const r = await fetch(
+              'http://25.213.110.169:18055/tmzx/admin-api/tmzx/szdwsvg/preview/getOuterSvgIdByAttid',
+              {
+                method: 'POST',
+                headers: {
+                  Authorization: 'Bearer ' + accessToken,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  attid: attid
+                })
+              }
+            )
+            const { code, data: res } = await r.json()
+            if (code === 200 && res) {
+              svgid = res
+              svgView = new SvgView(accessToken, dkxid, qst, qet, flysb, szpsrid)
+              svgView.setExportConfigValue(config)
+              if (source && source == 'lg') {
+                svgView.renderOutSvg(svgid, source)
+              } else {
+                svgView.renderSvg()
+              }
+            }
+          } else {
+            svgView = new SvgView(accessToken, dkxid, qst, qet, flysb, szpsrid)
+            if (source && source == 'lg') {
+              svgView.renderOutSvg(svgid, source)
+            } else {
+              svgView.renderSvg()
+            }
+          }
+        }
+        window.svgView = svgView
+        resolve({
+          accessToken,
+          svgView,
+          params
+        })
+      })
+    }
+
+    const renderInit = async (config) => {
+      console.log('【 config 】', config);
+      const { isMap = true, routerQuery, accessToken: token, borderStyle, background = 'rgba(0,0,0,0)', paperMM, dpi } = config
+      exportConfig = config
+      accessToken = token
+      params = routerQuery
+      const renderFun = isMap ? initMap : initSvg
+      const containerId = isMap ? 'map' : 'svgContainer'
+      const container = document.querySelector(`#${containerId}`)
+      container.style.display = 'block'
+      container.style.backgroundColor = background
+      // 设置边框
+      svgMapAccessories.newDrawMapBorder(container, borderStyle)
+      const res = await renderFun(config)
+      await waitLoaded(window)
+      if(!isMap){
+        const svgEl = document.querySelector('#svgContainer svg svg')
+        svgMapAccessories.adjustSvg(svgEl)
+      }
+      document.title = svgView.dkxName
+      // 获取图纸信息数据
+      const { dobj } = svgView.get$BusValue("initPrintInfo")
+      const { tableData, tableMerges } = svgMapAccessories.returnTableInfo(dobj)
+      /** 绘制标题/图例/比例尺 */
+      const accCanvas = await svgMapAccessories.drawMapDecorations({ ...config, tableData, tableMerges })
+      accCanvas.style = 'position: absolute;left:0;top:0;z-index:99'
+      container.appendChild(accCanvas)
+      return res
+    }
+    window.renderInit = renderInit
+    window.addEventListener('load', () => {
+      // renderInit({
+      //   "downloadType": "server",
+      //   "downloadNum": 5,
+      //   "svgShow": true,
+      //   "background": "rgba(255, 255, 255, 1)",
+      //   "titleShow": true,
+      //   "titleText": "车4#(I新印象线)",
+      //   "titlePosition": 100,
+      //   "titleFontSize": 70,
+      //   "scaleShow": false,
+      //   "scaleText": "",
+      //   "infoShow": true,
+      //   "infoPosition": "bottom-left",
+      //   "infoWidthSize": 0.2,
+      //   "infoHeightSize": 0.2,
+      //   "borderLineWidth": 3,
+      //   "infoTablePreview": "",
+      //   "legendShow": true,
+      //   "legendUrl": "http://localhost:8084/pwtmzx/src/assets/tmzx/img/svg_legend/svg_legend_black.png",
+      //   "legendPosition": "bottom-right",
+      //   "legendSize": 0.2,
+      //   "borderShow": true,
+      //   "borderStyle": "dualLine",
+      //   "color": "var(--el-color-primary)",
+      //   "routerQuery": {
+      //     "fullScreen": "true",
+      //     "isPurity": "true",
+      //     "type": "lg",
+      //     "svgId": "123250",
+      //     "_szpsrid": "9c681bb1ea2b4acfbb9a18d33435bca2AkxkA8e6f5f23126841d787041ca77390f205"
+      //   },
+      //   "dpi": 96,
+      //   "paperMM": [
+      //     1189,
+      //     841
+      //   ],
+      //   "tableData": [
+      //     [
+      //       "线路（km）",
+      //       "",
+      //       "",
+      //       "配电变压器",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "图纸类型",
+      //       "",
+      //       "10kV单线正交图",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "总长度",
+      //       "",
+      //       0.521,
+      //       "总台数",
+      //       "",
+      //       10,
+      //       "总容量（kVA）",
+      //       "",
+      //       6490,
+      //       "图纸名称",
+      //       "",
+      //       "车4#(I新印象线)",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "架空长度",
+      //       "",
+      //       0,
+      //       "公变数量",
+      //       "",
+      //       8,
+      //       "公变容量（kVA）",
+      //       "",
+      //       5460,
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "电缆长度",
+      //       "",
+      //       0.521,
+      //       "专变数量",
+      //       "",
+      //       2,
+      //       "专变容量（kVA）",
+      //       "",
+      //       1030,
+      //       "起点电站",
+      //       "",
+      //       "车站开关所",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "其他设备",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "运维单位",
+      //       "",
+      //       "北关供电公司",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "开关站数量",
+      //       "",
+      //       1,
+      //       "环网柜数量",
+      //       "",
+      //       0,
+      //       "联络开关数量",
+      //       "",
+      //       1,
+      //       "更新时间",
+      //       "",
+      //       "2025-09-12 10:04:03",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "分支箱数量",
+      //       "",
+      //       0,
+      //       "配电室数量",
+      //       "",
+      //       3,
+      //       "分段开关数量",
+      //       "",
+      //       2,
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "箱式变数量",
+      //       "",
+      //       0,
+      //       "",
+      //       "",
+      //       "",
+      //       "运行杆塔数量",
+      //       "",
+      //       0,
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ]
+      //   ],
+      //   "tableMerges": [
+      //     {
+      //       "row": 0,
+      //       "col": 0,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 3,
+      //       "colspan": 6
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 9,
+      //       "colspan": 2,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 11,
+      //       "colspan": 3,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 0,
+      //       "colspan": 9
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 9,
+      //       "colspan": 5,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 3,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 6,
+      //       "colspan": 2
+      //     }
+      //   ],
+      //   "targetHeight": 3179,
+      //   "targetWidth": 4494,
+      //   "tileSize": 2048,
+      //   "title": "车4#(I新印象线)",
+      //   "svgid": 12962,
+      //   "accessToken": "c7999c12fd5b4e558da5549741cfd386",
+      //   "base64Sta": true,
+      //   "isMap": false
+      // })
+      // initMap({
+      //   "downloadType": "server",
+      //   "downloadNum": 1,
+      //   "mapShow": true,
+      //   "svgShow": true,
+      //   "background": "rgba(255,255,255,1)",
+      //   "titleShow": true,
+      //   "isMap": true,
+      //   "titleText": "诚信变诚信7板Ⅱ龙游街二所线",
+      //   "titlePosition": 100,
+      //   "titleFontSize": 70,
+      //   "scaleShow": false,
+      //   "scaleText": "",
+      //   "infoShow": true,
+      //   "infoPosition": "bottom-left",
+      //   "infoWidthSize": 0.25,
+      //   "infoHeightSize": 0.25,
+      //   "borderLineWidth": 3,
+      //   "infoTablePreview": "",
+      //   "legendShow": true,
+      //   "legendUrl": "http://localhost:8084/pwtmzx/src/assets/tmzx/img/svg_legend/svg_legend_black.png",
+      //   "legendPosition": "bottom-right",
+      //   "legendSize": 0.2,
+      //   "borderShow": true,
+      //   "borderStyle": "dualLine",
+      //   "color": "var(--el-color-primary)",
+      //   "routerQuery": {
+      //     "fullScreen": "true",
+      //     "_szpsrid": "9f8b45375abf4ad59227c5b9b2047137AkxkAeb72cacb166c4941828572f8a0ce2cf7",
+      //     "id": "65956b60-c0eb-484d-ad4d-443c8502f801",
+      //     "type": "tm"
+      //   },
+      //   "dpi": 96,
+      //   "paperMM": [
+      //     297,
+      //     210
+      //   ],
+      //   "tableData": [
+      //     [
+      //       "线路（km）",
+      //       "",
+      //       "",
+      //       "配电变压器",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "图纸类型",
+      //       "",
+      //       "10kV地理沿布图",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "总长度",
+      //       "",
+      //       2.1,
+      //       "总台数",
+      //       "",
+      //       20,
+      //       "总容量（kVA）",
+      //       "",
+      //       30600,
+      //       "图纸名称",
+      //       "",
+      //       "诚信变诚信7板Ⅱ龙游街二所线",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "架空长度",
+      //       "",
+      //       0,
+      //       "公变数量",
+      //       "",
+      //       0,
+      //       "公变容量（kVA）",
+      //       "",
+      //       0,
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "电缆长度",
+      //       "",
+      //       2.1,
+      //       "专变数量",
+      //       "",
+      //       20,
+      //       "专变容量（kVA）",
+      //       "",
+      //       30600,
+      //       "起点电站",
+      //       "",
+      //       "郑州110kV诚信变电站",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "其他设备",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       "运维单位",
+      //       "",
+      //       "国网河南省电力公司郑州供电公司",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "开关站数量",
+      //       "",
+      //       2,
+      //       "环网柜数量",
+      //       "",
+      //       0,
+      //       "联络开关数量",
+      //       "",
+      //       6,
+      //       "更新时间",
+      //       "",
+      //       "2025-02-25 15:14:08",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "分支箱数量",
+      //       "",
+      //       0,
+      //       "配电室数量",
+      //       "",
+      //       6,
+      //       "分段开关数量",
+      //       "",
+      //       1,
+      //       "",
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ],
+      //     [
+      //       "箱式变数量",
+      //       "",
+      //       0,
+      //       "",
+      //       "",
+      //       "",
+      //       "运行杆塔数量",
+      //       "",
+      //       0,
+      //       "",
+      //       "",
+      //       "",
+      //       ""
+      //     ]
+      //   ],
+      //   "tableMerges": [
+      //     {
+      //       "row": 0,
+      //       "col": 0,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 3,
+      //       "colspan": 6
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 0,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 9,
+      //       "colspan": 2,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 1,
+      //       "col": 11,
+      //       "colspan": 3,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 2,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 3,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 0,
+      //       "colspan": 9
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 4,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 9,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 5,
+      //       "col": 11,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 3,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 6,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 6,
+      //       "col": 9,
+      //       "colspan": 5,
+      //       "rowspan": 2
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 0,
+      //       "colspan": 2
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 3,
+      //       "colspan": 3
+      //     },
+      //     {
+      //       "row": 7,
+      //       "col": 6,
+      //       "colspan": 2
+      //     }
+      //   ],
+      //   "targetHeight": 1080,
+      //   "targetWidth": 1920,
+      //   "tileSize": 5120,
+      //   "title": "诚信变诚信7板Ⅱ龙游街二所线",
+      //   "zoom": 15.8,
+      //   "svgid": 12962,
+      //   "accessToken": "a9095eb2880f46de88d62c4382bcc335"
+      // })
+    })
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,853 @@
+<shapes>
+    <shape name="substation" w="200" h="100" aspect="variable" title="站房">
+        <connections></connections>
+        <background>
+            <strokecolor color="rgb(185,72,66)"/>
+            <strokewidth width="2"/>
+            <fillcolor color="rgba(0,0,0,0)"/>
+            <rect x="0" y="0" w="200" h="100"/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="busbar" w="200" h="6" aspect="fixed" title="母线">
+        <connections></connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="4"/>
+            <!--<fillcolor color="rgb(185,72,66)"/>-->
+            <path>
+                <move x="0" y="2"/>
+                <line x="200" y="2"/>
+            </path>
+            <!--<rect x="0" y="0" w="200" h="4"/>-->
+            <fillstroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="terminal" w="100" h="100" aspect="fixed">
+        <connections></connections>
+        <background>
+            <strokecolor color="rgb(0,200,255)"/>
+            <strokewidth width="1"/>
+            <ellipse x="0" y="0" w="100" h="100"/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PoleCode_PMS25_10200001_2020040" w="99.99999999999999" h="99.99999999999999" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,255,255)"/>
+            <fillcolor color="rgb(128,128,128)"/>
+            <strokewidth width="1"/>
+            <rect x="0.166112956810629" y="0.166112956810629" w="99.66777408637873" h="99.66777408637873"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <ellipse x="4.318936877076403" y="4.318936877076403" w="91.36212624584718" h="91.36212624584718"/>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="18.837209302325576" y="16.777408637873748"/>
+                <line x="81.16279069767441" y="83.22259136212624"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="20.93023255813953" y="83.22259136212624"/>
+                <line x="79.06976744186045" y="16.777408637873748"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PoleCode_PMS25_10200001_2020061" w="100" h="100.16666666666667" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,255,255)"/>
+            <fillcolor color="rgb(153,153,153)"/>
+            <strokewidth width="1"/>
+            <ellipse x="0" y="0.6166666666666671" w="100" h="100"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="46.36666666666667" y="100.61666666666667"/>
+                <line x="94.80000000000001" y="28.71666666666667"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="77.6" y="9.449999999999996"/>
+                <line x="22.93333333333333" y="92.28333333333333"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="5.199999999999996" y="71.95"/>
+                <line x="55.733333333333334" y="1.11666666666666"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PowerTransformer_PMS25_30200003_4020052" w="100" h="43.164556962025316" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(185, 72, 66)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="2.5316455696202524" y="21.582278481012658"/>
+                <line x="18.354430379746837" y="21.582278481012658"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(185, 72, 66)"/>
+            <strokewidth width="1"/>
+            <ellipse x="18.29113924050633" y="2.5316455696202524" w="38.10126582278481" h="38.10126582278481"/>
+            <stroke/>
+            <strokecolor color="rgb(185, 72, 66)"/>
+            <strokewidth width="1"/>
+            <ellipse x="43.607594936708864" y="2.5316455696202524" w="38.10126582278481" h="38.10126582278481"/>
+            <stroke/>
+            <strokecolor color="rgb(185, 72, 66)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="81.64556962025316" y="21.582278481012658"/>
+                <line x="97.46835443037975" y="21.582278481012658"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PoleCode_PMS25_10200001_2020071" w="100" h="100" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,255,255)"/>
+            <fillcolor color="rgb(192,192,192)"/>
+            <strokewidth width="1"/>
+            <ellipse x="0" y="0" w="100" h="100"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="16.666666666666664" y="13.033333333333331"/>
+                <line x="83.33333333333334" y="87.5"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="16.666666666666664" y="87.5"/>
+                <line x="83.33333333333334" y="12.5"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Fuse_PMS25_30900000_4050030@1" w="100" h="6.876790830945558" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.3495702005730692" y="3.438395415472779"/>
+                <line x="39.742120343839545" y="3.438395415472779"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="39.742120343839545" y="3.438395415472779"/>
+                <line x="70.55014326647564" y="-0.14899713467048725"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="67.68481375358166" y="3.438395415472779"/>
+                <line x="99.20343839541547" y="3.438395415472779"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="48.33810888252149" y="0.5730659025787963"/>
+                <line x="49.060171919770774" y="4.148997134670487"/>
+                <line x="67.68481375358166" y="2.0057306590257875"/>
+                <line x="66.96275071633238" y="-1.5816618911174785"/>
+                <close/>
+            </path>
+            <stroke/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Breaker_PMS25_30500000_4100010@1" w="100" h="15.475520540236355" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <rect x="28.897017445132246" y="1.5897580191333711" w="42.20596510973551" h="13.196398424310635"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="71.10298255486775" y="7.737760270118177"/>
+                <line x="99.24029262802476" y="7.737760270118177"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="28.897017445132246" y="7.737760270118177"/>
+                <line x="1.6460326392796887" y="7.737760270118177"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.7597073719752387" y="8.216094541361846"/>
+                <line x="7.794034890264491" y="1.1817670230725943"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.7597073719752387" y="7.259425998874508"/>
+                <line x="6.03545301069218" y="14.293753517163761"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="7.794034890264491" y="8.117613956105798"/>
+                <line x="14.828362408553744" y="1.9555430500844126"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="7.794034890264491" y="7.357906584130558"/>
+                <line x="14.828362408553744" y="14.39223410241981"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="99.3528418683174" y="8.08947664603264"/>
+                <line x="93.50028137310073" y="0.7034327518289256"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="99.3528418683174" y="7.2734946539110865"/>
+                <line x="93.50028137310073" y="14.772087788407429"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="91.74169949352842" y="8.08947664603264"/>
+                <line x="85.90320765334835" y="0.7034327518289256"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="91.74169949352842" y="7.2734946539110865"/>
+                <line x="85.90320765334835" y="14.772087788407429"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PoleCode_PMS25_10200000_2020060" w="100" h="100" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,255,255)"/>
+            <fillcolor color="rgb(153,153,153)"/>
+            <strokewidth width="1"/>
+            <ellipse x="-0.13333333333333997" y="0" w="100" h="100"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="5.066666666666663" y="71.36666666666667"/>
+                <line x="55.06666666666667" y="0.5333333333333314"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="78" y="9.36666666666666"/>
+                <line x="22.8" y="91.66666666666667"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="46.733333333333334" y="99.46666666666667"/>
+                <line x="94.66666666666667" y="28.633333333333333"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="SurgeArrester_PMS25_11600000_4200011" w="100" h="16.66281310211946" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="3.75722543352601" y="16.285163776493256"/>
+                <line x="3.75722543352601" y="0.3930635838150289"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.3892100192678214" y="11.984585741811175"/>
+                <line x="0.3892100192678214" y="4.755298651252408"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="-2.9865125240847803" y="10.258188824662813"/>
+                <line x="-2.9865125240847803" y="6.404624277456648"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <rect x="26.878612716763005" y="0.6242774566473992" w="46.24277456647399" h="15.414258188824663"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="26.878612716763005" y="8.33140655105973"/>
+                <line x="3.75722543352601" y="8.33140655105973"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="66.86319845857417" y="8.33140655105973"/>
+                <line x="96.242774566474" y="8.33140655105973"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="59.15606936416185" y="8.323699421965319"/>
+                <line x="66.86319845857417" y="4.955684007707129"/>
+                <line x="66.86319845857417" y="11.699421965317919"/>
+                <close/>
+            </path>
+            <stroke/>
+            <fillstroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="terminal" w="100" h="100" aspect="fixed">
+        <connections></connections>
+        <background>
+            <strokecolor color="rgb(0,200,255)"/>
+            <strokewidth width="1"/>
+            <ellipse x="0" y="0" w="100" h="100"/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="LoadBreakSwitch_PMS25_30700000_4040010@1" w="100" h="15.123456790123457" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.6172839506172849" y="7.561728395061729"/>
+                <line x="31.48148148148148" y="7.561728395061729"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="31.48148148148148" y="7.561728395061729"/>
+                <line x="66.9753086419753" y="-0.15432098765432034"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="68.51851851851852" y="1.3888888888888893"/>
+                <line x="68.51851851851852" y="13.734567901234568"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="68.51851851851852" y="7.561728395061729"/>
+                <line x="99.38271604938271" y="7.561728395061729"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="58.17283950617284" y="2.6234567901234565" w="9.876543209876544" h="9.876543209876544"/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Breaker_PMS25_30500000_403001@1" w="100" h="25.572519083969468" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.3816793893129784" y="12.786259541984734"/>
+                <line x="19.46564885496183" y="12.786259541984734"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,102,0)"/>
+            <strokewidth width="1"/>
+            <rect x="19.46564885496183" y="0.3816793893129784" w="61.06870229007634" h="24.80916030534351"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="80.53435114503817" y="12.786259541984734"/>
+                <line x="99.61832061068702" y="12.786259541984734"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PowerTransformer_PMS25_11000001_2030010" w="100" h="40.921052631578945" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(7,164,248)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="1.4868421052631575" y="20.11842105263158"/>
+                <line x="17.934210526315788" y="20.11842105263158"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(7,164,248)"/>
+            <strokewidth width="1"/>
+            <ellipse x="17.868421052631575" y="0.31578947368420884" w="39.60526315789474" h="39.60526315789474"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="44.18421052631579" y="0.31578947368420884" w="39.60526315789474" h="39.60526315789474"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="83.72368421052633" y="20.11842105263158"/>
+                <line x="100.17105263157896" y="20.11842105263158"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PowerTransformer_PMS25_11000000_2030020" w="100" h="40.921052631578945" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(7,164,248)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="1.947368421052623" y="20.460526315789473"/>
+                <line x="18.39473684210526" y="20.460526315789473"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(7,164,248)"/>
+            <fillcolor color="rgb(255,102,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="18.32894736842105" y="0.6578947368421026" w="39.60526315789474" h="39.60526315789474"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="44.64473684210527" y="0.6578947368421026" w="39.60526315789474" h="39.60526315789474"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="84.18421052631578" y="20.460526315789473"/>
+                <line x="100.63157894736842" y="20.460526315789473"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Junction_PMS25_20200000_3030010" w="100" h="131.25" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="104.6875" y="65.625"/>
+                <line x="10.9375" y="3.125"/>
+                <line x="10.9375" y="128.125"/>
+                <close/>
+            </path>
+            <stroke/>
+            <fillstroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Substation_PMS25_30000000_1030000" w="100" h="84.93975903614457" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(0, 0, 0, .3)"/>
+            <strokewidth width="1"/>
+            <rect x="1.8072289156626553" y="-2.7108433734939794" w="99.39759036144578" h="84.33734939759036"/>
+            <fillstroke/>
+        </background>
+        <foreground>
+            <fontcolor color="rgb(255,255,255)"/>
+            <fontsize size="67.06626506024095"/>
+            <fontfamily family="宋体"/>
+            <text str="B" x="51.80722891566265" y="31.309638554216864" align="center" valign="middle"/>
+        </foreground>
+    </shape>
+    <shape name="Junction_PMS25_32000000_4300010" w="100" h="22.388425698872" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="1.4958312898479633" y="11.194212849436"/>
+                <line x="61.28003923491908" y="11.194212849436"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="61.28003923491908" y="1.9985286905345774"/>
+                <line x="61.28003923491908" y="21.93477194703286"/>
+                <line x="99.04364884747426" y="11.194212849436"/>
+                <close/>
+            </path>
+            <stroke/>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="EnergyConsumer_PMS25_37000000_5010030" w="100" h="100" aspect="fixed">
+        <connections>
+            <constraint x="0.5" y="0.5" name="o" perimeter="0"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="0.7096774193548328" y="0.7096774193548328" w="98.58064516129033" h="98.58064516129033"/>
+            <stroke/>
+        </background>
+        <foreground>
+            <fontcolor color="rgb(255,255,255)"/>
+            <fontsize size="92.98924731182795"/>
+            <fontfamily family="宋体"/>
+            <text str="J" x="47.261648745519715" y="32.85017921146954" align="center" valign="middle"/>
+        </foreground>
+    </shape>
+    <shape name="Fuse_PMS25_11500000_2090010@1" w="99.99999999999999" h="30.301978479694547" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.8272590535693638" y="15.150989239847274"/>
+                <line x="38.92745574453314" y="15.150989239847274"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="38.92745574453314" y="15.150989239847274"/>
+                <line x="73.63762582436652" y="-2.204095800069421"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="70.74511165104708" y="7.2023602915654275"/>
+                <line x="70.74511165104708" y="22.382274673145893"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="70.74511165104708" y="15.150989239847274"/>
+                <line x="99.67025338424156" y="15.150989239847274"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="46.158741177831764" y="7.2023602915654275"/>
+                <line x="50.49751243781094" y="15.150989239847274"/>
+                <line x="70.74511165104708" y="4.309846118245979"/>
+                <line x="66.40634039106791" y="-3.650352886729145"/>
+                <close/>
+            </path>
+            <stroke/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="51.94376952447066" y="-7.260210575031817"/>
+                <line x="56.999884299433056" y="-4.367696401712369"/>
+                <line x="51.21485595279416" y="-1.4751822283929172"/>
+                <close/>
+            </path>
+            <stroke/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="56.282540784449836" y="0.6884183732500304"/>
+                <line x="54.83628369779011" y="-2.204095800069421"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Disconnector_PMS25_11300000_2060010@1" w="100" h="14.835164835164836" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.5494505494505475" y="7.417582417582418"/>
+                <line x="38.79120879120879" y="7.417582417582418"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="38.79120879120879" y="7.417582417582418"/>
+                <line x="72.45054945054946" y="-0.824175824175823"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="71.75824175824175" y="1.9230769230769234"/>
+                <line x="71.75824175824175" y="12.912087912087912"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="71.75824175824175" y="7.417582417582418"/>
+                <line x="99.45054945054946" y="7.417582417582418"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="PowerTransformer_PMS25_30200002_4020050" w="100" h="46.01526717557252" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <ellipse x="46.458015267175576" y="0.38167938931297485" w="45.25190839694657" h="45.25190839694657"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="99.61832061068702" y="23.00763358778626"/>
+                <line x="91.98473282442748" y="23.00763358778626"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(181,0,4)"/>
+            <strokewidth width="1"/>
+            <ellipse x="8.290076335877856" y="0.38167938931297485" w="45.25190839694657" h="45.25190839694657"/>
+            <stroke/>
+            <strokecolor color="rgb(181,0,4)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="8.015267175572518" y="23.00763358778626"/>
+                <line x="0.3816793893129784" y="23.00763358778626"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Breaker_PMS25_30500000_4030011@1" w="100" h="26.58730158730159" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.39682539682539186" y="13.293650793650794"/>
+                <line x="18.746031746031743" y="13.293650793650794"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <fillcolor color="rgb(192,192,192)"/>
+            <strokewidth width="1"/>
+            <rect x="18.746031746031743" y="0.3968253968253972" w="63.492063492063494" h="25.793650793650794"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,255,255)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="82.23809523809524" y="13.293650793650794"/>
+                <line x="99.60317460317461" y="13.293650793650794"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Disconnector_PMS25_30600000_405001@1" w="100" h="14.250940473556097" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="0.7523788448771853" y="7.125470236778049"/>
+                <line x="38.78070369550785" y="7.125470236778049"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="38.78070369550785" y="7.125470236778049"/>
+                <line x="72.67094489931401" y="-0.4868333702146481"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="71.97388802832485" y="1.593272847975216"/>
+                <line x="71.97388802832485" y="12.657667625580881"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="71.97388802832485" y="7.125470236778049"/>
+                <line x="99.63487497233902" y="7.125470236778049"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Breaker_PMS25_11100000_2040010@1" w="100" h="27.85884850092863" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="83.16529583443884" y="13.929424250464315"/>
+                <line x="99.74794375165827" y="13.929424250464315"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <fillcolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <rect x="17.657203502255236" y="0.6633059166887776" w="64.67232687715574" h="26.532236667551075"/>
+            <fillstroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="1.0745555850358173" y="13.929424250464315"/>
+                <line x="16.834704165561156" y="13.929424250464315"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+    <shape name="Breaker_PMS25_11100000_2040011@0" w="100" h="27.85884850092863" aspect="fixed">
+        <connections>
+            <constraint x="0" y="0.5" name="a" perimeter="1"/>
+            <constraint x="1" y="0.5" name="b" perimeter="1"/>
+        </connections>
+        <background>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="83.16529583443884" y="13.929424250464315"/>
+                <line x="99.74794375165827" y="13.929424250464315"/>
+            </path>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <rect x="17.657203502255236" y="0.6633059166887776" w="64.67232687715574" h="26.532236667551075"/>
+            <stroke/>
+            <strokecolor color="rgb(255,0,0)"/>
+            <strokewidth width="1"/>
+            <path>
+                <move x="1.0745555850358173" y="13.929424250464315"/>
+                <line x="16.834704165561156" y="13.929424250464315"/>
+            </path>
+            <stroke/>
+        </background>
+        <foreground></foreground>
+    </shape>
+</shapes>
