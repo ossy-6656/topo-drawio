@@ -1,5 +1,203 @@
 import Dimension from '@/plugins/tmzx/graph/Dimension.js'
 
+// Vector2 在 public/tmzx/lib/math/Vector2.js 中以全局 script 形式定义。
+// 在 Vite ESM 环境中模块作用域无法访问全局变量，此处内联定义并挂到 window，确保同步可用。
+if (typeof window !== 'undefined' && typeof window.Vector2 === 'undefined') {
+    function Vector2(x, y) { this.x = x || 0; this.y = y || 0; }
+    Object.defineProperties(Vector2.prototype, {
+        width:  { get() { return this.x; }, set(v) { this.x = v; } },
+        height: { get() { return this.y; }, set(v) { this.y = v; } },
+    });
+    Object.assign(Vector2.prototype, {
+        isVector2: true,
+        set(x, y)          { this.x = x; this.y = y; return this; },
+        setScalar(s)        { this.x = s; this.y = s; return this; },
+        setX(x)             { this.x = x; return this; },
+        setY(y)             { this.y = y; return this; },
+        clone()             { return new this.constructor(this.x, this.y); },
+        copy(v)             { this.x = v.x; this.y = v.y; return this; },
+        add(v)              { this.x += v.x; this.y += v.y; return this; },
+        addScalar(s)        { this.x += s; this.y += s; return this; },
+        addVectors(a, b)    { this.x = a.x + b.x; this.y = a.y + b.y; return this; },
+        addScaledVector(v, s){ this.x += v.x * s; this.y += v.y * s; return this; },
+        sub(v)              { this.x -= v.x; this.y -= v.y; return this; },
+        subScalar(s)        { this.x -= s; this.y -= s; return this; },
+        subVectors(a, b)    { this.x = a.x - b.x; this.y = a.y - b.y; return this; },
+        multiply(v)         { this.x *= v.x; this.y *= v.y; return this; },
+        multiplyScalar(s)   { this.x *= s; this.y *= s; return this; },
+        divide(v)           { this.x /= v.x; this.y /= v.y; return this; },
+        divideScalar(s)     { return this.multiplyScalar(1 / s); },
+        applyMatrix3(m) {
+            const x = this.x, y = this.y, e = m.elements;
+            this.x = e[0] * x + e[3] * y + e[6];
+            this.y = e[1] * x + e[4] * y + e[7];
+            return this;
+        },
+        min(v)      { this.x = Math.min(this.x, v.x); this.y = Math.min(this.y, v.y); return this; },
+        max(v)      { this.x = Math.max(this.x, v.x); this.y = Math.max(this.y, v.y); return this; },
+        clamp(min, max) {
+            this.x = Math.max(min.x, Math.min(max.x, this.x));
+            this.y = Math.max(min.y, Math.min(max.y, this.y));
+            return this;
+        },
+        clampScalar(minV, maxV) {
+            this.x = Math.max(minV, Math.min(maxV, this.x));
+            this.y = Math.max(minV, Math.min(maxV, this.y));
+            return this;
+        },
+        clampLength(min, max) {
+            const len = this.length();
+            return this.divideScalar(len || 1).multiplyScalar(Math.max(min, Math.min(max, len)));
+        },
+        floor()     { this.x = Math.floor(this.x); this.y = Math.floor(this.y); return this; },
+        ceil()      { this.x = Math.ceil(this.x);  this.y = Math.ceil(this.y);  return this; },
+        round()     { this.x = Math.round(this.x); this.y = Math.round(this.y); return this; },
+        negate()    { this.x = -this.x; this.y = -this.y; return this; },
+        dot(v)      { return this.x * v.x + this.y * v.y; },
+        cross(v)    { return this.x * v.y - this.y * v.x; },
+        lengthSq()  { return this.x * this.x + this.y * this.y; },
+        length()    { return Math.sqrt(this.x * this.x + this.y * this.y); },
+        manhattanLength() { return Math.abs(this.x) + Math.abs(this.y); },
+        normalize() { return this.divideScalar(this.length() || 1); },
+        angle()     { const a = Math.atan2(this.y, this.x); return a < 0 ? a + 2 * Math.PI : a; },
+        distanceTo(v)        { return Math.sqrt(this.distanceToSquared(v)); },
+        distanceToSquared(v) { const dx = this.x - v.x, dy = this.y - v.y; return dx * dx + dy * dy; },
+        manhattanDistanceTo(v) { return Math.abs(this.x - v.x) + Math.abs(this.y - v.y); },
+        setLength(l) { return this.normalize().multiplyScalar(l); },
+        lerp(v, a)   { this.x += (v.x - this.x) * a; this.y += (v.y - this.y) * a; return this; },
+        lerpVectors(v1, v2, a) { return this.subVectors(v2, v1).multiplyScalar(a).add(v1); },
+        equals(v)    { return v.x === this.x && v.y === this.y; },
+        fromArray(arr, off = 0) { this.x = arr[off]; this.y = arr[off + 1]; return this; },
+        toArray(arr = [], off = 0) { arr[off] = this.x; arr[off + 1] = this.y; return arr; },
+        rotateAround(center, angle) {
+            const c = Math.cos(angle), s = Math.sin(angle);
+            const x = this.x - center.x, y = this.y - center.y;
+            this.x = x * c - y * s + center.x;
+            this.y = x * s + y * c + center.y;
+            return this;
+        },
+    });
+    window.Vector2 = Vector2;
+}
+
+// Vector3 内联定义，确保 ESM 环境中同步可用
+if (typeof window !== 'undefined' && typeof window.Vector3 === 'undefined') {
+    function Vector3(x, y, z) { this.x = x || 0; this.y = y || 0; this.z = z || 0; }
+    Object.assign(Vector3.prototype, {
+        isVector3: true,
+        set(x, y, z)        { this.x = x; this.y = y; this.z = z; return this; },
+        setScalar(s)        { this.x = s; this.y = s; this.z = s; return this; },
+        clone()             { return new this.constructor(this.x, this.y, this.z); },
+        copy(v)             { this.x = v.x; this.y = v.y; this.z = v.z; return this; },
+        add(v)              { this.x += v.x; this.y += v.y; this.z += v.z; return this; },
+        addScalar(s)        { this.x += s; this.y += s; this.z += s; return this; },
+        addVectors(a, b)    { this.x = a.x+b.x; this.y = a.y+b.y; this.z = a.z+b.z; return this; },
+        sub(v)              { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; },
+        subScalar(s)        { this.x -= s; this.y -= s; this.z -= s; return this; },
+        subVectors(a, b)    { this.x = a.x-b.x; this.y = a.y-b.y; this.z = a.z-b.z; return this; },
+        multiplyScalar(s)   { this.x *= s; this.y *= s; this.z *= s; return this; },
+        divideScalar(s)     { return this.multiplyScalar(1 / s); },
+        applyMatrix3(m) {
+            const x = this.x, y = this.y, z = this.z, e = m.elements;
+            this.x = e[0]*x + e[3]*y + e[6]*z;
+            this.y = e[1]*x + e[4]*y + e[7]*z;
+            this.z = e[2]*x + e[5]*y + e[8]*z;
+            return this;
+        },
+        min(v)      { this.x = Math.min(this.x,v.x); this.y = Math.min(this.y,v.y); this.z = Math.min(this.z,v.z); return this; },
+        max(v)      { this.x = Math.max(this.x,v.x); this.y = Math.max(this.y,v.y); this.z = Math.max(this.z,v.z); return this; },
+        negate()    { this.x=-this.x; this.y=-this.y; this.z=-this.z; return this; },
+        dot(v)      { return this.x*v.x + this.y*v.y + this.z*v.z; },
+        lengthSq()  { return this.x*this.x + this.y*this.y + this.z*this.z; },
+        length()    { return Math.sqrt(this.x*this.x + this.y*this.y + this.z*this.z); },
+        normalize() { return this.divideScalar(this.length() || 1); },
+        crossVectors(a, b) {
+            const ax=a.x,ay=a.y,az=a.z, bx=b.x,by=b.y,bz=b.z;
+            this.x=ay*bz-az*by; this.y=az*bx-ax*bz; this.z=ax*by-ay*bx;
+            return this;
+        },
+        distanceTo(v)        { return Math.sqrt(this.distanceToSquared(v)); },
+        distanceToSquared(v) { const dx=this.x-v.x,dy=this.y-v.y,dz=this.z-v.z; return dx*dx+dy*dy+dz*dz; },
+        fromArray(arr, off=0) { this.x=arr[off]; this.y=arr[off+1]; this.z=arr[off+2]; return this; },
+        toArray(arr=[], off=0) { arr[off]=this.x; arr[off+1]=this.y; arr[off+2]=this.z; return arr; },
+    });
+    window.Vector3 = Vector3;
+}
+
+// Matrix3 内联定义，确保 ESM 环境中同步可用
+if (typeof window !== 'undefined' && typeof window.Matrix3 === 'undefined') {
+    function Matrix3() {
+        this.elements = [1,0,0, 0,1,0, 0,0,1];
+    }
+    Object.assign(Matrix3.prototype, {
+        isMatrix3: true,
+        set(n11,n12,n13,n21,n22,n23,n31,n32,n33) {
+            const te = this.elements;
+            te[0]=n11; te[1]=n21; te[2]=n31;
+            te[3]=n12; te[4]=n22; te[5]=n32;
+            te[6]=n13; te[7]=n23; te[8]=n33;
+            return this;
+        },
+        identity() { return this.set(1,0,0, 0,1,0, 0,0,1); },
+        clone()    { return new this.constructor().fromArray(this.elements); },
+        copy(m)    { const te=this.elements,me=m.elements; for(let i=0;i<9;i++) te[i]=me[i]; return this; },
+        multiply(m)   { return this.multiplyMatrices(this, m); },
+        premultiply(m){ return this.multiplyMatrices(m, this); },
+        multiplyMatrices(a, b) {
+            const ae=a.elements, be=b.elements, te=this.elements;
+            const a11=ae[0],a12=ae[3],a13=ae[6], a21=ae[1],a22=ae[4],a23=ae[7], a31=ae[2],a32=ae[5],a33=ae[8];
+            const b11=be[0],b12=be[3],b13=be[6], b21=be[1],b22=be[4],b23=be[7], b31=be[2],b32=be[5],b33=be[8];
+            te[0]=a11*b11+a12*b21+a13*b31; te[3]=a11*b12+a12*b22+a13*b32; te[6]=a11*b13+a12*b23+a13*b33;
+            te[1]=a21*b11+a22*b21+a23*b31; te[4]=a21*b12+a22*b22+a23*b32; te[7]=a21*b13+a22*b23+a23*b33;
+            te[2]=a31*b11+a32*b21+a33*b31; te[5]=a31*b12+a32*b22+a33*b32; te[8]=a31*b13+a32*b23+a33*b33;
+            return this;
+        },
+        multiplyScalar(s) { const te=this.elements; for(let i=0;i<9;i++) te[i]*=s; return this; },
+        getInverse(matrix) {
+            const me=matrix.elements, te=this.elements;
+            const n11=me[0],n21=me[1],n31=me[2], n12=me[3],n22=me[4],n32=me[5], n13=me[6],n23=me[7],n33=me[8];
+            const t11=n33*n22-n32*n23, t12=n32*n13-n33*n12, t13=n23*n12-n22*n13;
+            const det=n11*t11+n21*t12+n31*t13;
+            if(det===0){ console.warn('Matrix3: .getInverse() det=0'); return this.identity(); }
+            const di=1/det;
+            te[0]=t11*di;             te[1]=(n31*n23-n33*n21)*di; te[2]=(n32*n21-n31*n22)*di;
+            te[3]=t12*di;             te[4]=(n33*n11-n31*n13)*di; te[5]=(n31*n12-n32*n11)*di;
+            te[6]=t13*di;             te[7]=(n21*n13-n23*n11)*di; te[8]=(n22*n11-n21*n12)*di;
+            return this;
+        },
+        transpose() {
+            const m=this.elements; let tmp;
+            tmp=m[1]; m[1]=m[3]; m[3]=tmp;
+            tmp=m[2]; m[2]=m[6]; m[6]=tmp;
+            tmp=m[5]; m[5]=m[7]; m[7]=tmp;
+            return this;
+        },
+        scale(sx, sy) {
+            const te=this.elements;
+            te[0]*=sx; te[3]*=sx; te[6]*=sx;
+            te[1]*=sy; te[4]*=sy; te[7]*=sy;
+            return this;
+        },
+        rotate(theta) {
+            const c=Math.cos(theta), s=Math.sin(theta), te=this.elements;
+            const a11=te[0],a12=te[3],a13=te[6], a21=te[1],a22=te[4],a23=te[7];
+            te[0]=c*a11+s*a21; te[3]=c*a12+s*a22; te[6]=c*a13+s*a23;
+            te[1]=-s*a11+c*a21; te[4]=-s*a12+c*a22; te[7]=-s*a13+c*a23;
+            return this;
+        },
+        translate(tx, ty) {
+            const te=this.elements;
+            te[0]+=tx*te[2]; te[3]+=tx*te[5]; te[6]+=tx*te[8];
+            te[1]+=ty*te[2]; te[4]+=ty*te[5]; te[7]+=ty*te[8];
+            return this;
+        },
+        equals(m) { const te=this.elements,me=m.elements; for(let i=0;i<9;i++) if(te[i]!==me[i]) return false; return true; },
+        fromArray(arr, off=0) { for(let i=0;i<9;i++) this.elements[i]=arr[i+off]; return this; },
+        toArray(arr=[], off=0) { const te=this.elements; for(let i=0;i<9;i++) arr[off+i]=te[i]; return arr; },
+    });
+    window.Matrix3 = Matrix3;
+}
+
 let mathutil = {
     anglePerRad: 180 / Math.PI,
     radianPerAngle: Math.PI / 180,

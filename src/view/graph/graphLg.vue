@@ -204,6 +204,37 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
+                            // ── 添加"电力设备"图元面板（来自 lgdata.js 的 SVG 元素）──
+                            try {
+                                // 每项: [shape名(小写), 中文名称, 像素宽, 像素高]
+                                // shape 名对应 LGSvgParser.parseUse 中 shape=symbolId.toLowerCase()
+                                const lgDeviceItems = [
+                                    ['junction',            '节点/T接',          52,  60],
+                                    ['breaker',             '断路器',            120,  63],
+                                    ['disconnector',        '隔离开关',          120,  74],
+                                    ['fuse',                '熔断器',            120,  51],
+                                    ['grounddisconnector',  '接地刀闸',          120,  61],
+                                    ['powertransformer',    '变压器',             90,  98],
+                                    ['currenttransformer',  '电流互感器',         60,  71],
+                                    ['potentialtransformer','电压互感器',         70,  68],
+                                    ['remoteunit',          '远动装置',           70,  70],
+                                    ['polecode',            '杆塔',               50,  50],
+                                    ['substation',          '变电站',             70,  70],
+                                    ['breaker0305',         '站内-断路器(0305)', 120,  56],
+                                ]
+                                const lgDeviceFns = lgDeviceItems.map(([shapeId, label, w, h]) => {
+                                    const style = `shape=${shapeId};whiteSpace=wrap;aspect=fixed;`
+                                    return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
+                                })
+                                ui.sidebar.addPaletteFunctions('lg-devices', '电力设备', true, lgDeviceFns)
+                                console.log('电力设备图元面板添加成功')
+                            } catch (e) {
+                                console.error('添加电力设备面板失败:', e)
+                            }
+
+
+
+
                             // 延迟显示便笺本和通用标签，确保所有面板都已加载完成
                             setTimeout(() => {
                                 console.log('开始显示便笺本和通用标签')

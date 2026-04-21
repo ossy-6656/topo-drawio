@@ -39,16 +39,7 @@ const links = [
         rel: "stylesheet",
         type: "text/css",
         href: "/tmzx/drawio/styles/grapheditor.css"
-    },
-    {
-        rel: "stylesheet",
-        href: "http://25.213.0.139:31005/sgepriamapsdk/css/narimap.umd.css"
-    },
-    {
-        rel: "stylesheet",
-        href: "http://25.213.0.139:31005/sgepriamapsdk/css/nrgis-common.min.css"
     }
-
 ].map(item => {
     return {
         ...item,
@@ -87,39 +78,6 @@ const scripts0 = [
     }
 })
 const scripts = [
-    
-    // 1
-    {
-        type: "text/javascript",
-        src: "http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.map.min.js"
-    },
-    {
-        type: "text/javascript",
-        src: "http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.umd.min.js"
-    },
-    {
-        type: "text/javascript",
-        src: "http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.components.devicecard.min.js"
-    },
-    {
-        type: "text/javascript",
-        src: "http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.popup.min.js"
-    },
-    {
-        type: "text/javascript",
-        src: "http://25.213.0.139:31005/sgepriamapsdk/libs/narimap.psrmap.min.js"
-    },
-    // {
-    //     type: "text/javascript",
-    //     src: "http://25.213.0.139:31005/narimap/libs/thematic/d3.v7.min.js"
-    // },
-
-    // 2
-    // {
-    //     type: "text/javascript",
-    //     src: "http://25.213.120.208/videoComponent/latest/uvp.js"
-    // },
-    // 3
     {
         src: "/tmzx/lib/math/Math.js"
     },
