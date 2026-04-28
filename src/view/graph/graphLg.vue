@@ -183,76 +183,148 @@ let initEditFun = (svgstr, lgsvgParser) => {
                         console.log('画布调整成功')
                     }
 
-                    // 初始化 Sidebar，只加载便笺本和通用面板
+                    // 初始化 Sidebar，只加载电力设备面板
                     if (ui.sidebar) {
                         try {
-                            console.log('开始初始化 Sidebar...')
-
-                            // 确保 Scratchpad 被初始化
-                            if (!ui.scratchpad) {
-                                // 初始化 Scratchpad
-                                ui.toggleScratchpad();
-                                console.log('Scratchpad 初始化成功')
-                            }
-
-                            // 修改Sidebar的默认条目，只显示便笺本和通用
-                            ui.sidebar.defaultEntries = '.scratchpad;general'
-                            
-                            // 确保模板被正确加载
-                            ui.sidebar.addStencilsToIndex = true
-                            
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
-                            // ── 添加"电力设备"图元面板（来自 lgdata.js 的 SVG 元素）──
-                            try {
-                                // 每项: [shape名(小写), 中文名称, 像素宽, 像素高]
-                                // shape 名对应 LGSvgParser.parseUse 中 shape=symbolId.toLowerCase()
-                                const lgDeviceItems = [
-                                    ['junction',            '节点/T接',          52,  60],
-                                    ['breaker',             '断路器',            120,  63],
-                                    ['disconnector',        '隔离开关',          120,  74],
-                                    ['fuse',                '熔断器',            120,  51],
-                                    ['grounddisconnector',  '接地刀闸',          120,  61],
-                                    ['powertransformer',    '变压器',             90,  98],
-                                    ['currenttransformer',  '电流互感器',         60,  71],
-                                    ['potentialtransformer','电压互感器',         70,  68],
-                                    ['remoteunit',          '远动装置',           70,  70],
-                                    ['polecode',            '杆塔',               50,  50],
-                                    ['substation',          '变电站',             70,  70],
-                                    ['breaker0305',         '站内-断路器(0305)', 120,  56],
-                                ]
-                                const lgDeviceFns = lgDeviceItems.map(([shapeId, label, w, h]) => {
-                                    const style = `shape=${shapeId};whiteSpace=wrap;aspect=fixed;`
-                                    return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
-                                })
-                                ui.sidebar.addPaletteFunctions('lg-devices', '电力设备', true, lgDeviceFns)
-                                console.log('电力设备图元面板添加成功')
-                            } catch (e) {
-                                console.error('添加电力设备面板失败:', e)
+                            // ── 构建基础电力设备图元列表 ──
+                            const lgDeviceItems = [
+                                ['junction',            '节点/T接',          52,  60],
+                                ['breaker',             '断路器',            120,  63],
+                                ['disconnector',        '隔离开关',          120,  74],
+                                ['fuse',                '熔断器',            120,  51],
+                                ['grounddisconnector',  '接地刀闸',          120,  61],
+                                ['powertransformer',    '变压器',             90,  98],
+                                ['currenttransformer',  '电流互感器',         60,  71],
+                                ['potentialtransformer','电压互感器',         70,  68],
+                                ['remoteunit',          '远动装置',           70,  70],
+                                ['polecode',            '杆塔',               50,  50],
+                                ['substation_30000005_1030020', '配电站(zf06)', 70, 70],
+                                ['substation_32300000_1030050', '箱式变电站(zf08)', 70, 70],
+
+                            ]
+                            const lgDeviceFns = lgDeviceItems.map(([shapeId, label, w, h]) => {
+                                const style = `shape=${shapeId};whiteSpace=wrap;aspect=fixed;`
+                                return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
+                            })
+
+                            // ── 辅助：解析 mxlibrary XML，返回图元 DOM 节点数组（与 addLibraryEntries 逻辑一致）──
+                            const parseScratchpadXml = (xml) => {
+                                const nodes = []
+                                try {
+                                    // drawio 便笺本格式：<mxlibrary>[{"xml":"...","w":N,"h":N,"title":"..."}]</mxlibrary>
+                                    const doc = new DOMParser().parseFromString(xml, 'text/xml')
+                                    const node = doc.querySelector('mxlibrary')
+                                    if (node) {
+                                        const items = JSON.parse(node.textContent)
+                                        if (Array.isArray(items)) {
+                                            items.forEach(item => {
+                                                try {
+                                                    const w = item.w || 100
+                                                    const h = item.h || 100
+                                                    const title = item.title || ''
+                                                    if (item.data) {
+                                                        // 图片类型
+                                                        let s = 'shape=image;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;'
+                                                        if (item.aspect === 'fixed') s += 'aspect=fixed;'
+                                                        s += 'image=' + ui.convertDataUri(item.data) + ';'
+                                                        if (item.style) s += item.style
+                                                        nodes.push(ui.sidebar.createVertexTemplate(s, w, h, '', title, false, null, true))
+                                                    } else if (item.xml) {
+                                                        // cells XML 类型：与 addLibraryEntries 完全一致
+                                                        const xmlStr = (item.xml.charAt(0) === '<')
+                                                            ? item.xml
+                                                            : Graph.decompress(item.xml)
+                                                        const cells = ui.stringToCells(xmlStr)
+                                                        if (cells.length > 0) {
+                                                            nodes.push(ui.sidebar.createVertexTemplateFromCells(
+                                                                cells, w, h, title, true, null, true
+                                                            ))
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    console.warn('便笺本单个图元解析失败:', e)
+                                                }
+                                            })
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.warn('解析便笺本 XML 失败:', e)
+                                }
+                                return nodes
                             }
 
+                            // ── 用 StorageFile.getFileContent 异步读取便笺本，追加到电力设备面板 ──
+                            // 先渲染基础图元
+                            ui.sidebar.addPaletteFunctions('lg-devices', '电力设备', true, lgDeviceFns)
 
+                            // ── 连接线分类 ──
+                            const lgLineFns = [
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=none;html=1;',
+                                    50, 50, '', '直线', null, null, '直线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=none;dashed=1;html=1;',
+                                    50, 50, '', '虚线', null, null, '虚线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=classic;html=1;',
+                                    50, 50, '', '有向连接线', null, null, '有向连接线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=classic;startArrow=classic;html=1;',
+                                    50, 50, '', '双向连接线', null, null, '双向连接线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;',
+                                    50, 50, '', '直角折线', null, null, '直角折线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    'endArrow=none;html=1;curved=1;',
+                                    50, 50, '', '曲线', null, null, '曲线'
+                                ),
+                            ]
+                            ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
 
+                            // ── 辅助：将解析出的图元节点追加到电力设备面板 ──
+                            const appendScratchNodes = (scratchNodes) => {
+                                if (!scratchNodes || scratchNodes.length === 0) return
+                                // palettes['lg-devices'] = [titleEl, outerDiv]
+                                // outerDiv.firstChild 是 .geSidebar content div
+                                const palette = ui.sidebar.palettes['lg-devices']
+                                const contentDiv = palette && palette[1] && palette[1].firstChild
+                                if (contentDiv) {
+                                    scratchNodes.forEach(node => contentDiv.appendChild(node))
+                                    console.log('便笺本图元已追加到电力设备面板，共', scratchNodes.length, '个')
+                                } else {
+                                    console.warn('未找到电力设备面板 content div，palettes:', ui.sidebar.palettes['lg-devices'])
+                                }
+                            }
 
-                            // 延迟显示便笺本和通用标签，确保所有面板都已加载完成
-                            setTimeout(() => {
-                                console.log('开始显示便笺本和通用标签')
-                                console.log('Sidebar配置:', ui.sidebar.configuration)
-                                console.log('默认条目:', ui.sidebar.defaultEntries)
-                                console.log('Palettes:', Object.keys(ui.sidebar.palettes))
-                                
-                                // 只显示便笺本和通用标签
-                                ui.sidebar.showEntries('.scratchpad;general', true, true)
-                                
-                                // 检查通用标签是否显示
-                                setTimeout(() => {
-                                    console.log('通用标签是否可见:', ui.sidebar.isEntryVisible('general'))
-                                    console.log('显示便笺本和通用标签成功')
-                                }, 500)
-                            }, 2000)
-
-                            console.log('Sidebar 初始化完成，只加载便笺本和通用面板')
+                            // 异步追加便笺本图元
+                            const loadScratchpad = () => {
+                                if (typeof StorageFile !== 'undefined') {
+                                    StorageFile.getFileContent(ui, '.scratchpad', (xml) => {
+                                        console.log('StorageFile.getFileContent 回调，xml长度:', xml ? xml.length : 0)
+                                        if (xml && xml !== ui.emptyLibraryXml) {
+                                            appendScratchNodes(parseScratchpadXml(xml))
+                                        } else {
+                                            // 降级：从 localStorage 尝试
+                                            const lsXml = localStorage.getItem('.scratchpad')
+                                            console.log('localStorage .scratchpad 长度:', lsXml ? lsXml.length : 0)
+                                            if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                                        }
+                                    })
+                                } else {
+                                    // StorageFile 未定义，直接读 localStorage
+                                    const lsXml = localStorage.getItem('.scratchpad')
+                                    if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                                }
+                            }
+                            loadScratchpad()
 
                         } catch (e) {
                             console.error('初始化 Sidebar 失败:', e)

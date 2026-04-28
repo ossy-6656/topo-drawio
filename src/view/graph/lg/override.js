@@ -149,10 +149,26 @@ window.EditDataDialog = function(ui, cell)
         parent.appendChild(wrapper);
     };
 
+    // 属性名称中英文映射
+    var attrNameMap = {
+        'name': '设备名称',
+        'attr': '设备属性',
+        'switchrolename': '开关作用',
+        'pubprivflag': '营配标识',
+        'psrtype': '设备类型',
+        'id': 'ID',
+        'shape': '图形',
+        'label': '标签',
+        'style': '样式',
+        'metadata': '元数据'
+    };
+
     var addTextArea = function(index, name, value)
     {
         names[index] = name;
-        texts[index] = form.addTextarea(names[count] + ':', value, 2);
+        // 使用中文属性名称显示
+        var displayName = attrNameMap[name] || name;
+        texts[index] = form.addTextarea(displayName + ':', value, 2);
         texts[index].style.width = '100%';
 
         if (value.indexOf('\n') > 0)
@@ -160,9 +176,14 @@ window.EditDataDialog = function(ui, cell)
             texts[index].setAttribute('rows', '2');
         }
 
-        addRemoveButton(texts[index], name);
+        // id和shape字段不能删除，不添加删除按钮
+        if (name != 'id' && name != 'shape')
+        {
+            addRemoveButton(texts[index], name);
+        }
 
-        if (meta[name] != null && meta[name].editable == false)
+        // 设备名称可编辑，id和shape不可编辑
+        if (name == 'id' || name == 'shape' || (meta[name] != null && meta[name].editable == false))
         {
             texts[index].setAttribute('disabled', 'disabled');
         }
@@ -177,6 +198,29 @@ window.EditDataDialog = function(ui, cell)
             isLayer) && attrs[i].nodeName != 'placeholders')
         {
             temp.push({name: attrs[i].nodeName, value: attrs[i].nodeValue});
+        }
+    }
+
+    // 添加 tooltip 中显示的其他属性
+    var cellStyle = cell.style || graph.getCurrentCellStyle(cell);
+    var tooltipAttrs = ['name', 'attr', 'switchrolename', 'pubprivflag', 'psrtype'];
+
+    for (var i = 0; i < tooltipAttrs.length; i++)
+    {
+        var attrName = tooltipAttrs[i];
+        var attrValue = cell[attrName] || cellStyle[attrName] || '';
+        
+        // 转换营配标识的显示值
+        if (attrName == 'pubprivflag' && attrValue != '')
+        {
+            attrValue = attrValue == 0 ? '运检' : '营销';
+        }
+        
+        // 检查是否已存在该属性
+        var exists = temp.some(function(item) { return item.name == attrName; });
+        if (!exists && attrValue != '')
+        {
+            temp.push({name: attrName, value: attrValue.toString()});
         }
     }
 
@@ -203,63 +247,13 @@ window.EditDataDialog = function(ui, cell)
         text.style.width = '100%';
         text.style.fontSize = '11px';
         text.style.textAlign = 'center';
+        text.style.color = '#999';
         mxUtils.write(text, id);
 
         var idInput = form.addField(mxResources.get('id') + ':', text);
-
-        mxEvent.addListener(text, 'dblclick', function(evt)
-        {
-            var dlg = new FilenameDialog(ui, id, mxResources.get('apply'),
-                mxUtils.bind(this, function(value)
-                {
-                    if (value != null && value.length > 0 && value != id)
-                    {
-                        if (graph.model.isRoot(cell))
-                        {
-                            var page = ui.getPageById(id);
-
-                            if (page != null)
-                            {
-                                if (ui.getPageById(value) == null)
-                                {
-                                    var index = ui.getPageIndex(page);
-
-                                    if (index >= 0)
-                                    {
-                                        ui.removePage(page);
-                                        page.node.setAttribute('id', value);
-                                        id = value;
-                                        idInput.innerHTML = mxUtils.htmlEntities(value);
-                                        ui.insertPage(page, index);
-                                    }
-                                }
-                                else
-                                {
-                                    ui.handleError({message: mxResources.get('alreadyExst',
-                                            [mxResources.get('page')])});
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (graph.getModel().getCell(value) == null)
-                            {
-                                graph.getModel().cellRemoved(cell);
-                                cell.setId(value);
-                                id = value;
-                                idInput.innerHTML = mxUtils.htmlEntities(value);
-                                graph.getModel().cellAdded(cell);
-                            }
-                            else
-                            {
-                                ui.handleError({message: mxResources.get('alreadyExst', [value])});
-                            }
-                        }
-                    }
-                }), mxResources.get('id'));
-            ui.showDialog(dlg.container, 300, 80, true, true);
-            dlg.init();
-        });
+        
+        // id 字段不可编辑，禁用双击编辑功能
+        text.style.cursor = 'default';
     }
 
     for (var i = 0; i < temp.length; i++)
@@ -426,6 +420,23 @@ window.EditDataDialog = function(ui, cell)
                 else
                 {
                     value.setAttribute(names[i], texts[i].value);
+                    
+                    // 同步更新 cell 对象上的属性（用于 tooltip 显示）
+                    if (names[i] == 'name' || names[i] == 'attr' || 
+                        names[i] == 'switchrolename' || names[i] == 'pubprivflag' || 
+                        names[i] == 'psrtype')
+                    {
+                        // 营配标识需要转换回数字
+                        if (names[i] == 'pubprivflag')
+                        {
+                            cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
+                        }
+                        else
+                        {
+                            cell[names[i]] = texts[i].value;
+                        }
+                    }
+                    
                     removeLabel = removeLabel || (names[i] == 'placeholder' &&
                         value.getAttribute('placeholders') == '1');
                 }
@@ -521,7 +532,7 @@ window.EditDataDialog = function(ui, cell)
     }
 
     // buttons.appendChild(exportBtn);
-    // buttons.appendChild(applyBtn);
+    buttons.appendChild(applyBtn);
 
     if (!ui.editor.cancelFirst)
     {
