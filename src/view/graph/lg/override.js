@@ -7,6 +7,7 @@
 
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
+import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
 
 let preAddPopupMenuItems = Menus.prototype.addPopupMenuItems;
 Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
@@ -155,7 +156,8 @@ window.EditDataDialog = function(ui, cell)
         'attr': '设备属性',
         'switchrolename': '开关作用',
         'pubprivflag': '营配标识',
-        'psrtype': '设备类型',
+        'psrtype': 'PSR类型',
+        'sblx': '设备类型',
         'id': 'ID',
         'shape': '图形',
         'label': '标签',
@@ -203,7 +205,7 @@ window.EditDataDialog = function(ui, cell)
 
     // 添加 tooltip 中显示的其他属性
     var cellStyle = cell.style || graph.getCurrentCellStyle(cell);
-    var tooltipAttrs = ['name', 'attr', 'switchrolename', 'pubprivflag', 'psrtype'];
+    var tooltipAttrs = ['name', 'attr', 'switchrolename', 'pubprivflag'];
 
     for (var i = 0; i < tooltipAttrs.length; i++)
     {
@@ -222,6 +224,36 @@ window.EditDataDialog = function(ui, cell)
         {
             temp.push({name: attrName, value: attrValue.toString()});
         }
+    }
+
+    // 处理设备类型（包含中文名称）
+    var psrtype = cell['psrtype'] || cellStyle['psrtype'] || '';
+    var sblxName = '';
+    
+    if (cell.id) {
+        var arr = cell.id.split('_');
+        if (cell.id.indexOf('virtual') == -1 && arr.length > 0) {
+            var sbzlx = arr[1];
+            sblxName = sbzlx2nameMap.get(sbzlx) || sbzlx2nameMap.get(cell.sbzlx) || '';
+        }
+    }
+    
+    var fullSblx = '';
+    if (sblxName) {
+        fullSblx = sblxName;
+    }
+    if (psrtype) {
+        if (fullSblx) {
+            fullSblx = fullSblx + '(' + psrtype + ')';
+        } else {
+            fullSblx = psrtype;
+        }
+    }
+    
+    // 检查设备类型是否已存在
+    var sblxExists = temp.some(function(item) { return item.name == 'sblx'; });
+    if (!sblxExists && fullSblx != '') {
+        temp.push({name: 'sblx', value: fullSblx});
     }
 
     // Sorts by name
@@ -416,25 +448,25 @@ window.EditDataDialog = function(ui, cell)
                 if (texts[i] == null)
                 {
                     value.removeAttribute(names[i]);
+                    // 删除属性时也从 cell 对象上移除
+                    if (cell[names[i]] != null)
+                    {
+                        delete cell[names[i]];
+                    }
                 }
                 else
                 {
                     value.setAttribute(names[i], texts[i].value);
                     
-                    // 同步更新 cell 对象上的属性（用于 tooltip 显示）
-                    if (names[i] == 'name' || names[i] == 'attr' || 
-                        names[i] == 'switchrolename' || names[i] == 'pubprivflag' || 
-                        names[i] == 'psrtype')
+                    // 同步更新 cell 对象上的所有属性（用于 tooltip 显示）
+                    // 营配标识需要转换回数字
+                    if (names[i] == 'pubprivflag')
                     {
-                        // 营配标识需要转换回数字
-                        if (names[i] == 'pubprivflag')
-                        {
-                            cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
-                        }
-                        else
-                        {
-                            cell[names[i]] = texts[i].value;
-                        }
+                        cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
+                    }
+                    else
+                    {
+                        cell[names[i]] = texts[i].value;
                     }
                     
                     removeLabel = removeLabel || (names[i] == 'placeholder' &&

@@ -26,6 +26,18 @@ Graph.prototype.getAllConnectionConstraints = function (terminal, source) {
     }
 }
 
+// 属性名称中英文映射
+var tooltipAttrNameMap = {
+    'name': '设备名称',
+    'attr': '设备属性',
+    'switchrolename': '开关作用',
+    'pubprivflag': '营配标识',
+    'psrtype': '设备类型',
+    'shape': '图形',
+    'lineType': '线型',
+    'label': '标签'
+};
+
 // 这个处理tooltip
 var graphGetTooltipForCell = Graph.prototype.getTooltipForCell
 Graph.prototype.getTooltipForCell = function (cell) {
@@ -49,27 +61,28 @@ Graph.prototype.getTooltipForCell = function (cell) {
             // 营配标识：pubprivflag   0 运检  1 营销
             let { name, attr, switchrolename, pubprivflag, psrtype } = cell
 
-            if (name) {
-                sb.push(`<tr><td>设备名称：</td><td>${name}</td></tr>`)
-            }
-            if (attr) {
-                sb.push(`<tr><td>设备属性：</td><td>${attr}</td></tr>`)
-            }
-            if (pubprivflag) {
-                sb.push(
-                    `<tr><td>营配标识：</td><td>${pubprivflag == 0 ? '运检' : '营销'}</td></tr>`
-                )
-            }
-            if (switchrolename) {
-                sb.push(`<tr><td>开关作用：</td><td>${switchrolename}</td></tr>`)
-            }
-            // PD_14000000_37748
+            // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
+            let fixedAttrs = ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+            
+            // 先显示固定顺序的属性
+            fixedAttrs.forEach(function(attrName) {
+                let attrValue = cell[attrName] || cellStyle[attrName];
+                if (attrValue) {
+                    // 转换营配标识的显示值
+                    if (attrName == 'pubprivflag') {
+                        attrValue = attrValue == 0 ? '运检' : '营销';
+                    }
+                    let displayName = tooltipAttrNameMap[attrName] || attrName;
+                    sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`);
+                }
+            });
+
+            // PD_14000000_37748 - 统一处理设备类型（包含 psrtype）
             let _sblx
             let sblxName
-            let id = cell.id
 
-            let arr = id.split('_')
-            if (id.indexOf('virtual') == -1 && arr.length > 0) {
+            let arr = cell.id.split('_')
+            if (cell.id.indexOf('virtual') == -1 && arr.length > 0) {
                 let sbzlx = arr[1]
                 sblxName = sbzlx2nameMap.get(sbzlx) || sbzlx2nameMap.get(cell.sbzlx)
             }
@@ -90,19 +103,23 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
 
-            if (cellStyle.shape) {
-                sb.push(`<tr><td>symbol：</td><td>${cellStyle.shape}</td></tr>`)
-            }
-
-            if (cellStyle.lineType) {
-                let lineType = cellStyle.lineType
-                if (!lineType) {
-                    lineType = ''
+            // 显示用户自定义添加的其他属性
+            // 从 cell 的 XML value 中获取所有属性
+            var value = model.getValue(cell);
+            if (mxUtils.isNode(value)) {
+                var attrs = value.attributes;
+                for (var i = 0; i < attrs.length; i++) {
+                    var attrName = attrs[i].nodeName;
+                    var attrValue = attrs[i].nodeValue;
+                    
+                    // 跳过已显示的属性和特殊属性（包括 psrtype 和 id）
+                    if (fixedAttrs.indexOf(attrName) == -1 && 
+                        attrName != 'label' && attrName != 'placeholders' && 
+                        attrName != 'psrtype' && attrName != 'id') {
+                        let displayName = tooltipAttrNameMap[attrName] || attrName;
+                        sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`);
+                    }
                 }
-                if (lineType == 'undefined') {
-                    lineType = ''
-                }
-                sb.push(`<tr><td>lineType：</td><td>${lineType}</td></tr>`)
             }
         }
 
