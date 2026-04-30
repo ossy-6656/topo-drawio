@@ -189,10 +189,12 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
-                            // ── 构建基础电力设备图元列表 ──
+                            // ── 构建基础电力设备图元列表（基于 symbol.js 中的 SVG 符号）──
+                            // 定义图元数据：symbolId, 中文标签, 原宽度, 原高度
                             const lgDeviceItems = [
                                 ['junction',            '节点/T接',          52,  60],
                                 ['breaker',             '断路器',            120,  63],
+                                ['breaker0305',         '站内-断路器(0305)', 120,  56],
                                 ['disconnector',        '隔离开关',          120,  74],
                                 ['fuse',                '熔断器',            120,  51],
                                 ['grounddisconnector',  '接地刀闸',          120,  61],
@@ -201,12 +203,42 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 ['potentialtransformer','电压互感器',         70,  68],
                                 ['remoteunit',          '远动装置',           70,  70],
                                 ['polecode',            '杆塔',               50,  50],
-                                ['substation_30000005_1030020', '配电站(zf06)', 70, 70],
-                                ['substation_32300000_1030050', '箱式变电站(zf08)', 70, 70],
-
+                                ['substation',          '配电站(zf06)',       70,  70],
+                                ['xb',                  '箱式变电站(zf08)',   70,  70],
+                                ['lightningarrester',   '避雷器',             50,  80],
                             ]
-                            const lgDeviceFns = lgDeviceItems.map(([shapeId, label, w, h]) => {
-                                const style = `shape=${shapeId};whiteSpace=wrap;aspect=fixed;`
+
+                            // 辅助函数：从 symbol.js 中提取指定 symbol 的 SVG
+                            const getSymbolSvg = (symbolId) => {
+                                const regex = new RegExp(`<symbol[^>]*id=["']${symbolId}["'][^>]*>([\\s\\S]*?)</symbol>`, 'i')
+                                const match = customSymbolStr.match(regex)
+                                if (match && match[1]) {
+                                    // match[1] 是 symbol 标签内的内容
+                                    const symbolContent = match[0]
+                                    const widthMatch = symbolContent.match(/width=["'](\d+(?:\.\d+)?)["']/)
+                                    const heightMatch = symbolContent.match(/height=["'](\d+(?:\.\d+)?)["']/)
+                                    const viewBoxMatch = symbolContent.match(/viewBox=["']([^"']+)["']/)
+                                    const w = widthMatch ? widthMatch[1] : 100
+                                    const h = heightMatch ? heightMatch[1] : 100
+                                    const vb = viewBoxMatch ? viewBoxMatch[1] : `0 0 ${w} ${h}`
+                                    // 提取 symbol 内的内容，而不是整个 symbol 标签
+                                    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${vb}">${match[1]}</svg>`
+                                }
+                                return null
+                            }
+
+                            // 创建基于 SVG symbol 的图元
+                            const lgDeviceFns = lgDeviceItems.map(([symbolId, label, w, h]) => {
+                                const svgStr = getSymbolSvg(symbolId)
+                                if (svgStr) {
+                                    // 将 SVG 转换为 Data URI（使用更可靠的编码方式）
+                                    const encodedSvg = svgStr.replace(/#/g, '%23').replace(/\n/g, '').replace(/\r/g, '')
+                                    const svgUri = 'data:image/svg+xml,' + encodedSvg
+                                    const style = `shape=image;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=${svgUri};`
+                                    return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
+                                }
+                                // 如果没有找到对应的 symbol，回退到使用 shape id
+                                const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;`
                                 return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
                             })
 

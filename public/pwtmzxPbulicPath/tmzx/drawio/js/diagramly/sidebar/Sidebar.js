@@ -865,10 +865,10 @@
             ui.toggleScratchpad();
         }
         
-        // 加载通用标签
-        if (!this.palettes['general']) {
-            this.addGeneralPalette(true);
-        }
+        // 加载通用标签（已移除）
+        // if (!this.palettes['general']) {
+        //     this.addGeneralPalette(true);
+        // }
         // 隐藏杂项和高级图元
         // if (!this.palettes['misc']) {
         //     this.addMiscPalette(false);

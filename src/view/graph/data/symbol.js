@@ -152,4 +152,10 @@ export default `
             <line x1="36" y1="145" x2="96" y2="145" stroke="rgb(185,72,66)" stroke-width="8" fill="none"/>
             <line x1="46" y1="116" x2="86" y2="116" stroke="rgb(185,72,66)" stroke-width="8" fill="none"/>
         </symbol>
+        <!--定义图元1030000:变电站-->
+        <symbol id="Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000" width="10.100000" height="11.133000" viewBox="0 0 10.100000 11.133000">
+        <rect x="-5.125000" y="-5.125000" width="10.000000" height="10.000000" fill="rgb(0, 0, 0)" stroke="rgb(255,0,0)" stroke-width="0.100000" />
+        <text x="0.300000" y="0.374000" fill="rgb(0,0,0)" stroke="none" font-family="宋体" font-size="11.133000" style="text-anchor:middle" dy=".3em">B</text>
+        <use x="0.000000" y="0.000000" terminal-index="1" type="0" xlink:href="#terminal" />
+        </symbol>
 `
