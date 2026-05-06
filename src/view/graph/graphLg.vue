@@ -99,6 +99,21 @@ import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
 
+/** 替换 draw.io 默认「保存」图（易与下载混淆），与 .geStatusAlert 文字同色 #b62623（grapheditor.css） */
+function applyDrawioSaveStatusIcon() {
+    if (typeof Editor === 'undefined') return
+    const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none">' +
+        '<path stroke="#b62623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+        'd="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>' +
+        '<polyline stroke="#b62623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+        'points="17 21 17 13 7 13 7 21"/>' +
+        '<polyline stroke="#b62623" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+        'points="7 3 7 8 15 8"/>' +
+        '</svg>'
+    Editor.saveImage = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg)
+}
+
 // ==================== 全局配置 ====================
 // 设置图形拖拽时的预览颜色为白色
 mxGraphHandler.prototype.previewColor = '#fff'
@@ -150,6 +165,7 @@ let svgTxtObj // 存储symbol及defs等信息
 let initEditFun = (svgstr, lgsvgParser) => {
     App['main'](
         (ui) => {
+            applyDrawioSaveStatusIcon()
             lgsvgParser.ui = ui
             // let svgTxtObj = lgsvgParser.getSvgSymbolStyle(svgstr);
 
@@ -204,13 +220,22 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 ['remoteunit',          '远动装置',           70,  70],
                                 ['polecode',            '杆塔',               50,  50],
                                 ['substation',          '配电站(zf06)',       70,  70],
+                                ['Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000', '变电站', 70, 70],
                                 ['xb',                  '箱式变电站(zf08)',   70,  70],
                                 ['lightningarrester',   '避雷器',             50,  80],
+                                ['LoadBreakSwitch_PMS25_a1fd8575-5bf1-47c6-950c-242129f7b2fe_4040011@0', '站内—负荷开关（分）', 120, 44],
                             ]
 
-                            // 辅助函数：从 symbol.js 中提取指定 symbol 的 SVG
+                            // 辅助函数：从 symbol.js 中提取指定 symbol 的 SVG（用于侧边栏 data URI 预览）
                             const getSymbolSvg = (symbolId) => {
-                                const regex = new RegExp(`<symbol[^>]*id=["']${symbolId}["'][^>]*>([\\s\\S]*?)</symbol>`, 'i')
+                                const escaped =
+                                    typeof symbolId === 'string'
+                                        ? symbolId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                                        : ''
+                                const regex = new RegExp(
+                                    `<symbol[^>]*id=["']${escaped}["'][^>]*>([\\s\\S]*?)</symbol>`,
+                                    'i'
+                                )
                                 const match = customSymbolStr.match(regex)
                                 if (match && match[1]) {
                                     // match[1] 是 symbol 标签内的内容
@@ -220,9 +245,11 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     const viewBoxMatch = symbolContent.match(/viewBox=["']([^"']+)["']/)
                                     const w = widthMatch ? widthMatch[1] : 100
                                     const h = heightMatch ? heightMatch[1] : 100
-                                    const vb = viewBoxMatch ? viewBoxMatch[1] : `0 0 ${w} ${h}`
-                                    // 提取 symbol 内的内容，而不是整个 symbol 标签
-                                    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="${vb}">${match[1]}</svg>`
+                                    let vb = viewBoxMatch ? viewBoxMatch[1] : `0 0 ${w} ${h}`
+
+                                    let inner = match[1]
+
+                                    return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="${vb}">${inner}</svg>`
                                 }
                                 return null
                             }
@@ -231,8 +258,11 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             const lgDeviceFns = lgDeviceItems.map(([symbolId, label, w, h]) => {
                                 const svgStr = getSymbolSvg(symbolId)
                                 if (svgStr) {
-                                    // 将 SVG 转换为 Data URI（使用更可靠的编码方式）
-                                    const encodedSvg = svgStr.replace(/#/g, '%23').replace(/\n/g, '').replace(/\r/g, '')
+                                    /* draw.io/mxGraph 对 image= 多采用「仅编码 #」的 data URI；encodeURIComponent 会导致整栏预览失效 */
+                                    const encodedSvg = svgStr
+                                        .replace(/#/g, '%23')
+                                        .replace(/\n/g, '')
+                                        .replace(/\r/g, '')
                                     const svgUri = 'data:image/svg+xml,' + encodedSvg
                                     const style = `shape=image;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=${svgUri};`
                                     return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
@@ -380,6 +410,8 @@ function poleHelperHandler() {
 }
 
 onMounted(() => {
+    applyDrawioSaveStatusIcon()
+
     // const params = {
     //     psrId: id,
     //     id: taskId
@@ -510,6 +542,71 @@ onActivated(() => {
 
 ::v-deep .geDiagramContainer {
     left: 240px !important;
+}
+
+/* 顶栏右侧按钮容器：保存按钮对齐 */
+.graphCon ::v-deep .geButtonContainer {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+/* 正交图自定义「保存」主按钮 — 对齐 Element Plus 主色与设计规范 */
+.graphCon ::v-deep .geZjtSaveBtn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    min-width: 64px;
+    padding: 0 14px;
+    margin-right: 2px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    font-family: inherit;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid #337ecc;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #5cadff 0%, #409eff 45%, #337ecc 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 1px 2px rgba(0, 0, 0, 0.12);
+    transition:
+        filter 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.08s ease;
+}
+
+.graphCon ::v-deep .geZjtSaveBtn:hover:not(:disabled) {
+    filter: brightness(1.05);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        0 2px 6px rgba(64, 158, 255, 0.35);
+}
+
+.graphCon ::v-deep .geZjtSaveBtn:active:not(:disabled) {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.graphCon ::v-deep .geZjtSaveBtn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    filter: saturate(0.6);
+}
+
+/* 底部「修改未保存…」提示条右侧保存图标：与警示条主色一致、对齐文字 */
+.graphCon ::v-deep a.geStatus .geStatusAlert img.geAdaptiveAsset {
+    display: inline-block;
+    vertical-align: middle;
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    margin-top: -1px;
 }
 
 

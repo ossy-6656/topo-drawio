@@ -128,7 +128,11 @@ export default `
             <rect x="2" y="2" width="296" height="296" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="8"/>
             <text x="150" y="170" fill="rgb(185,72,66)" font-family="SimSun" font-size="140" text-anchor="middle" dominant-baseline="middle">XB</text>
         </symbol>
-
+        <!--自定义图元1030000:变电站-->
+        <symbol id="Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000" viewBox="0 0 300 300" width="70" height="70">
+            <rect x="2" y="2" width="296" height="296" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="8"/>
+            <text x="150" y="170" fill="rgb(185,72,66)" font-family="SimSun" font-size="140" text-anchor="middle" dominant-baseline="middle">B</text>
+        </symbol>
         <!-- 避雷器 LightningArrester：竖线+外圆（蓝）+内圆（红），viewBox=100x160 -->
         <symbol id="lightningarrester" viewBox="0 0 100 160" width="50" height="80">
             <!-- 上方竖线 -->
@@ -152,10 +156,17 @@ export default `
             <line x1="36" y1="145" x2="96" y2="145" stroke="rgb(185,72,66)" stroke-width="8" fill="none"/>
             <line x1="46" y1="116" x2="86" y2="116" stroke="rgb(185,72,66)" stroke-width="8" fill="none"/>
         </symbol>
-        <!--定义图元1030000:变电站-->
-        <symbol id="Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000" width="10.100000" height="11.133000" viewBox="0 0 10.100000 11.133000">
-        <rect x="-5.125000" y="-5.125000" width="10.000000" height="10.000000" fill="rgb(0, 0, 0)" stroke="rgb(255,0,0)" stroke-width="0.100000" />
-        <text x="0.300000" y="0.374000" fill="rgb(0,0,0)" stroke="none" font-family="宋体" font-size="11.133000" style="text-anchor:middle" dy=".3em">B</text>
-        <use x="0.000000" y="0.000000" terminal-index="1" type="0" xlink:href="#terminal" />
+        <!-- 站内—负荷开关（分）4040011：横向通线 + 开断刀口 + 竖向静触头 + 灭弧圆，线色/线宽与 fuse、breaker、disconnector 一致 -->
+        <symbol id="LoadBreakSwitch_PMS25_a1fd8575-5bf1-47c6-950c-242129f7b2fe_4040011@0" viewBox="0 0 300 80" width="120" height="44">
+            <!-- 左侧进线 -->
+            <line x1="0" y1="40" x2="88" y2="40" stroke="rgb(185,72,66)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <!-- 右侧出线 -->
+            <line x1="212" y1="40" x2="300" y2="40" stroke="rgb(185,72,66)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <!-- 中部静触头（竖线） -->
+            <line x1="150" y1="16" x2="150" y2="64" stroke="rgb(185,72,66)" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <!-- 负荷侧灭弧/开断示意圆 -->
+            <circle cx="128" cy="40" r="20" fill="none" stroke="rgb(185,72,66)" stroke-width="5"/>
+            <!-- 分闸：刀口斜向打开，与静触头分离 -->
+            <line x1="88" y1="40" x2="124" y2="10" stroke="rgb(185,72,66)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </symbol>
 `
