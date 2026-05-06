@@ -22,6 +22,16 @@
         </div>
     </div> -->
 
+    <!-- 数据选择下拉框 -->
+    <div class="dataSelector" style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+        <label for="dataSelect" style="margin-right: 8px; font-size: 14px; font-weight: 500; color: #333;">选择数据源：</label>
+        <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
+            <option value="zjtSvg">lgdata (示例数据)</option>
+            <option value="svg1">svg1</option>
+            <option value="svg2">svg2</option>
+        </select>
+    </div>
+
     <!-- 图形容器：包含图形编辑器和加载提示 -->
     <div class="graphCon" id="graphCon">
         <!-- 图形编辑器容器：mxGraph 渲染的目标容器 -->
@@ -90,6 +100,8 @@ import App from '@/view/graph/lg/App'
 // 导入 API 接口（已注释，使用测试数据）
 // import { getZjtSvg } from '@/api/tmzx/svg/index.ts'
 import { zjtSvg } from '@/view/graph/data/lgdata.js'                    // 测试用的正交图 SVG 数据
+import { svg1 } from '@/view/graph/data/svg1.js'                        // SVG 数据 1
+import { svg2 } from '@/view/graph/data/svg2.js'                        // SVG 数据 2
 // import { checkEditZjtPermission } from '@/api/tmzx/abnormalchange/index.ts'
 
 // 导入其他工具
@@ -153,6 +165,32 @@ if (name) {
 // ==================== 组件状态变量 ====================
 let uiEditor                       // 编辑器 UI 实例（App 类的实例）
 let poleEle = ref()                 // 柱上辅助复选框的引用
+const selectedData = ref('zjtSvg')  // 当前选中的数据源
+
+// 数据源映射
+const dataSources = {
+    zjtSvg: zjtSvg,
+    svg1: svg1,
+    svg2: svg2
+}
+
+// 数据切换处理函数（须用 window.initGraphWithSvg：赋值在 onMounted 内，模块内无同名变量）
+const handleDataChange = () => {
+    const selectedSvg = dataSources[selectedData.value]
+    const load = typeof window.initGraphWithSvg === 'function' ? window.initGraphWithSvg : null
+    if (!selectedSvg || !load) return
+    // App.main 在 isMainCalled 为 true 时直接 return，必须重置后才能再次加载新 SVG
+    App.isMainCalled = false
+    try {
+        if (uiEditor) {
+            uiEditor.destroy()
+            uiEditor = null
+        }
+    } catch (e) {
+        console.warn('切换数据源：销毁编辑器', e)
+    }
+    load(selectedSvg, undefined)
+}
 
 // ==================== 容器 ID 生成 ====================
 // 生成唯一的容器 ID，避免多个实例冲突
@@ -324,6 +362,17 @@ let initEditFun = (svgstr, lgsvgParser) => {
 
                             // ── 连接线分类 ──
                             const lgLineFns = [
+                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar），放在连接线栏便于选用
+                                ui.sidebar.createVertexTemplateEntry(
+                                    'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;',
+                                    200,
+                                    1.6,
+                                    '',
+                                    '站内-母线（0311）',
+                                    null,
+                                    null,
+                                    '站内-母线（0311）'
+                                ),
                                 ui.sidebar.createEdgeTemplateEntry(
                                     'endArrow=none;html=1;',
                                     50, 50, '', '直线', null, null, '直线'
@@ -429,7 +478,8 @@ onMounted(() => {
                 uiEditor = null
             }
 
-            let go = (_svg, themecut) => {
+            // 全局函数：初始化图形
+window.initGraphWithSvg = (_svg, themecut) => {
                 let mysvg = _svg
 
                 lgsvgParser = new LGSvgParser(id)
@@ -460,8 +510,9 @@ onMounted(() => {
                 //   let themecut = obj.themecut
                 //   console.log("888888888888",svgstr, themecut)
                 setTimeout(() => {
-                    console.log("getZjtSvggetZjtSvg", zjtSvg)
-                    go(zjtSvg, zjtSvg.themecut)
+                    const firstSvg = dataSources[selectedData.value]
+                    console.log('graphLg init', selectedData.value, firstSvg && firstSvg.length)
+                    window.initGraphWithSvg(firstSvg, undefined)
                 }, 500);
                   
                     //  go(_svg, themecut)

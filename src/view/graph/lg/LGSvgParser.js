@@ -396,13 +396,22 @@ export default class LGSvgParser extends SvgBase {
             let styleObj = state.style
             let flag = styleObj.flag
             if (flag == 'busbar') {
-                // 母线
-                // 计算母线两端坐标
-                let p0 = GraphTool.getTouchPoint(graph, cell, 0, 0.5)
-                let p1 = GraphTool.getTouchPoint(graph, cell, 1, 0.5)
-
+                // 工具栏「站内-母线（0311）」模板带 busbarThin=1：高度锁定为 1.6，仅宽度可改；SVG 导入母线无此标记，保持原厚度
+                const busH = 1.6
+                const thin = styleObj.busbarThin == '1' || styleObj.busbarThin === 1
                 model.beginUpdate()
                 try {
+                    let geo = model.getGeometry(cell)
+                    if (thin && geo != null && Math.abs(geo.height - busH) > 1e-6) {
+                        let g = geo.clone()
+                        let cy = g.getCenterY()
+                        g.height = busH
+                        g.y = cy - busH / 2
+                        model.setGeometry(cell, g)
+                    }
+                    let p0 = GraphTool.getTouchPoint(graph, cell, 0, 0.5)
+                    let p1 = GraphTool.getTouchPoint(graph, cell, 1, 0.5)
+
                     let edges = model.getEdges(cell) // 获取与母线关联的所有连接线
                     for (let edge of edges) {
                         GraphHandler.computeLine2BusConnectionCommon(graph, p0, p1, cell, edge)
@@ -492,6 +501,23 @@ export default class LGSvgParser extends SvgBase {
         // 监控cell改变大小后事件
         graph.addListener(mxEvent.RESIZE_CELLS, cellResizeEventHandlerCommon)
 
+        // 工具栏拖入站内母线（flag=busbar）：补全 cell.symbol，与 parseBusbar 导入一致（addEvent 当前未启用）
+        graph.addListener(mxEvent.CELLS_ADDED, function (sender, eo) {
+            let list = eo.getProperty('cells')
+            if (!list || list.length === 0) {
+                return
+            }
+            for (let cell of list) {
+                if (!model.isVertex(cell)) {
+                    continue
+                }
+                let obj = TextUtil.parseDrawioStyle(cell.style)
+                if (obj.flag === 'busbar') {
+                    cell.symbol = 'busbar'
+                }
+            }
+        })
+
         // 禁用双击编辑
         graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
             let event = evt.getProperty('event')
@@ -550,7 +576,7 @@ export default class LGSvgParser extends SvgBase {
         let graph = this.graph
         let model = graph.getModel()
 
-        // 检测插入的图元为自定义图元
+        // 检测插入的图元为自定义图元（启用时：站内母线 shape=rect + flag=busbar 须放行，勿删）
         graph.addListener(mxEvent.CELLS_ADDED, function (sender, eo) {
             let list = eo.getProperty('cells')
             if (!list || list.length == 0) {
@@ -560,8 +586,15 @@ export default class LGSvgParser extends SvgBase {
             let ls = []
             let deletedList = []
             for (let cell of list) {
+                if (!model.isVertex(cell)) {
+                    continue
+                }
                 let obj = TextUtil.parseDrawioStyle(cell.style)
                 let shape = obj.shape
+                if (obj.flag === 'busbar') {
+                    cell.symbol = 'busbar'
+                    continue
+                }
                 if (customShapeLs.indexOf(shape) == -1 && obj.flag != 'tmpLine') {
                     deletedList.push(cell)
                     continue
