@@ -5837,14 +5837,27 @@ App.prototype.saveFile = function (forceDialog, success)
             this.editor.setStatus(mxUtils.htmlEntities(mxResources.get('allChangesSaved')));
             let svgGenerate = new SvgGenerate(this, this.svgTxtObj, svgParser);
             let data = svgGenerate.parseGraph();
-            let {svg} = data;
+            let { svg, svg_file, cime_file, add } = data;
 
             let codedSvg = encodeURIComponent(svg);
 
             let param = {
                 taskId: svgParser.taskId,
                 dkxId: svgParser.id,
-                svg: codedSvg
+                svg: codedSvg,
+                svg_file: svg_file || svg,
+                cime_file: cime_file || '',
+                add: add || { bus: [] }
+            }
+
+            try {
+                // 仅打印「新增」业务数据（母线等在 parseGraph 已过滤）；不含 svg/taskId 等大字段或旧数据
+                console.log(
+                    '[正交图保存] 新增数据(JSON):\n' +
+                        JSON.stringify({ add: param.add || { bus: [] } }, null, 2)
+                )
+            } catch (e) {
+                console.warn('[正交图保存] JSON 打印失败', e)
             }
 
             // debugger;

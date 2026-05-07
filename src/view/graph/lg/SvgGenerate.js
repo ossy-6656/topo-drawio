@@ -112,15 +112,16 @@ SvgGenerate.prototype.parseSubstation = function (cell, tranx, trany) {
 
     let scale = svgParser.getScale();
 
-    let propMap = attrMap.get(cell.id);
+    let propMap = (attrMap && attrMap.get(cell.id)) || {};
     let layer2ListMap = this.layer2ListMap;
 
     let cls = propMap['cls'];
     let stroke = propMap['stroke'];
     let strokeWidth = propMap['strokeWidth'];
 
-    // 根据设备所属图层来归类
-    let layerName = propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName'];
+    // 根据设备所属图层来归类（新建站房无 SVG 元数据时用默认层）
+    let layerName =
+        (propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName']) || 'Substation_Layer';
     if (!layer2ListMap[layerName]) {
         layer2ListMap[layerName] = [];
     }
@@ -192,18 +193,20 @@ SvgGenerate.prototype.parseBusbar = function (cell, tranx, trany) {
     let attrMap = this.attrMap;
     let svgParser = this.svgParser;
 
-    let propMap = attrMap.get(cell.id);
+    let propMap = (attrMap && attrMap.get(cell.id)) || {};
     let layer2ListMap = this.layer2ListMap;
 
     let scale = svgParser.getScale();
 
-    // 根据设备所属图层来归类
-    let layerName = propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName'];
+    // 根据设备所属图层来归类（工具栏新建母线不在 attrMap 中时用默认层）
+    let layerName =
+        (propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName']) ||
+        'busbarsection_layer';
     if (!layer2ListMap[layerName]) {
         layer2ListMap[layerName] = [];
     }
 
-    let preStrokeWidth = propMap && propMap['strokeWidth'];
+    let preStrokeWidth = propMap['strokeWidth'];
 
     let id = cell.id;
 
@@ -297,7 +300,7 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
 
     let minWidth = -1
 
-    let propMap = attrMap.get(cell.id) || {}
+    let propMap = (attrMap && attrMap.get(cell.id)) || {}
     let layer2ListMap = this.layer2ListMap
 
     if (!cell || cell.style.indexOf('group') != -1 || cell.style.indexOf('text') == 0) {
@@ -313,8 +316,9 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
         this.parseBusbar(cell, tranx, trany)
     } // 普通设备解析
     else {
-        // 根据设备所属图层来归类
-        let layerName = propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName']
+        // 根据设备所属图层来归类（无导入元数据时归入 Other_Layer）
+        let layerName =
+            (propMap['cge:Layer_Ref'] && propMap['cge:Layer_Ref']['ObjectName']) || 'Other_Layer'
         if (!layer2ListMap[layerName]) {
             layer2ListMap[layerName] = []
         }
@@ -409,7 +413,7 @@ SvgGenerate.prototype.parseCustomCell = function (cell, tranx, trany) {
     let symbolMap = this.svgParser.getSymbolMap();
     let attrMap = this.attrMap;
 
-    let propMap = attrMap.get(cell.id) || {};
+    let propMap = (attrMap && attrMap.get(cell.id)) || {};
     let layer2ListMap = this.layer2ListMap;
 
     let styleObj = graph.getCurrentCellStyle(cell);
@@ -784,7 +788,7 @@ SvgGenerate.prototype.parseEdge = function (edge, tranx, trany) {
     let view = graph.view
     let attrMap = this.attrMap
     let model = graph.getModel()
-    let propMap = attrMap.get(edge.id) || {}
+    let propMap = (attrMap && attrMap.get(edge.id)) || {}
 
     let state = view.getState(edge)
 
@@ -852,7 +856,7 @@ SvgGenerate.prototype.parseEdges = function (intersectMap) {
         let edge = key
         let map = value
 
-        let propMap = attrMap.get(edge.id) || {}
+        let propMap = (attrMap && attrMap.get(edge.id)) || {}
 
         let cls = propMap['cls']
         let strokeDasharray = propMap['strokeDasharray']
@@ -1118,6 +1122,191 @@ SvgGenerate.prototype.checkLineIntersect = function (map) {
     return params
 }
 
+/**
+ * 母线基准电压：优先解析 dydj（如 10kV），默认 10（kV）
+ */
+SvgGenerate.prototype.parseVoltFromDydj = function (dydj) {
+    if (dydj == null || dydj === '') {
+        return 10
+    }
+    let s = String(dydj).trim()
+    let mk = s.match(/(\d+(?:\.\d+)?)\s*k/i)
+    if (mk) {
+        return parseInt(mk[1], 10)
+    }
+    let digits = parseInt(s.replace(/[^\d]/g, ''), 10)
+    if (!isNaN(digits) && digits > 0) {
+        return digits
+    }
+    return 10
+}
+
+/**
+ * 提交用母线唯一 ID：已持久化的 busid → CIM GlobeID → PD_0311 段 → 新增 UUID（无横线）
+ */
+SvgGenerate.prototype.resolveBusSubmitId = function (cell, pending) {
+    let model = this.graph.getModel()
+    let value = model.getValue(cell)
+    if (mxUtils.isNode(value)) {
+        let b = value.getAttribute('busid')
+        if (b) {
+            return String(b).replace(/-/g, '')
+        }
+    }
+    let propMap = this.attrMap && this.attrMap.get(cell.id)
+    let psr = propMap && propMap['cge:PSR_Ref']
+    if (psr && psr.GlobeID) {
+        return String(psr.GlobeID).replace(/-/g, '')
+    }
+    let cid = cell.id || ''
+    let m = cid.match(/^PD_0311_(.+)$/i)
+    if (m) {
+        return m[1].replace(/-/g, '')
+    }
+    let newId =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID().replace(/-/g, '')
+            : 'bus' + Date.now().toString(36) + Math.random().toString(36).slice(2, 14)
+    pending.push({ cell: cell, busid: newId })
+    return newId
+}
+
+SvgGenerate.prototype.getBusNameForSubmit = function (cell) {
+    let propMap = this.attrMap && this.attrMap.get(cell.id)
+    let psr = propMap && propMap['cge:PSR_Ref']
+    if (cell.name) {
+        return String(cell.name)
+    }
+    if (psr && psr.ObjectName) {
+        return String(psr.ObjectName)
+    }
+    let st = this.graph.view.getState(cell)
+    if (st && st.style && st.style.name) {
+        return String(st.style.name)
+    }
+    let model = this.graph.getModel()
+    let value = model.getValue(cell)
+    if (mxUtils.isNode(value) && value.getAttribute('name')) {
+        return value.getAttribute('name')
+    }
+    return ''
+}
+
+SvgGenerate.prototype.getDydjFromCell = function (cell) {
+    let model = this.graph.getModel()
+    let value = model.getValue(cell)
+    if (mxUtils.isNode(value)) {
+        let d = value.getAttribute('dydj')
+        if (d != null && d !== '') {
+            return d
+        }
+    }
+    if (cell.dydj != null && cell.dydj !== '') {
+        return cell.dydj
+    }
+    let st = this.graph.view.getState(cell)
+    if (st && st.style && st.style.dydj != null) {
+        return st.style.dydj
+    }
+    return ''
+}
+
+/**
+ * 保存接口 add.bus：仅「新增」母线（侧栏拖入等），不含 SVG 导入时已存在的母线。
+ * 判定：导入解析时写入 svgParser.attrMap 的为旧数据；无 attrMap 记录的为新数据。
+ */
+SvgGenerate.prototype.collectBusSubmitPayload = function () {
+    let graph = this.graph
+    let model = graph.getModel()
+    let view = graph.getView()
+    let list = graph.getVerticesAndEdges()
+    let bus = []
+    let pending = []
+    let attrMap = this.attrMap
+
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        if (!model.isVertex(cell)) {
+            continue
+        }
+        if (!DeviceCategoryUtil.isBusCell(cell)) {
+            continue
+        }
+        if (
+            cell.flag == 'range' ||
+            cell.flag == 'pointline' ||
+            cell.flag == 'virtualCell' ||
+            cell.flag == 'virtualLine'
+        ) {
+            continue
+        }
+
+        // 导入图元已在 attrMap 中登记，不进入「新增」提交列表
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+
+        let busid = this.resolveBusSubmitId(cell, pending)
+        let name = this.getBusNameForSubmit(cell)
+        let dydj = this.getDydjFromCell(cell)
+        let volt = this.parseVoltFromDydj(dydj)
+
+        let root = this.getRootGroup(cell)
+        let stationCell = root ? this.getSubstation(root) : null
+        let sid = ''
+        let sname = ''
+        if (stationCell) {
+            sid = stationCell.id || ''
+            sname = stationCell.name ? String(stationCell.name) : ''
+            if (!sname) {
+                let sst = view.getState(stationCell)
+                if (sst && sst.style && sst.style.name) {
+                    sname = String(sst.style.name)
+                }
+            }
+        }
+
+        bus.push({
+            name: name,
+            busid: busid,
+            volt: volt,
+            station: [sid, sname]
+        })
+    }
+
+    return { bus: bus, pending: pending }
+}
+
+SvgGenerate.prototype.applyPendingBusIds = function (pending) {
+    if (!pending || pending.length === 0) {
+        return
+    }
+    let graph = this.graph
+    let model = graph.getModel()
+    model.beginUpdate()
+    try {
+        for (let i = 0; i < pending.length; i++) {
+            let item = pending[i]
+            let cell = item.cell
+            let busid = item.busid
+            let value = model.getValue(cell)
+            let obj
+            if (!mxUtils.isNode(value)) {
+                let doc = mxUtils.createXmlDocument()
+                obj = doc.createElement('object')
+                obj.setAttribute('label', value || '')
+            } else {
+                obj = value.cloneNode(true)
+            }
+            obj.setAttribute('busid', busid)
+            model.setValue(cell, obj)
+            cell.busid = busid
+        }
+    } finally {
+        model.endUpdate()
+    }
+}
+
 // 解析drawio数据
 SvgGenerate.prototype.parseGraph = function ()
 {
@@ -1325,9 +1514,19 @@ SvgGenerate.prototype.parseGraph = function ()
     }
 
     buffer.push('</svg>')
+
+    let svgStr = buffer.join('')
+    let busPayload = this.collectBusSubmitPayload()
+    this.applyPendingBusIds(busPayload.pending)
+
     return {
         dkxid: svgParser.id,
-        svg: buffer.join(''),
-        txt: ''
+        svg: svgStr,
+        txt: '',
+        svg_file: svgStr,
+        cime_file: '',
+        add: {
+            bus: busPayload.bus
+        }
     }
 }
