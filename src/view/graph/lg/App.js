@@ -5834,7 +5834,6 @@ App.prototype.saveFile = function (forceDialog, success)
     //         ElMessage.error('当前正交图不可编辑')
     //         return;
     //     } else {
-            this.editor.setStatus(mxUtils.htmlEntities(mxResources.get('allChangesSaved')));
             let svgGenerate = new SvgGenerate(this, this.svgTxtObj, svgParser);
             let data = svgGenerate.parseGraph();
             let { svg, svg_file, cime_file, add } = data;
@@ -5858,6 +5857,20 @@ App.prototype.saveFile = function (forceDialog, success)
                 )
             } catch (e) {
                 console.warn('[正交图保存] JSON 打印失败', e)
+            }
+
+            // parseGraph 会为新增母线写入 busid 等，会触发模型变更；须在末尾再清「未保存」状态，
+            // 否则第一次保存后仍显示红色保存提示（与 saveFile_bak / LocalFile 保存后行为一致）
+            var file = this.getCurrentFile();
+            if (file != null) {
+                file.setModified(false);
+            }
+            this.editor.setModified(false);
+            this.editor.setStatus(mxUtils.htmlEntities(mxResources.get('allChangesSaved')));
+            this.descriptorChanged();
+
+            if (success != null) {
+                success();
             }
 
             // debugger;
