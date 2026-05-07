@@ -35,7 +35,8 @@ var tooltipAttrNameMap = {
     'psrtype': '设备类型',
     'shape': '图形',
     'lineType': '线型',
-    'label': '标签'
+    'label': '标签',
+    'dydj': '电压等级'
 };
 
 // 这个处理tooltip
@@ -60,9 +61,12 @@ Graph.prototype.getTooltipForCell = function (cell) {
             // 开关作用：switchrolename
             // 营配标识：pubprivflag   0 运检  1 营销
             let { name, attr, switchrolename, pubprivflag, psrtype } = cell
-
+            
+            // 判断是否为母线图元
+            let isBusbar = cell.symbol == 'busbar' || psrtype == '0311';
+            
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
-            let fixedAttrs = ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+            let fixedAttrs = isBusbar ? ['name'] : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
@@ -76,6 +80,14 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`);
                 }
             });
+            
+            // 母线图元特殊处理：确保设备名称显示（即使为空也显示字段名）
+            if (isBusbar) {
+                let nameValue = cell['name'] || cellStyle['name'] || '';
+                if (!nameValue) {
+                    sb.push(`<tr><td>设备名称：</td><td></td></tr>`);
+                }
+            }
 
             // PD_14000000_37748 - 统一处理设备类型（包含 psrtype）
             let _sblx
@@ -99,12 +111,18 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     _sblx = psrtype
                 }
             }
+            
+            // 母线图元特殊处理：确保设备类型显示
+            if (isBusbar && !_sblx) {
+                _sblx = '母线(0311)';
+            }
+            
             if (_sblx) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
 
             // 显示用户自定义添加的其他属性
-            // 从 cell 的 XML value 中获取所有属性
+            // 从 cell 的 XML value 中获取所有属性（母线不再展示电压等级等 XML 扩展项）
             var value = model.getValue(cell);
             if (mxUtils.isNode(value)) {
                 var attrs = value.attributes;
@@ -112,10 +130,13 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     var attrName = attrs[i].nodeName;
                     var attrValue = attrs[i].nodeValue;
                     
-                    // 跳过已显示的属性和特殊属性（包括 psrtype 和 id）
-                    if (fixedAttrs.indexOf(attrName) == -1 && 
-                        attrName != 'label' && attrName != 'placeholders' && 
-                        attrName != 'psrtype' && attrName != 'id') {
+                    // 母线不展示 XML 中的扩展属性（含电压等级）
+                    var shouldShow = !isBusbar &&
+                        fixedAttrs.indexOf(attrName) == -1 &&
+                        attrName != 'label' && attrName != 'placeholders' &&
+                        attrName != 'psrtype' && attrName != 'id';
+                    
+                    if (shouldShow) {
                         let displayName = tooltipAttrNameMap[attrName] || attrName;
                         sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`);
                     }

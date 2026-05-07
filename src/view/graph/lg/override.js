@@ -90,6 +90,11 @@ window.EditDataDialog = function(ui, cell)
     var texts = [];
     var count = 0;
 
+    // 与 graph.js getTooltipForCell 母线（0311 / busbar）判定一致
+    var cellStyle = graph.getCurrentCellStyle(cell) || {};
+    var psrtype = cell['psrtype'] || cellStyle['psrtype'] || '';
+    var isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle['flag'] == 'busbar';
+
     var id = (EditDataDialog.getDisplayIdForCell != null) ?
         EditDataDialog.getDisplayIdForCell(ui, cell) : null;
 
@@ -158,6 +163,7 @@ window.EditDataDialog = function(ui, cell)
         'pubprivflag': '营配标识',
         'psrtype': 'PSR类型',
         'sblx': '设备类型',
+        'dydj': '电压等级',
         'id': 'ID',
         'shape': '图形',
         'label': '标签',
@@ -168,24 +174,26 @@ window.EditDataDialog = function(ui, cell)
     var addTextArea = function(index, name, value)
     {
         names[index] = name;
-        // 使用中文属性名称显示
+        // 使用中文属性名称显示（cell / 样式上可能为数字等非字符串）
+        var strValue = (value == null || value === undefined) ? '' : String(value);
         var displayName = attrNameMap[name] || name;
-        texts[index] = form.addTextarea(displayName + ':', value, 2);
+        texts[index] = form.addTextarea(displayName + ':', strValue, 2);
         texts[index].style.width = '100%';
 
-        if (value.indexOf('\n') > 0)
+        if (strValue.indexOf('\n') > 0)
         {
             texts[index].setAttribute('rows', '2');
         }
 
-        // id和shape字段不能删除，不添加删除按钮
-        if (name != 'id' && name != 'shape')
+        // id和shape字段不能删除，不添加删除按钮；母线图元设备类型与 tooltip 一致，只读不可删
+        if (name != 'id' && name != 'shape' && !(isBusbar && name == 'sblx'))
         {
             addRemoveButton(texts[index], name);
         }
 
-        // 设备名称可编辑，id和shape不可编辑
-        if (name == 'id' || name == 'shape' || (meta[name] != null && meta[name].editable == false))
+        // 设备名称可编辑，id和shape不可编辑；母线设备类型只读（与 Graph.getTooltipForCell 一致）
+        if (name == 'id' || name == 'shape' || (isBusbar && name == 'sblx') ||
+            (meta[name] != null && meta[name].editable == false))
         {
             texts[index].setAttribute('disabled', 'disabled');
         }
@@ -203,9 +211,8 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
-    // 添加 tooltip 中显示的其他属性
-    var cellStyle = cell.style || graph.getCurrentCellStyle(cell);
-    var tooltipAttrs = ['name', 'attr', 'switchrolename', 'pubprivflag'];
+    // 添加 tooltip 中显示的其他属性（母线仅同步：设备名称、设备类型）
+    var tooltipAttrs = isBusbar ? ['name'] : ['name', 'attr', 'switchrolename', 'pubprivflag'];
 
     for (var i = 0; i < tooltipAttrs.length; i++)
     {
@@ -220,14 +227,13 @@ window.EditDataDialog = function(ui, cell)
         
         // 检查是否已存在该属性
         var exists = temp.some(function(item) { return item.name == attrName; });
-        if (!exists && attrValue != '')
+        if (!exists && (attrValue != '' || (isBusbar && attrName == 'name')))
         {
             temp.push({name: attrName, value: attrValue.toString()});
         }
     }
 
-    // 处理设备类型（包含中文名称）
-    var psrtype = cell['psrtype'] || cellStyle['psrtype'] || '';
+    // 处理设备类型（包含中文名称），与 graph.js 母线 tooltip 逻辑一致
     var sblxName = '';
     
     if (cell.id) {
@@ -249,29 +255,71 @@ window.EditDataDialog = function(ui, cell)
             fullSblx = psrtype;
         }
     }
-    
-    // 检查设备类型是否已存在
-    var sblxExists = temp.some(function(item) { return item.name == 'sblx'; });
-    if (!sblxExists && fullSblx != '') {
-        temp.push({name: 'sblx', value: fullSblx});
+    if (isBusbar && !fullSblx) {
+        fullSblx = '母线(0311)';
     }
 
-    // Sorts by name
-    temp.sort(function(a, b)
-    {
-        if (a.name < b.name)
-        {
-            return -1;
+    if (isBusbar) {
+        temp = temp.filter(function(item) { return item.name != 'sblx'; });
+        temp.push({ name: 'sblx', value: fullSblx });
+    } else {
+        var sblxExists = temp.some(function(item) { return item.name == 'sblx'; });
+        if (!sblxExists && fullSblx != '') {
+            temp.push({name: 'sblx', value: fullSblx});
         }
-        else if (a.name > b.name)
-        {
-            return 1;
+    }
+
+    if (isBusbar) {
+        temp = temp.filter(function(item) { return item.name != 'dydj'; });
+        var nameFound = false;
+        for (var ni = 0; ni < temp.length; ni++) {
+            if (temp[ni].name == 'name') {
+                nameFound = true;
+                if (!temp[ni].value) {
+                    temp[ni].value = (cell['name'] || cellStyle['name'] || '').toString();
+                }
+                break;
+            }
         }
-        else
-        {
+        if (!nameFound) {
+            temp.push({ name: 'name', value: (cell['name'] || cellStyle['name'] || '').toString() });
+        }
+    }
+
+    // Sorts by name；母线优先顺序与 tooltip 一致：设备名称、设备类型
+    if (isBusbar) {
+        var orderPref = { name: 0, sblx: 1 };
+        temp.sort(function(a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(orderPref, a.name) ? orderPref[a.name] : 100;
+            var ob = Object.prototype.hasOwnProperty.call(orderPref, b.name) ? orderPref[b.name] : 100;
+            if (oa !== ob) {
+                return oa - ob;
+            }
+            if (a.name < b.name) {
+                return -1;
+            }
+            if (a.name > b.name) {
+                return 1;
+            }
             return 0;
-        }
-    });
+        });
+    } else {
+        temp.sort(function(a, b)
+        {
+            if (a.name < b.name)
+            {
+                return -1;
+            }
+            else if (a.name > b.name)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        });
+    }
 
     if (id != null)
     {
@@ -456,6 +504,11 @@ window.EditDataDialog = function(ui, cell)
                 }
                 else
                 {
+                    // 设备类型行为只读展示，不落库（与 tooltip 推导一致）
+                    if (isBusbar && names[i] == 'sblx') {
+                        continue;
+                    }
+
                     value.setAttribute(names[i], texts[i].value);
                     
                     // 同步更新 cell 对象上的所有属性（用于 tooltip 显示）
@@ -472,6 +525,10 @@ window.EditDataDialog = function(ui, cell)
                     removeLabel = removeLabel || (names[i] == 'placeholder' &&
                         value.getAttribute('placeholders') == '1');
                 }
+            }
+
+            if (isBusbar && value.removeAttribute) {
+                value.removeAttribute('sblx');
             }
 
             // Removes label if placeholder is assigned
