@@ -258,6 +258,10 @@ window.EditDataDialog = function(ui, cell)
     if (isBusbar && !fullSblx) {
         fullSblx = '母线(0311)';
     }
+    // 工具栏拖入的站内母线（graphLg 模板 busbarThin=1），设备类型与图例「站内-母线（0311）」一致
+    if (isBusbar && (cellStyle['busbarThin'] == '1' || cellStyle['busbarThin'] === 1)) {
+        fullSblx = '站内-母线(0311)';
+    }
 
     if (isBusbar) {
         temp = temp.filter(function(item) { return item.name != 'sblx'; });

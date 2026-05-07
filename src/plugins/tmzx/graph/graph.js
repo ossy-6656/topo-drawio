@@ -60,10 +60,11 @@ Graph.prototype.getTooltipForCell = function (cell) {
         if (cellStyle) {
             // 开关作用：switchrolename
             // 营配标识：pubprivflag   0 运检  1 营销
-            let { name, attr, switchrolename, pubprivflag, psrtype } = cell
-            
-            // 判断是否为母线图元
-            let isBusbar = cell.symbol == 'busbar' || psrtype == '0311';
+            let { name, attr, switchrolename, pubprivflag } = cell
+            let psrtype = (cell.psrtype != null && cell.psrtype !== '') ? cell.psrtype : cellStyle.psrtype
+
+            // 判断是否为母线图元（与编辑框 override 一致：样式上的 psrtype / flag）
+            let isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle.flag == 'busbar';
             
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
             let fixedAttrs = isBusbar ? ['name'] : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
@@ -116,7 +117,11 @@ Graph.prototype.getTooltipForCell = function (cell) {
             if (isBusbar && !_sblx) {
                 _sblx = '母线(0311)';
             }
-            
+            // 工具栏「站内-母线（0311）」模板带 busbarThin=1，与 PD_31100000 导入一致展示
+            if (isBusbar && (cellStyle.busbarThin == '1' || cellStyle.busbarThin === 1)) {
+                _sblx = '站内-母线(0311)';
+            }
+
             if (_sblx) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
