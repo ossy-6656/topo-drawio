@@ -103,6 +103,67 @@ SvgGenerate.prototype.getStationId = function (cell) {
     return null;
 }
 
+/** 站房类图元（含 useStation） */
+SvgGenerate.prototype.isStationLikeCell = function (graph, cell) {
+    if (!cell) {
+        return false
+    }
+    if (DeviceCategoryUtil.isStationCell(cell)) {
+        return true
+    }
+    let st = graph.getCurrentCellStyle(cell)
+    return !!(st && (st.flag === 'station' || st.flag === 'useStation'))
+}
+
+/** 深度收集 scope 下所有站房类顶点 */
+SvgGenerate.prototype.collectStationCellsUnder = function (scopeCell, out) {
+    if (!scopeCell) {
+        return
+    }
+    let graph = this.graph
+    let model = graph.getModel()
+    if (this.isStationLikeCell(graph, scopeCell)) {
+        out.push(scopeCell)
+    }
+    let n = model.getChildCount(scopeCell)
+    for (let i = 0; i < n; i++) {
+        this.collectStationCellsUnder(model.getChildAt(scopeCell, i), out)
+    }
+}
+
+/**
+ * 保存 add.bus 用：station 取「最左端」站房（画布 state.x 最小）。
+ * 若母线在分组内，只在该分组子树内比较；否则在全图根下比较。
+ */
+SvgGenerate.prototype.getLeftmostStationForBusSubmit = function (busCell) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let view = graph.getView()
+    let rootGroup = this.getRootGroup(busCell)
+    let scope = rootGroup || model.getRoot()
+    let candidates = []
+    this.collectStationCellsUnder(scope, candidates)
+    if (candidates.length === 0) {
+        return null
+    }
+    let best = null
+    let bestX = Infinity
+    for (let i = 0; i < candidates.length; i++) {
+        let c = candidates[i]
+        let st = view.getState(c)
+        let x = st != null ? st.x : null
+        if (x == null || isNaN(x)) {
+            let geo = graph.getCellGeometry(c)
+            x = geo ? geo.x : Infinity
+        }
+        if (x < bestX) {
+            bestX = x
+            best = c
+        }
+    }
+    return best
+}
+
 SvgGenerate.prototype.parseSubstation = function (cell, tranx, trany) {
     let graph = this.graph;
     let view = graph.getView();
@@ -1251,8 +1312,7 @@ SvgGenerate.prototype.collectBusSubmitPayload = function () {
         let dydj = this.getDydjFromCell(cell)
         let volt = this.parseVoltFromDydj(dydj)
 
-        let root = this.getRootGroup(cell)
-        let stationCell = root ? this.getSubstation(root) : null
+        let stationCell = this.getLeftmostStationForBusSubmit(cell)
         let sid = ''
         let sname = ''
         if (stationCell) {
