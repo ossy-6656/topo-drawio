@@ -161,14 +161,16 @@ Graph.prototype.getTooltipForCell = function (cell) {
             let targetId = targetVertex ? targetVertex.id : null
 
             if (sourceVertex) {
-                sb.push(`<tr><td>sourceID：</td><td>${sourceStyle.id}</td></tr>`)
-                if (sourceStyle.name) {
+                let sourceIdValue = sourceStyle && sourceStyle.id ? sourceStyle.id : (sourceVertex.id || '');
+                sb.push(`<tr><td>sourceID：</td><td>${sourceIdValue}</td></tr>`)
+                if (sourceStyle && sourceStyle.name) {
                     sb.push(`<tr><td>source：</td><td>${sourceStyle.name}</td></tr>`)
                 }
             }
-            if (targetStyle) {
-                sb.push(`<tr><td>targetID：</td><td>${targetStyle.id}</td></tr>`)
-                if (targetStyle.name) {
+            if (targetVertex) {
+                let targetIdValue = targetStyle && targetStyle.id ? targetStyle.id : (targetVertex.id || '');
+                sb.push(`<tr><td>targetID：</td><td>${targetIdValue}</td></tr>`)
+                if (targetStyle && targetStyle.name) {
                     sb.push(`<tr><td>target：</td><td>${targetStyle.name}</td></tr>`)
                 }
             }
