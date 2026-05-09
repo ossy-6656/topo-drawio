@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <PT w="50" h="80" HasSensitiveRegion="0" AlignCenter="8,22" id="EN_周口抽压PT" state="1" >
+        <Layer>
+            <line fm="0" id="1000001" LevelStart="0" StartArrowType="0" x1="23.89" x2="23.89" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="34.8" y2="23" af="39231" d="23.89,34.8 23.89,23" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="2" />
+            <pin fm="0" cx="8" cy="22" r="2" id="0" LevelStart="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="1" af="2147483647" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <circle cx="19" fm="0" cy="46" r="6" id="0" LevelStart="0" p_AssFlag="128" lc="240,65,85" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="2147483647" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <circle cx="23" fm="0" cy="40" r="6" id="0" LevelStart="0" p_AssFlag="128" lc="240,65,85" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="2147483647" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <circle cx="27" fm="0" cy="46" r="6" id="3000000" LevelStart="0" p_AssFlag="128" lc="240,65,85" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="2147483647" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <line fm="0" id="1000000" LevelStart="0" StartArrowType="0" x1="9" x2="17" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="22" y2="22" af="39295" d="9,22 17,22" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000001" LevelStart="0" StartArrowType="0" x1="17" x2="17" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="17" y2="27" af="39295" d="17,17 17,27" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000002" LevelStart="0" StartArrowType="0" x1="19.9" x2="19.9" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="17" y2="27" af="39295" d="19.9,17 19.9,27" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000003" LevelStart="0" StartArrowType="0" x1="20" x2="26" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="22" y2="22" af="39295" d="20,22 26,22" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000004" LevelStart="0" StartArrowType="0" x1="27" x2="27" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="17" y2="27" af="39295" d="27,17 27,27" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000005" LevelStart="0" StartArrowType="0" x1="30" x2="30" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="17" y2="27" af="39295" d="30,17 30,27" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000006" LevelStart="0" StartArrowType="0" x1="31" x2="38" StartArrowSize="4" p_AssFlag="128" lc="240,65,85" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="22" y2="22" af="39295" d="31,22 38,22" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </PT>
+</G>

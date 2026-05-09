@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="6" p_AlignCenter="28,18" >
+    <Status id="新六状态" >
+        <Layer w="56" x="0" y="0" h="40" id="0" >
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000000" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="断开" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000002" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="运行" p_AssFlag="128" lc="85,255,127" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000003" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="重启" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="2" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="2" p_NameString="" p_LevelStart="2" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000004" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="停止" p_AssFlag="128" lc="255,170,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="3" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="3" p_NameString="" p_LevelStart="3" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000005" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="启动" p_AssFlag="128" lc="255,255,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="4" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="4" p_NameString="" p_LevelStart="4" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="28" fm="0" p_Plane="0" id="8000006" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="28" fs="28" x="0" y="4" ts="异常" p_AssFlag="128" lc="170,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="5" p_FontInterval="0" switchapp="1" p_RoundBox="0,3,57,29" p_DyColorFlag="0" p_LevelEnd="5" p_NameString="" p_LevelStart="5" af="39295" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="AR PL KaitiM GB" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+        </Layer>
+        <Layer w="56" x="0" y="0" h="40" id="0" />
+        <Layer w="56" x="0" y="0" h="40" id="0" />
+    </Status>
+</sgd>

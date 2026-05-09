@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Arrester w="16" h="38" HasSensitiveRegion="0" AlignCenter="7,4" id="hd避雷器（单）" state="1" >
+        <Layer>
+            <line fm="0" id="1000009" LevelStart="0" StartArrowType="0" x1="7" x2="7" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="5" y2="10" af="34831" d="7,5 7,10" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <rect fm="0" id="2000010" LevelStart="0" w="10" x="2" y="10" p_AssFlag="128" lc="0,0,255" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34831" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" h="18" lw="1" />
+            <line fm="0" id="1000011" LevelStart="0" StartArrowType="0" x1="7" x2="7" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="10" y2="24" af="34831" d="7,10 7,24" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000012" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" af="34831" d="4,18 7,24 10,18 10,18" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000013" LevelStart="0" StartArrowType="0" x1="7" x2="7" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="28" y2="32" af="34831" d="7,28 7,32" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000020" LevelStart="0" StartArrowType="0" x1="13" x2="13" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="32" y2="32" af="34831" d="13,32 13,32" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000021" LevelStart="0" StartArrowType="0" x1="13" x2="13" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="26" y2="26" af="34831" d="13,26 13,26" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000024" LevelStart="0" StartArrowType="0" x1="2" x2="12" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="32" y2="32" af="34831" d="2,32 12,32" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000025" LevelStart="0" StartArrowType="0" x1="4" x2="10" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="34" y2="34" af="34831" d="4,34 10,34" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000026" LevelStart="0" StartArrowType="0" x1="6" x2="8" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="36" y2="36" af="34831" d="6,36 8,36" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <pin cx="7" fm="0" cy="4" r="2" id="5050" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="0" af="36895" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </Arrester>
+</G>

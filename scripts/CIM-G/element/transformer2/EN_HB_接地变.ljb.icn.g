@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Transformer2 w="50" h="60" HasSensitiveRegion="0" AlignCenter="17,9" id="EN_HB_接地变" state="1" >
+        <Layer>
+            <circle fm="0" cx="17" cy="14" r="9" id="3000000" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" af4="0" af="39295" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000007" LevelStart="0" StartArrowType="0" x1="17" x2="17" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="5.59" y2="2.58" af="39295" d="17,5.59 17,2.58" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <pin fm="0" cx="17" cy="3.58" r="2" id="18000008" LevelStart="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" index="0" af4="0" af="39295" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <circle fm="0" cx="17" cy="29" r="9" id="3000000" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" af4="0" af="39295" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000001" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" af="39295" d="16.96,7.38 17.04,13.36 22.12,18.28 22.12,18.28" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000000" LevelStart="0" StartArrowType="0" x1="17.04" x2="12.14" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="13.35" y2="18.44" af="39295" d="17.04,13.35 12.14,18.44" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000003" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" af="39295" d="16.93,23 17,28.98 22.07,33.9 22.07,33.9" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000002" LevelStart="0" StartArrowType="0" x1="17" x2="12.1" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="28.97" y2="34.06" af="39295" d="17,28.97 12.1,34.06" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000004" LevelStart="0" StartArrowType="0" x1="17.1" x2="40.09" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="29.1" y2="29.1" af="39039" d="17.1,29.1 40.09,29.1" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000005" LevelStart="0" StartArrowType="0" x1="41.09" x2="41.09" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="26.6" y2="31.6" af="39039" d="41.09,26.6 41.09,31.6" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000006" LevelStart="0" StartArrowType="0" x1="43.09" x2="43.09" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="27.6" y2="30.6" af="39039" d="43.09,27.6 43.09,30.6" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000007" LevelStart="0" StartArrowType="0" x1="45.09" x2="45.09" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="28.5" y2="29.5" af="39039" d="45.09,28.5 45.09,29.5" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000009" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" af="39039" d="17.03,50.81 34.79,39.29" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000008" LevelStart="0" StartArrowType="0" x1="35.09" x2="35.09" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="39" y2="30" af="39039" d="35.09,39 35.09,30" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <triangle fm="0" id="23000010" LevelStart="0" w="5" x="14.6" y="53.29" p_AssFlag="128" lc="0,0,255" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" af4="0" af="39039" fc="0,255,0" tfr="rotate(180)" LevelEnd="0" ls="1" h="5" lw="1" />
+            <line fm="0" id="1000011" LevelStart="0" StartArrowType="0" x1="17" x2="17" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" EndArrowType="0" af4="0" y1="38" y2="59" af="39039" d="17,38 17,59" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+            <pin fm="0" cx="17" cy="13.8" r="2" id="18000012" LevelStart="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" af2="0" p_NameString="" af3="0" index="1" af4="0" af="39295" fc="0,255,0" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+    </Transformer2>
+</G>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Sensitive w="46" h="26" RegionRect="3,3,40,20" HasSensitiveRegion="1" AlignCenter="23,13" EllipseRegionFlag="0" id="yc_风电厂" state="1" >
+        <Layer>
+            <rect fm="1" id="2000000" LevelStart="0" w="40" x="3" y="3" p_AssFlag="128" lc="0,0,0" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34831" tfr="rotate(0)" fc="255,255,255" LevelEnd="0" ls="1" h="20" lw="3" />
+            <line fm="0" id="1000001" LevelStart="0" StartArrowType="0" x1="43" x2="3" StartArrowSize="4" p_AssFlag="128" lc="0,0,0" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3" y2="23" af="34831" d="43,3 3,23" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="3" />
+        </Layer>
+        <Layer/>
+    </Sensitive>
+</G>

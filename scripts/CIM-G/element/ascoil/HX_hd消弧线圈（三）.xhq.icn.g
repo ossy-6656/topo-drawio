@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Ascoil w="32" h="46" HasSensitiveRegion="0" AlignCenter="15,4" id="HX_hd消弧线圈（三）" state="1" >
+        <Layer>
+            <line fm="1" id="19785536" LevelStart="0" StartArrowType="0" x1="9" x2="21" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="36" y2="36" af="32769" d="9,36 21,36" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19783984" LevelStart="0" StartArrowType="0" x1="11" x2="19" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="40" y2="40" af="32769" d="11,40 19,40" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19783584" LevelStart="0" StartArrowType="0" x1="13" x2="17" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="44" y2="44" af="32769" d="13,44 17,44" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19784144" LevelStart="0" StartArrowType="0" x1="15" x2="15" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3" y2="8" af="32769" d="15,3 15,8" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19782544" LevelStart="0" StartArrowType="0" x1="15" x2="15" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="32" y2="36" af="32769" d="15,32 15,36" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19780864" LevelStart="0" StartArrowType="0" x1="5" x2="28" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="8" y2="31" af="32769" d="5,8 28,31" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19783024" LevelStart="0" StartArrowType="0" x1="28" x2="25" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="31" y2="31" af="32769" d="28,31 25,31" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="19781184" LevelStart="0" StartArrowType="0" x1="28" x2="28" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="31" y2="28" af="32769" d="28,31 28,28" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <circlearc cx="15" fm="1" cy="12" r="4" id="19781584" LevelStart="0" a1="270" a2="90" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="1" />
+            <circlearc cx="15" fm="1" cy="20" r="4" id="0" LevelStart="0" a1="270" a2="90" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="1" />
+            <circlearc cx="15" fm="1" cy="28" r="4" id="19782064" LevelStart="0" a1="270" a2="90" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="1" />
+            <pin cx="15" fm="0" cy="4" r="2" id="0" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="0" af="36895" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </Ascoil>
+</G>

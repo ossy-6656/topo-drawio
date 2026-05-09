@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="1" p_AlignCenter="37,48" >
+    <Transformer3 id="EN_三卷_无载_YYD_无中性点低压朝右" >
+        <Layer w="76" x="0" y="0" h="98" id="0" >
+            <line fm="1" p_Plane="0" id="558855384" x1="20" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,3,1,16" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="4" y2="19" p_LevelStart="0" af="32769" d="20,4 20,19" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="0" id="558855864" x1="20" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,27,1,9" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="28" y2="36" p_LevelStart="0" af="32769" d="20,28 20,36" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="0" id="558856024" x1="20" x2="13" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="12,35,8,6" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="36" y2="41" p_LevelStart="0" af="32769" d="20,36 13,41" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="0" id="558856184" x1="27" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,35,8,6" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="41" y2="36" p_LevelStart="0" af="32769" d="27,41 20,36" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <circle fm="0" cx="20" cy="36" r="17" p_Plane="0" id="7536748" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="1,17,36,36" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="32769" fc="93,92,88" tfr="rotate(0)" ls="1" lw="2" />
+            <pin fm="0" cx="20" cy="4" r="2" p_Plane="0" id="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="17,1,5,5" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="0" p_LevelStart="0" af="32831" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+        </Layer>
+        <Layer w="76" x="0" y="0" h="98" id="0" >
+            <circle fm="0" cx="20" cy="61" r="17" p_Plane="1" id="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="1,42,36,36" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="32769" fc="93,92,88" tfr="rotate(0)" ls="1" lw="2" />
+            <line fm="1" p_Plane="1" id="1000011" x1="27" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,60,8,6" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="66.19" y2="61.2" p_LevelStart="0" af="32769" d="27,66.19 20,61.2" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="1" id="1000010" x1="20" x2="13" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="12,60,8,6" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="61.2" y2="66.19" p_LevelStart="0" af="32769" d="20,61.2 13,66.19" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="1" id="1000009" x1="20" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,52,1,9" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="53.2" y2="61.2" p_LevelStart="0" af="32769" d="20,53.2 20,61.2" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="1" p_Plane="1" id="1000012" x1="20" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="19,77,1,16" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="78" y2="93" p_LevelStart="0" af="32769" d="20,78 20,93" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <pin fm="0" cx="20" cy="93" r="2" p_Plane="1" id="18000008" p_AssFlag="128" lc="128,128,128" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="17,90,5,5" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="1" p_LevelStart="0" af="32831" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+        </Layer>
+        <Layer w="76" x="0" y="0" h="98" id="0" >
+            <triangle fm="0" p_Plane="2" id="23000007" w="14" x="37" y="54.5" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="37,40,13,15" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="39231" fc="0,255,0" tfr="rotate(90)" ls="1" h="-12" p_ShadowType="0" lw="1" />
+            <circle fm="0" cx="40" cy="48" r="17" p_Plane="2" id="3000005" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="21,29,36,36" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="32769" fc="93,92,88" tfr="rotate(0)" ls="1" lw="2" />
+            <line fm="1" p_Plane="2" id="1000004" x1="71.90000000000001" x2="56.9" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="56,47,16,1" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="48" y2="47.9" p_LevelStart="0" af="32769" d="71.9,48 56.9,47.9" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <pin fm="0" cx="72" cy="48" r="2" p_Plane="2" id="18000013" p_AssFlag="128" lc="128,128,128" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="69,45,5,5" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="2" p_LevelStart="0" af="39231" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+        </Layer>
+        <Layer w="76" x="0" y="0" h="98" id="0" />
+        <Layer w="76" x="0" y="0" h="98" id="0" />
+        <Layer w="76" x="0" y="0" h="98" id="0" />
+        <Layer w="76" x="0" y="0" h="98" id="0" />
+    </Transformer3>
+</sgd>

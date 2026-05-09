@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Capacitor_P w="62" h="42" HasSensitiveRegion="0" AlignCenter="31,4" id="hd电容器" state="1" >
+        <Layer>
+            <line fm="0" id="1000004" LevelStart="0" StartArrowType="0" x1="31" x2="31" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3" y2="28" af="34831" d="31,3 31,28" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000011" LevelStart="0" StartArrowType="0" x1="4.9" x2="19" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="27.9" y2="28" af="34831" d="4.9,27.9 19,28" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000017" LevelStart="0" StartArrowType="0" x1="4.9" x2="19" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="35.9" y2="36" af="34831" d="4.9,35.9 19,36" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000018" LevelStart="0" StartArrowType="0" x1="23.9" x2="38" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="27.9" y2="28" af="34831" d="23.9,27.9 38,28" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000019" LevelStart="0" StartArrowType="0" x1="23.9" x2="38" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="35.9" y2="36" af="34831" d="23.9,35.9 38,36" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000020" LevelStart="0" StartArrowType="0" x1="42.9" x2="57" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="27.9" y2="28" af="34831" d="42.9,27.9 57,28" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000021" LevelStart="0" StartArrowType="0" x1="42.9" x2="57" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="35.9" y2="36" af="34831" d="42.9,35.9 57,36" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000022" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" af="34831" d="31,12 12,12 12,28 12,28" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="0" id="6000024" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" af="34831" d="50,28 50,12 31,12 31,12 31,12 31,12 31,12" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <pin cx="31" fm="0" cy="4" r="2" id="1010725996" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="0" af="36895" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </Capacitor_P>
+</G>

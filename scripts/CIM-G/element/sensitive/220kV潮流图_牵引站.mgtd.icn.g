@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Sensitive w="70" h="60" RegionRect="2,2,66,56" HasSensitiveRegion="1" AlignCenter="35,31" EllipseRegionFlag="0" id="220kV潮流图_牵引站" state="1" >
+        <Layer>
+            <diamond fm="1" id="16000005" LevelStart="0" w="65" x="2" y="3" p_AssFlag="128" lc="3,89,63" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39295" tfr="rotate(0)" fc="3,89,63" LevelEnd="0" ls="1" h="55" lw="1" />
+        </Layer>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+        <Layer/>
+    </Sensitive>
+</G>

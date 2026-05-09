@@ -58,7 +58,7 @@ function parseArgs(argv) {
     if (!input) {
         input = path.join(
             projectRoot,
-            'scripts/鹤壁220kV浚县变主接线图/CIM-G/display/fac/TEST_220kV浚县站_变电站主页.fac.pic.g'
+            'scripts/CIM-G/display/fac/TEST_220kV浚县站_变电站主页.fac.pic.g'
         )
     }
     return { input, output, varName }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="1" p_AlignCenter="196,211" >
+    <Other id="blq" >
+        <Layer w="250" x="0" y="0" h="250" id="0" >
+            <rect fm="0" p_Plane="0" id="0" w="89" x="151" y="99" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="147,95,98,191" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="93,92,88" tfr="rotate(0)" ls="1" h="182" p_ShadowType="0" lw="1" />
+            <circle fm="0" cx="195" cy="99" r="5" p_Plane="0" id="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="186,90,19,19" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="93,92,88" tfr="rotate(0)" ls="1" lw="1" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="141,116,110,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="151,126 240,126" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="142,162,110,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="152,172 241,172" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="141,210,111,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="151,220 241,220" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="130,287,132,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="140,297 251,297" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="141,299,111,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="151,309 241,309" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="161,310,71,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="171,320 221,320" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <polyline fm="1" p_Plane="0" id="0" p_EndArrowType="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="185,271,21,36" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" d="195,281 195,296" fc="93,92,88" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+        </Layer>
+        <Layer w="250" x="0" y="0" h="250" id="0" />
+    </Other>
+</sgd>

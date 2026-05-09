@@ -37,7 +37,7 @@ export default class StationParse {
 				let name = symbolName.substring(0, index);
 
 				let path = key.toLowerCase();
-				let url = './鹤壁220kV浚县变主接线图/CIM-G/display/fac/' + path + '/' + name;
+				let url = './CIM-G/display/fac/' + path + '/' + name;
 				$.ajax({
 					type: 'post',
 					url: url,

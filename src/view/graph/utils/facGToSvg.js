@@ -86,7 +86,7 @@ function getFacSymbolLoaderMap() {
     if (facSymbolLoaders !== null) return facSymbolLoaders
     facSymbolLoaders = new Map()
     const modules = import.meta.glob(
-        '../../../../scripts/鹤壁220kV浚县变主接线图/CIM-G/display/fac/**/*.g',
+        '../../../../scripts/CIM-G/display/fac/**/*.g',
         { query: '?raw', import: 'default' }
     )
     const marker = '/display/fac/'

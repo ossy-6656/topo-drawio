@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="8" p_AlignCenter="11,10" >
+    <Other id="FES_changzhan_ab" >
+        <Layer w="20" x="0" y="0" h="20" id="0" >
+            <Text p_FontHeight="12" fm="0" p_Plane="0" id="8000000" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="4" y="2.38419e-07" ts="1" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" p_FontInterval="0" switchapp="1" p_RoundBox="2,1,15,17" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="0" fc="0,255,0" tfr="rotate(0) scale(1,0.6)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="12" fm="0" p_Plane="0" id="8000002" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="4" y="2.38419e-07" ts="2" p_AssFlag="128" lc="0,255,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="2" p_FontInterval="0" switchapp="1" p_RoundBox="3,2,13,15" p_DyColorFlag="0" p_LevelEnd="2" p_NameString="" p_LevelStart="2" af="0" fc="0,255,0" tfr="rotate(0) scale(1,0.6)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="12" fm="0" p_Plane="0" id="8000003" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="4" y="2.38419e-07" ts="C" p_AssFlag="128" lc="85,0,127" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="3" p_FontInterval="0" switchapp="1" p_RoundBox="3,2,11,14" p_DyColorFlag="0" p_LevelEnd="3" p_NameString="" p_LevelStart="3" af="0" fc="0,255,0" tfr="rotate(0) scale(1,0.6)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="21" fm="0" p_Plane="0" id="8000004" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="37" fs="37" x="1" y="-8.0754" ts="D" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="4" p_FontInterval="0" switchapp="1" p_RoundBox="0,0,20,22" p_DyColorFlag="0" p_LevelEnd="4" p_NameString="" p_LevelStart="4" af="0" fc="0,255,0" tfr="rotate(0) scale(1,0.563492)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="12" fm="0" p_Plane="0" id="8000000" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="6" y="-2" ts="g" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_FontInterval="0" switchapp="1" p_RoundBox="2,-3,19,21" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="0,255,0" tfr="rotate(0) scale(1,0.6)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+        </Layer>
+        <Layer w="20" x="0" y="0" h="20" id="0" />
+    </Other>
+</sgd>

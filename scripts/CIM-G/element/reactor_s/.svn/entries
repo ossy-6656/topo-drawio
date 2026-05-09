@@ -1,0 +1,48 @@
+8
+
+dir
+1816
+svn://10.0.2.94/repo/D5000/data/graph/element/reactor_s
+svn://10.0.2.94/repo
+
+
+
+2009-06-10T20:44:09.843750Z
+1816
+
+
+
+svn:special svn:externals svn:needs-lock
+
+sgd_sdk1.sdk.icn.g.png
+file
+
+
+
+
+2009-06-08T21:26:46.000000Z
+c52e85d3a0f0314ea7c0f8d554e2f9ed
+2009-06-10T20:44:09.843750Z
+1816
+
+has-props
+
+
+svn:needs-lock
+
+sgd_sdk1.sdk.icn.g
+file
+
+
+
+
+2009-06-09T21:42:07.000000Z
+f6e1d0c6843d4e7e35c4b67c1a25f78b
+2009-06-10T20:44:09.843750Z
+1816
+
+has-props
+
+
+svn:needs-lock
+

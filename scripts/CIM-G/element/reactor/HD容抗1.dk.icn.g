@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="1" p_AlignCenter="11,50" >
+    <Reactor_P id="HD容抗1" >
+        <Layer w="22" x="0" y="0" h="54" id="0" >
+            <circlearc fm="0" cx="11" cy="33" r="9" p_Plane="0" id="9000000" a1="90" a2="0" p_AssFlag="128" lc="0,0,255" p_DrawFlag="0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-2,20,27,27" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="32799" fc="0,255,0" tfr="rotate(180)" ls="1" lw="1" p_ArcShape="65" />
+            <line fm="0" p_Plane="0" id="1000001" x1="2" x2="11" p_EndArrowType="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-13,19,38,29" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="33" y2="33" p_LevelStart="0" af="32831" d="2,33 11,33" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000002" x1="11" x2="11" p_EndArrowType="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-4,-6,29,53" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="33" y2="9" p_LevelStart="0" af="32831" d="11,33 11,9" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000005" x1="11" x2="11" p_EndArrowType="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-4,28,29,35" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="42" y2="48" p_LevelStart="0" af="32831" d="11,42 11,48" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000000" x1="2" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-13,-6,47,29" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="9" y2="9" p_LevelStart="0" af="32831" d="2,9 20,9" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000001" x1="2" x2="20" p_EndArrowType="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="-13,-13,47,29" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="2" y2="2" p_LevelStart="0" af="32831" d="2,2 20,2" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <pin fm="0" cx="11" cy="50" r="2" p_Plane="0" id="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="5,44,13,13" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="0" p_LevelStart="0" af="39039" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+        </Layer>
+    </Reactor_P>
+</sgd>

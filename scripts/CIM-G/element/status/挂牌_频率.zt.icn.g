@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="32" p_AlignCenter="25,24" >
+    <Status id="挂牌_频率" >
+        <Layer w="52" x="0" y="0" h="48" id="0" >
+            <polygon fm="1" p_Plane="0" id="5000033" p_AssFlag="128" lc="0,0,0" p_ShowModeMask="3" sta="1" switchapp="1" p_RoundBox="0,2,51,45" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="100700255" d="12,3 38,3 50,25 38,47 13,47 0,25 12,3 12,3" fc="34,170,118" tfr="rotate(0)" ls="1" lw="1" />
+            <polygon fm="1" p_Plane="0" id="5000036" p_AssFlag="128" lc="0,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="2,0,40,38" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="100700255" d="13,1 33,1 42,19 33,37 14,37 4,19 13,1 13,1" fc="248,13,5" tfr="rotate(0)" ls="1" lw="2" />
+            <handline fm="0" p_Plane="0" id="12000000" p_EndArrowType="0" p_AssFlag="128" lc="0,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="5,13,35,10" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="100700255" d="7,20 7,20 12,23 18,23 24,20 30,15 34,15 40,18 40,18" fc="0,255,0" tfr="rotate(0)" ls="3" p_StartArrowType="0" lw="2" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <Text p_FontHeight="33" fm="0" p_Plane="0" id="8000001" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="29" fs="29" x="12" y="2.66554" ts="H" p_AssFlag="128" lc="0,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_FontInterval="0" switchapp="1" p_RoundBox="11,1,15,33" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="100700255" fc="0,255,0" tfr="rotate(0) scale(1,1.11486)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="0" />
+            <Text p_FontHeight="20" fm="0" p_Plane="0" id="8000007" p_RowInterval="0" p_ZoomMaxLevel="0" p_FontWidth="20" fs="20" x="26" y="12" ts="z" p_AssFlag="128" lc="0,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_FontInterval="0" switchapp="1" p_RoundBox="25,11,10,20" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="100700255" fc="0,255,0" tfr="rotate(0) scale(1,1)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="0" />
+            <line fm="0" p_Plane="0" id="1000009" x1="29" x2="33" p_EndArrowType="0" p_AssFlag="128" lc="0,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="28,21,5,4" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="22" y2="25" p_LevelStart="0" af="100700255" d="29,22 33,25" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+        </Layer>
+    </Status>
+</sgd>

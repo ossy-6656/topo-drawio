@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Status w="40" h="20" HasSensitiveRegion="0" AlignCenter="20,10" id="thavc_变嗲站" state="4" >
+        <Layer>
+            <rect fm="1" id="2000000" LevelStart="0" w="38" x="1" y="1" p_AssFlag="128" lc="255,255,0" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34943" tfr="rotate(0)" fc="255,255,0" LevelEnd="0" ls="1" h="18" lw="1" />
+            <Text p_FontHeight="12" p_ItalicFontFlag="0" fm="0" id="8000000" p_BoldFontFlag="0" LevelStart="0" p_ZoomMaxLevel="0" p_FontWidth="12" fs="12" x="2" y="3" ts="不参与" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39039" tfr="rotate(0) scale(1,1)" fc="0,255,0" LevelEnd="0" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1" />
+            <rect fm="1" id="2000001" LevelStart="1" w="38" x="0.9" y="0.9" p_AssFlag="128" lc="255,0,0" ShadowType="0" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34943" tfr="rotate(0)" fc="255,0,0" LevelEnd="1" ls="1" h="18" lw="1" />
+            <Text p_FontHeight="15" p_ItalicFontFlag="0" fm="0" id="8000002" p_BoldFontFlag="0" LevelStart="1" p_ZoomMaxLevel="0" p_FontWidth="18" fs="18" x="1.9" y="-0.6000002384185791" ts="开环" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39039" tfr="rotate(0) scale(1,0.833333)" fc="0,255,0" LevelEnd="1" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1" />
+            <rect fm="1" id="2000003" LevelStart="2" w="38" x="0.9" y="0.9" p_AssFlag="128" lc="255,255,0" ShadowType="0" p_ShowModeMask="3" sta="2" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34943" tfr="rotate(0)" fc="255,255,0" LevelEnd="2" ls="1" h="18" lw="1" />
+            <Text p_FontHeight="12" p_ItalicFontFlag="0" fm="0" id="8000004" p_BoldFontFlag="0" LevelStart="2" p_ZoomMaxLevel="0" p_FontWidth="12" fs="12" x="1.9" y="2.9" ts="半闭环" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="2" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39039" tfr="rotate(0) scale(1,1)" fc="0,255,0" LevelEnd="2" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1" />
+            <rect fm="1" id="2000005" LevelStart="3" w="38" x="0.9" y="0.9" p_AssFlag="128" lc="0,255,0" ShadowType="0" p_ShowModeMask="3" sta="3" switchapp="1" p_DyColorFlag="0" p_NameString="" af="34943" tfr="rotate(0)" fc="0,255,0" LevelEnd="3" ls="1" h="18" lw="1" />
+            <Text p_FontHeight="15" p_ItalicFontFlag="0" fm="0" id="8000007" p_BoldFontFlag="0" LevelStart="3" p_ZoomMaxLevel="0" p_FontWidth="18" fs="18" x="1.9" y="0.3999997615814208" ts="闭环" p_AssFlag="128" lc="0,0,255" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="3" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39039" tfr="rotate(0) scale(1,0.833333)" fc="0,255,0" LevelEnd="3" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1" />
+        </Layer>
+        <Layer/>
+    </Status>
+</G>

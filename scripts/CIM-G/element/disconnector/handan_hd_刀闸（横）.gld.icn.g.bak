@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="GBK"?> 
+<G>
+	 <Disconnector id="hd_刀闸（横）" HasSentiveRegion="0" state="2" w="30" h="14">
+		<Layer>
+			<circle sta="0" LevelStart="0" LevelEnd="0" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="1" cx="25" cy="4" r="2" tfr="rotate(0)" />
+			<circle sta="0" LevelStart="0" LevelEnd="0" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="1" cx="5" cy="4" r="2" tfr="rotate(0)" />
+			<line sta="0" LevelStart="0" LevelEnd="0" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="2" x1="7" y1="5" x2="23" y2="11" tfr="rotate(0)" />
+			<circle sta="0" LevelStart="0" LevelEnd="0" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="1" cx="6" cy="7" r="0" tfr="rotate(0)" />
+			<line sta="1" LevelStart="1" LevelEnd="1" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="2" x1="7" y1="4" x2="23" y2="4" tfr="rotate(0)" />
+			<circle sta="1" LevelStart="1" LevelEnd="1" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="1" cx="5" cy="4" r="2" tfr="rotate(0)" />
+			<circle sta="1" LevelStart="1" LevelEnd="1" ls="1" fm="0" lc="0,0,255" fc="0,255,0" lw="1" cx="25" cy="4" r="2" tfr="rotate(0)" />
+			<pin cx="5" cy="4" r="1" sta="0" index="0"/>
+			<pin cx="25" cy="4" r="1" sta="0" index="1"/>
+		</Layer>
+	</Disconnector>
+</G>

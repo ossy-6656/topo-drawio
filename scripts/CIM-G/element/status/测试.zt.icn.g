@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Status w="50" h="50" HasSensitiveRegion="0" AlignCenter="25,22" id="测试" state="2">
+        <Layer>
+            <circle fm="1" cx="24" cy="22" r="11" id="3000000" LevelStart="0" p_AssFlag="128" lc="85,255,255" p_ShowModeMask="3" sta="0" p_SelfDefString="" switchapp="1" p_DyColorFlag="0" p_EngcodeString="" af2="0" p_NameString="" af3="0" af4="0" af="34859" fc="85,170,255" tfr="rotate(0)" LevelEnd="0" ls="1" lw="1"/>
+            <Text p_FontHeight="8" p_ItalicFontFlag="0" fm="0" id="8000003" p_BoldFontFlag="1" LevelStart="0" p_ZoomMaxLevel="0" p_FontWidth="8" fs="8" x="17" y="17.89" ts="正常" p_AssFlag="128" lc="85,255,127" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_SelfDefString="" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_EngcodeString="" af2="0" p_NameString="" af3="0" af4="0" af="34859" fc="0,255,0" tfr="rotate(0) scale(1,1)" LevelEnd="0" ls="1" ff="华文黑体" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1"/>
+            <Text p_FontHeight="8" p_ItalicFontFlag="0" fm="0" id="8000009" p_BoldFontFlag="0" LevelStart="1" p_ZoomMaxLevel="0" p_FontWidth="8" fs="8" x="18" y="18.39" ts="越限" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" p_SelfDefString="" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_EngcodeString="" af2="0" p_NameString="" af3="0" af4="0" af="34859" fc="0,255,0" tfr="rotate(0) scale(1,1)" LevelEnd="1" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1"/>
+            <circle fm="1" cx="25" cy="22" r="12" id="3000008" LevelStart="1" p_AssFlag="128" lc="255,255,254" p_ShowModeMask="3" sta="1" p_SelfDefString="" switchapp="1" p_DyColorFlag="0" p_EngcodeString="" af2="0" p_NameString="" af3="0" af4="0" af="34859" fc="255,170,255" tfr="rotate(0)" LevelEnd="1" ls="1" lw="1"/>
+            <Text p_FontHeight="8" p_ItalicFontFlag="0" fm="0" id="8000010" p_BoldFontFlag="0" LevelStart="1" p_ZoomMaxLevel="0" p_FontWidth="8" fs="8" x="18" y="18" ts="越限" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" p_SelfDefString="" RowInterval="0.1" switchapp="1" p_DyColorFlag="0" p_EngcodeString="" af2="0" p_NameString="" af3="0" af4="0" af="34859" fc="0,255,0" tfr="rotate(0) scale(1,1)" LevelEnd="1" ls="1" ff="" p_FontDeltaX="0" FontInterval="0.1" p_FontDeltaY="0" lw="1"/>
+        </Layer>
+    </Status>
+</G>

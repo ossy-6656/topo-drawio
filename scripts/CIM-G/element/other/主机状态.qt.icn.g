@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="4" p_AlignCenter="62,11" >
+    <Other id="主机状态" >
+        <Layer w="120" x="0" y="0" h="22" id="0" >
+            <Text p_FontHeight="18" fm="0" p_Plane="0" id="999" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="41" y="1" ts="故障" p_AssFlag="128" lc="215,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="0" p_FontInterval="0" switchapp="0" p_RoundBox="37,-3,49,27" p_DyColorFlag="205" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="32769" fc="255,255,0" tfr="rotate(0) scale(1,0.9)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="18" fm="0" p_Plane="0" id="999" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="40" y="1" ts="正常" p_AssFlag="128" lc="0,170,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="1" p_FontInterval="0" switchapp="0" p_RoundBox="37,0,45,23" p_DyColorFlag="205" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="32769" fc="255,255,0" tfr="rotate(0) scale(1,0.9)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="18" fm="0" p_Plane="0" id="999" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="28" y="1" ts="应用异常" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="2" p_FontInterval="0" switchapp="0" p_RoundBox="26,0,83,21" p_DyColorFlag="205" p_LevelEnd="2" p_NameString="" p_LevelStart="2" af="32769" fc="255,255,0" tfr="rotate(0) scale(1,0.9)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="18" fm="0" p_Plane="0" id="8000000" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="2" y="-1" ts="所有应用异常" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="3" p_FontInterval="0" switchapp="0" p_RoundBox="1,0,121,20" p_DyColorFlag="205" p_LevelEnd="3" p_NameString="" p_LevelStart="3" af="32769" fc="255,255,0" tfr="rotate(0) scale(1,0.9)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+            <Text p_FontHeight="18" fm="0" p_Plane="0" id="8000001" p_RowInterval="0" p_ZoomMaxLevel="-12851" p_FontWidth="20" fs="20" x="0" y="1" ts="不正常" p_AssFlag="128" lc="255,0,0" p_MatrixFontFlag="0" wm="1" p_ShowModeMask="3" sta="4" p_FontInterval="0" switchapp="0" p_RoundBox="0,2,61,19" p_DyColorFlag="205" p_LevelEnd="4" p_NameString="" p_LevelStart="4" af="32769" fc="255,255,0" tfr="rotate(0) scale(1,0.9)" ls="1" ff="" p_FontDeltaX="0" p_FontDeltaY="0" lw="1" />
+        </Layer>
+        <Layer w="120" x="0" y="0" h="22" id="0" />
+    </Other>
+</sgd>

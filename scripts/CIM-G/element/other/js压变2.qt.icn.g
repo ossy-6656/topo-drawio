@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="GBK"?>
+<sgd p_HasSensitiveRegion="0" state="2" p_AlignCenter="17,48" >
+    <Other id="js压变2" >
+        <Layer w="34" x="0" y="0" h="62" id="0" >
+            <circle fm="0" cx="11" cy="11" r="8" p_Plane="0" id="999" p_AssFlag="128" lc="215,0,0" p_ShowModeMask="3" sta="0" switchapp="0" p_RoundBox="-2,-2,25,25" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <circle fm="0" cx="17" cy="20" r="8" p_Plane="0" id="999" p_AssFlag="128" lc="215,0,0" p_ShowModeMask="3" sta="0" switchapp="0" p_RoundBox="5,8,25,25" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <circle fm="0" cx="22" cy="11" r="8" p_Plane="0" id="999" p_AssFlag="128" lc="215,0,0" p_ShowModeMask="3" sta="0" switchapp="0" p_RoundBox="10,-2,25,25" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <line fm="0" p_Plane="0" id="999" x1="17" x2="17" p_EndArrowType="0" p_AssFlag="128" lc="215,0,0" p_ShowModeMask="3" sta="0" switchapp="0" p_RoundBox="3,14,29,37" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="28" y2="36" p_LevelStart="0" af="0" d="17,28 17,36" fc="155,0,1" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <circle fm="0" cx="11" cy="15" r="8" p_Plane="0" id="3000003" p_AssFlag="128" lc="0,199,0" p_ShowModeMask="3" sta="1" switchapp="0" p_RoundBox="0,4,21,21" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <circle fm="0" cx="22" cy="15" r="8" p_Plane="0" id="3000002" p_AssFlag="128" lc="0,199,0" p_ShowModeMask="3" sta="1" switchapp="0" p_RoundBox="11,4,21,21" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <circle fm="0" cx="17" cy="24" r="8" p_Plane="0" id="3000001" p_AssFlag="128" lc="0,199,0" p_ShowModeMask="3" sta="1" switchapp="0" p_RoundBox="6,13,21,21" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" p_LevelStart="1" af="0" fc="155,0,1" tfr="rotate(0)" ls="1" lw="1" />
+            <line fm="0" p_Plane="0" id="1000005" x1="17" x2="17" p_EndArrowType="0" p_AssFlag="128" lc="0,199,0" p_ShowModeMask="3" sta="1" switchapp="0" p_RoundBox="4,19,25,33" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" y1="32" y2="40" p_LevelStart="1" af="0" d="17,32 17,40" fc="155,0,1" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="1" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000004" x1="17" x2="26" p_EndArrowType="0" p_AssFlag="128" lc="0,199,0" p_ShowModeMask="3" sta="1" switchapp="0" p_RoundBox="4,27,35,43" p_DyColorFlag="0" p_LevelEnd="1" p_NameString="" y1="40" y2="57" p_LevelStart="1" af="0" d="17,40 26,57" fc="155,0,1" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="2" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <line fm="0" p_Plane="0" id="1000007" x1="17" x2="17" p_EndArrowType="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="2,24,30,45" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" y1="39" y2="54" p_LevelStart="0" af="0" d="17,39 17,54" fc="0,255,0" tfr="rotate(0)" ls="1" p_StartArrowType="0" lw="2" p_StartArrowSize="4" p_EndArrowSize="4" />
+            <pin fm="0" cx="17" cy="56" r="2" p_Plane="0" id="6750255" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="11,50,13,13" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="0" p_LevelStart="0" af="38943" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+            <pin fm="0" cx="17" cy="39" r="2" p_Plane="0" id="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="11,33,13,13" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="1" p_LevelStart="0" af="38943" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
+        </Layer>
+        <Layer w="34" x="0" y="0" h="62" id="0" />
+    </Other>
+</sgd>

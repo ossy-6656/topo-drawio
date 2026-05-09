@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Terminal w="48" h="58" HasSensitiveRegion="0" AlignCenter="26,3" id="HD_hd_10kVPT" state="1" >
+        <Layer>
+            <rect fm="0" id="-1" LevelStart="0" w="6" x="36" y="11" p_AssFlag="128" lc="93,92,88" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" h="20" lw="1" />
+            <rect fm="0" id="-1" LevelStart="0" w="8" x="9" y="6" p_AssFlag="128" lc="93,92,88" ShadowType="0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" h="17" lw="1" />
+            <line fm="1" id="98727552" LevelStart="0" StartArrowType="0" x1="13" x2="13" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3" y2="26" af="32769" d="13,3 13,26" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="98727392" LevelStart="0" StartArrowType="0" x1="39" x2="39" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="31" y2="37" af="32769" d="39,31 39,37" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="98727232" LevelStart="0" StartArrowType="0" x1="33" x2="45" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="37" y2="37" af="32769" d="33,37 45,37" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="98727072" LevelStart="0" StartArrowType="0" x1="35" x2="43" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="41" y2="41" af="32769" d="35,41 43,41" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="98726912" LevelStart="0" StartArrowType="0" x1="37" x2="41" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="45" y2="45" af="32769" d="37,45 41,45" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="98726752" LevelStart="0" StartArrowType="0" x1="39" x2="37" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="24" y2="22" af="32769" d="39,24 37,22" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <line fm="1" id="94445840" LevelStart="0" StartArrowType="0" x1="39" x2="41" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="24" y2="22" af="32769" d="39,24 41,22" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <circle cx="13" fm="0" cy="33" r="7" id="0" LevelStart="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <circle cx="9" fm="0" cy="40" r="7" id="0" LevelStart="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <circle cx="17" fm="0" cy="40" r="7" id="0" LevelStart="0" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="32769" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <polyline fm="1" id="0" LevelStart="0" StartArrowType="0" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" af="32769" d="13,3 39,3 39,24" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="1" />
+            <pin cx="26" fm="0" cy="3" r="2" id="0" LevelStart="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="0" af="36895" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </Terminal>
+</G>

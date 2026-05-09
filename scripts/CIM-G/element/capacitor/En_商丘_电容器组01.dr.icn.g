@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Capacitor_S w="30" h="50" HasSensitiveRegion="0" AlignCenter="11,24" id="En_商丘_电容器组01" state="1" >
+        <Layer>
+            <line fm="1" id="0" LevelStart="0" StartArrowType="0" x1="11.1" x2="11.1" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="26.9" y2="44" af="2147483647" d="11.1,26.9 11.1,44" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <line fm="1" id="0" LevelStart="0" StartArrowType="0" x1="11.1" x2="11.1" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="19.9" y2="5" af="2147483647" d="11.1,19.9 11.1,5" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <line fm="1" id="0" LevelStart="0" StartArrowType="0" x1="2.57" x2="19.6" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="20.9" y2="20.9" af="2147483647" d="2.57,20.9 19.6,20.9" tfr="rotate(0)" fc="93,92,88" LevelEnd="0" ls="1" lw="2" />
+            <line fm="0" id="0" LevelStart="0" StartArrowType="0" x1="2.57" x2="19.6" StartArrowSize="4" p_AssFlag="128" lc="92,93,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="26.9" y2="26.9" af="2147483647" d="2.57,26.9 19.6,26.9" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="2" />
+            <pin fm="0" cx="11" cy="43.9" r="2" id="0" LevelStart="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="0" af="2147483647" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <pin fm="0" cx="11" cy="2.9" r="2" id="0" LevelStart="0" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" index="1" af="2147483647" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <circlearc cx="24.2" fm="0" cy="8.1" r="5" id="9000011" LevelStart="0" a1="282" a2="117" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39295" tfr="rotate(360)" fc="0,255,0" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+            <circlearc cx="24.2" fm="0" cy="17.9" r="5" id="9000012" LevelStart="0" a1="282" a2="117" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39295" tfr="rotate(360)" fc="0,255,0" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+            <circlearc cx="24.2" fm="0" cy="27.9" r="5" id="9000013" LevelStart="0" a1="282" a2="117" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39295" tfr="rotate(360)" fc="0,255,0" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+            <circlearc cx="24.2" fm="0" cy="36.8" r="5" id="9000014" LevelStart="0" a1="243" a2="78" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="39295" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+            <line fm="0" id="1000015" LevelStart="0" StartArrowType="0" x1="12" x2="21" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="4" y2="4" af="39295" d="12,4 21,4" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000016" LevelStart="0" StartArrowType="0" x1="12" x2="22" StartArrowSize="4" p_AssFlag="128" lc="93,92,88" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="42" y2="42" af="39295" d="12,42 22,42" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+        </Layer>
+        <Layer/>
+    </Capacitor_S>
+</G>
