@@ -590,6 +590,7 @@ div.mxWindow .geButton {
 	padding-left:10px;
 	padding-bottom:6px;
 	overflow:hidden;
+	text-align:left;
 }
 .geSidebarContainer .geTitle {
 	display:block;
@@ -638,7 +639,7 @@ div.mxWindow .geButton {
 .geSidebar .geItem {
 	display:inline-block;
 	background-repeat:no-repeat;
-	background-position:50% 50%;
+	background-position:left center;  /* 改为左对齐 */
 	border-radius: 8px;
 }
 .geSidebar .geItem, .geShapePicker .geItem {

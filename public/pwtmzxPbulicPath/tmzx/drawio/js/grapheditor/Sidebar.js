@@ -2239,8 +2239,9 @@ Sidebar.prototype.createThumb = function(cells, width, height, parent, title, sh
 	{
 		var s = Math.floor(Math.min((width - 2 * this.thumbBorder) / bounds.width,
 			(height - 2 * this.thumbBorder) / bounds.height) * 100) / 100;
+		// 水平左对齐（与 thumbBorder 内边距一致），垂直仍居中
 		this.graph.view.scaleAndTranslate(s,
-			(width - bounds.width * s) / 2 / s - bounds.x,
+			this.thumbBorder / s - bounds.x,
 			(height - bounds.height * s) / 2 / s - bounds.y);
 	}
 

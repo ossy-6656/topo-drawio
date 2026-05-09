@@ -416,45 +416,48 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 先渲染基础图元
                             ui.sidebar.addPaletteFunctions('lg-devices', '电力设备', true, lgDeviceFns)
 
-                            // ── 连接线分类 ──
+                            // ── 连接线分类：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段 ──
+                            const lgStraightVerticalLineStyle =
+                                'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;'
                             const lgLineFns = [
-                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar），放在连接线栏便于选用
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    lgStraightVerticalLineStyle,
+                                    50,
+                                    50,
+                                    '',
+                                    '母线连接线',
+                                    null,
+                                    null,
+                                    '母线连接线 母线-母线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    lgStraightVerticalLineStyle,
+                                    50,
+                                    50,
+                                    '',
+                                    '连接线',
+                                    null,
+                                    null,
+                                    '连接线 普通 设备'
+                                ),
+                            ]
+                            ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
+
+                            // ── 母线分类 ──
+                            const lgBusbarFns = [
+                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar）
                                 ui.sidebar.createVertexTemplateEntry(
                                     'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;',
                                     200,
-                                    1.6,
+                                    1.6,  // 拖入画布默认高度与 LGSvgParser 母线 busbarThin 锁定一致
                                     '',
                                     '站内-母线（0311）',
                                     null,
                                     null,
                                     '站内-母线（0311）'
                                 ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=none;html=1;',
-                                    50, 50, '', '直线', null, null, '直线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=none;dashed=1;html=1;',
-                                    50, 50, '', '虚线', null, null, '虚线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=classic;html=1;',
-                                    50, 50, '', '有向连接线', null, null, '有向连接线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=classic;startArrow=classic;html=1;',
-                                    50, 50, '', '双向连接线', null, null, '双向连接线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=none;html=1;edgeStyle=orthogonalEdgeStyle;',
-                                    50, 50, '', '直角折线', null, null, '直角折线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    'endArrow=none;html=1;curved=1;',
-                                    50, 50, '', '曲线', null, null, '曲线'
-                                ),
                             ]
-                            ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
+                            ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
 
                             // ── 辅助：将解析出的图元节点追加到电力设备面板 ──
                             const appendScratchNodes = (scratchNodes) => {
@@ -640,6 +643,7 @@ onActivated(() => {
 ::v-deep .geSidebar {
     display: block !important;
     visibility: visible !important;
+    text-align: left !important;
 }
 
 ::v-deep .geHsplit {
