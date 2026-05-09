@@ -155,6 +155,31 @@ window.EditDataDialog = function(ui, cell)
         parent.appendChild(wrapper);
     };
 
+    // 判断是否为母线连接线（连接两条母线的线）
+    var isBusbarConnector = false;
+    if (graph.getModel().isEdge(cell)) {
+        var sourceCell = graph.getModel().getTerminal(cell, true);
+        var targetCell = graph.getModel().getTerminal(cell, false);
+        
+        // 检查源终端是否为母线
+        var isSourceBusbar = false;
+        if (sourceCell) {
+            var sourceCellStyle = graph.getCurrentCellStyle(sourceCell) || {};
+            var sourcePsrtype = sourceCell['psrtype'] || sourceCellStyle['psrtype'] || '';
+            isSourceBusbar = sourceCell.symbol == 'busbar' || sourcePsrtype == '0311' || sourceCellStyle['flag'] == 'busbar';
+        }
+        
+        // 检查目标终端是否为母线
+        var isTargetBusbar = false;
+        if (targetCell) {
+            var targetCellStyle = graph.getCurrentCellStyle(targetCell) || {};
+            var targetPsrtype = targetCell['psrtype'] || targetCellStyle['psrtype'] || '';
+            isTargetBusbar = targetCell.symbol == 'busbar' || targetPsrtype == '0311' || targetCellStyle['flag'] == 'busbar';
+        }
+        
+        isBusbarConnector = isSourceBusbar && isTargetBusbar;
+    }
+    
     // 属性名称中英文映射
     var attrNameMap = {
         'name': '设备名称',
@@ -168,7 +193,12 @@ window.EditDataDialog = function(ui, cell)
         'shape': '图形',
         'label': '标签',
         'style': '样式',
-        'metadata': '元数据'
+        'metadata': '元数据',
+        // 母线连接线属性
+        'model': '线路型号',
+        'model_paras': '线路型号参数',
+        'Ih': '额定载流量(kA)',
+        'length': '线路长度(km)'
     };
 
     var addTextArea = function(index, name, value)
@@ -290,12 +320,67 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
+    // 母线连接线特殊处理：添加线路属性字段
+    if (isBusbarConnector) {
+        // 确保 name 字段存在（线路名称）
+        var lineNameFound = false;
+        for (var ni = 0; ni < temp.length; ni++) {
+            if (temp[ni].name == 'name') {
+                lineNameFound = true;
+                if (!temp[ni].value) {
+                    temp[ni].value = (cell['name'] || cellStyle['name'] || '').toString();
+                }
+                break;
+            }
+        }
+        if (!lineNameFound) {
+            temp.push({ name: 'name', value: (cell['name'] || cellStyle['name'] || '').toString() });
+        }
+        
+        // 添加线路型号字段
+        var modelValue = cell['model'] || cellStyle['model'] || '';
+        temp = temp.filter(function(item) { return item.name != 'model'; });
+        temp.push({ name: 'model', value: modelValue.toString() });
+        
+        // 添加线路型号参数字段
+        var modelParasValue = cell['model_paras'] || cellStyle['model_paras'] || '';
+        temp = temp.filter(function(item) { return item.name != 'model_paras'; });
+        temp.push({ name: 'model_paras', value: modelParasValue.toString() });
+        
+        // 添加额定载流量字段
+        var IhValue = cell['Ih'] || cellStyle['Ih'] || '';
+        temp = temp.filter(function(item) { return item.name != 'Ih'; });
+        temp.push({ name: 'Ih', value: IhValue.toString() });
+        
+        // 添加线路长度字段
+        var lengthValue = cell['length'] || cellStyle['length'] || '';
+        temp = temp.filter(function(item) { return item.name != 'length'; });
+        temp.push({ name: 'length', value: lengthValue.toString() });
+    }
+
     // Sorts by name；母线优先顺序与 tooltip 一致：设备名称、设备类型
     if (isBusbar) {
         var orderPref = { name: 0, sblx: 1 };
         temp.sort(function(a, b) {
             var oa = Object.prototype.hasOwnProperty.call(orderPref, a.name) ? orderPref[a.name] : 100;
             var ob = Object.prototype.hasOwnProperty.call(orderPref, b.name) ? orderPref[b.name] : 100;
+            if (oa !== ob) {
+                return oa - ob;
+            }
+            if (a.name < b.name) {
+                return -1;
+            }
+            if (a.name > b.name) {
+                return 1;
+            }
+            return 0;
+        });
+    } else if (isBusbarConnector) {
+        // 母线连接线字段顺序：线路名称、线路型号、线路型号参数、额定载流量、线路长度
+        var connectorOrderPref = { name: 0, model: 1, model_paras: 2, Ih: 3, length: 4 };
+        temp.sort(function(a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(connectorOrderPref, a.name) ? connectorOrderPref[a.name] : 100;
+            var ob = Object.prototype.hasOwnProperty.call(connectorOrderPref, b.name) ? connectorOrderPref[b.name] : 100;
             if (oa !== ob) {
                 return oa - ob;
             }
