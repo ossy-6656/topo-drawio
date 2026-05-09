@@ -132,8 +132,15 @@ export default class SvgBase {
         let reg1 = /\.?[a-zA-Z0-9]+[^{]*\{[^}]+\}/g //全局查找
         let reg2 = /\.?([a-zA-Z0-9]+[^{]*)\{([^}]+)\}/ // 单css查找
         let style = (this.style = {})
+        // G 文件转换等场景可能无 <defs><style>，或 style 为空
+        if (!node || typeof node.innerHTML !== 'string') {
+            return
+        }
         let str = node.innerHTML.replace('<![CDATA[', '').replace(']]>', '').trim()
         let list1 = str.match(reg1)
+        if (!list1 || list1.length === 0) {
+            return
+        }
 
         let getProps = (css) => {
             let obj = {}

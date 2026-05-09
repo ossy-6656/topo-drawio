@@ -113,8 +113,177 @@ async function loadSymbolXmlFromProject(subdir, fileBase) {
     }
 }
 
+/** 与 lgdata 类似的最小 CSS，便于画布解析 stroke/fill class */
+const FAC_DEFS_MIN_STYLE = `<style type="text/css"><![CDATA[
+symbol {overflow:visible}
+.kv10 {fill:none;stroke:rgb(240,65,85);stroke-width:1;}
+.lkv220 {fill:none;stroke:rgb(128,0,128);stroke-width:1;}
+]]></style>`
+
+function escapeXmlAttr(s) {
+    if (s == null || s === '') return ''
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
+const PSR_TYPE_BY_G_NODE = {
+    CBreaker: '0305',
+    Disconnector: '0306',
+    GroundDisconnector: '0311',
+    PT: '0313',
+    Status: '0320',
+}
+
+function psrTypeForGNode(nodeName) {
+    return PSR_TYPE_BY_G_NODE[nodeName] || '0305'
+}
+
+function normalizeFacUseFragment(useXml) {
+    if (!useXml) return useXml
+    let s = useXml.trim()
+    if (!/\bxlink:href\s*=/.test(s)) {
+        s = s.replace(/\bhref\s*=\s*"#/i, 'xlink:href="#')
+    }
+    if (!/\bclass\s*=/.test(s)) {
+        s = s.replace(/<use\s+/i, '<use class="kv10" ')
+    }
+    return s
+}
+
+function wrapDeviceUseGroup(dom, useInner) {
+    const id = dom.getAttribute('id') || 'PD_unknown'
+    const name = escapeXmlAttr(dom.getAttribute('keyname') || dom.getAttribute('keyid') || id)
+    const psr = psrTypeForGNode(dom.nodeName)
+    const frag = normalizeFacUseFragment(useInner)
+    return (
+        `<g id="${escapeXmlAttr(id)}">` +
+        frag +
+        `<metadata>` +
+        `<cge:PSR_Ref ObjectID="${escapeXmlAttr(id)}" ObjectName="${name}" PSRType="${psr}"/>` +
+        `<cge:Layer_Ref ObjectName="Breaker_Layer"/>` +
+        `</metadata></g>`
+    )
+}
+
+function lineGToPolylineSvg(dom) {
+    const x1 = dom.getAttribute('x1')
+    const y1 = dom.getAttribute('y1')
+    const x2 = dom.getAttribute('x2')
+    const y2 = dom.getAttribute('y2')
+    const lc = dom.getAttribute('lc')
+    const lw = dom.getAttribute('lw')
+    let poly = '<polyline fill="none" '
+    poly += `points="${escapeXmlAttr(x1)},${escapeXmlAttr(y1)} ${escapeXmlAttr(x2)},${escapeXmlAttr(y2)}" `
+    if (lc) poly += `stroke="rgb(${escapeXmlAttr(lc)})" `
+    if (lw) poly += `stroke-width="${escapeXmlAttr(lw)}" `
+    poly += 'class="lkv220" />'
+    return poly
+}
+
+function wrapLineLikeGroup(dom, innerSvg, idx) {
+    const id = dom.getAttribute('id') || `PD_line_${idx}`
+    const oid = escapeXmlAttr(id)
+    const name = escapeXmlAttr(dom.getAttribute('name') || dom.getAttribute('keyname') || '')
+    return (
+        `<g id="${oid}">` +
+        innerSvg +
+        `<metadata>` +
+        `<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="36000000"/>` +
+        `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` +
+        `</metadata></g>`
+    )
+}
+
+function wrapTextBlock(dom, textXml) {
+    const rawId = dom.getAttribute('id') || 'TXT_misc'
+    const gId = rawId.indexOf('TXT-') === 0 ? rawId : `TXT-${rawId}`
+    const pid = dom.getAttribute('pid')
+    const pidPart = pid ? ` pid="${escapeXmlAttr(pid)}"` : ''
+    let inner = textXml.replace(/\s+id\s*=\s*"[^"]*"/i, ' ')
+    const fs = dom.getAttribute('fs')
+    if (fs && !/\bfont-size\s*=/.test(inner)) {
+        inner = inner.replace(/<text\s/i, `<text font-size="${escapeXmlAttr(fs)}" `)
+    }
+    const gid = escapeXmlAttr(gId)
+    return (
+        `<g id="${gid}"${pidPart}>` +
+        inner +
+        `<metadata><cge:PSR_Ref ObjectID="${gid}"/><cge:Layer_Ref ObjectName="Text_Layer"/></metadata>` +
+        `</g>`
+    )
+}
+
+/**
+ * LGSvgParser 要求：svg 下直接子节点为各 *_Layer 的 &lt;g&gt;，设备/线/文本为带 metadata 的分组。
+ */
+function buildLgCompatibleBody(children, onWarn) {
+    const textParts = []
+    const deviceParts = []
+    const lineParts = []
+
+    for (let i = 0; i < children.length; i++) {
+        const dom = children[i]
+        if (dom.nodeType !== 1) continue
+        const nodeName = dom.nodeName
+
+        switch (nodeName) {
+            case 'rect':
+            case 'polygon':
+            case 'ellipse':
+            case 'circlearc':
+            case 'ellipsear':
+                if (onWarn) onWarn(nodeName, dom.getAttribute('id'))
+                break
+            case 'polyline': {
+                const inner = SymbolParse.parsePolyline(dom, true)
+                if (inner) lineParts.push(wrapLineLikeGroup(dom, inner, i))
+                break
+            }
+            case 'BusbarSection':
+            case 'ACLineSegment':
+            case 'line': {
+                const inner = lineGToPolylineSvg(dom)
+                lineParts.push(wrapLineLikeGroup(dom, inner, i))
+                break
+            }
+            case 'Text': {
+                const inner = SymbolParse.parseText(dom)
+                if (inner) textParts.push(wrapTextBlock(dom, inner))
+                break
+            }
+            case 'DText': {
+                const inner = SymbolParse.parseDText(dom)
+                if (inner) textParts.push(wrapTextBlock(dom, inner))
+                break
+            }
+            case 'Status':
+            case 'PT':
+            case 'GroundDisconnector':
+            case 'Disconnector':
+            case 'CBreaker': {
+                const inner = SymbolParse.parseDev(dom)
+                if (inner) deviceParts.push(wrapDeviceUseGroup(dom, inner))
+                break
+            }
+            default:
+                if (onWarn) onWarn(nodeName, dom.getAttribute('id'))
+        }
+    }
+
+    return (
+        `<g id="Breaker_Layer">${deviceParts.join('')}</g>` +
+        `<g id="ACLineSegment_Layer">${lineParts.join('')}</g>` +
+        `<g id="Text_Layer">${textParts.join('')}</g>` +
+        `<g id="Hot_Layer"></g>` +
+        `<g id="Point_Layer"></g>`
+    )
+}
+
 async function parseSymbolDefs(spcMap, onMissing) {
-    const sb = ['<defs>']
+    const sb = ['<defs>', FAC_DEFS_MIN_STYLE]
     for (const nodeName of Object.keys(spcMap)) {
         const symbolMap = spcMap[nodeName]
         const subdir = nodeName.toLowerCase()
@@ -138,60 +307,6 @@ async function parseSymbolDefs(spcMap, onMissing) {
     return sb.join('')
 }
 
-function parseLayerItems(onWarn) {
-    return function parse(list) {
-        const sb = []
-        for (let i = 0; i < list.length; i++) {
-            const dom = list[i]
-            if (dom.nodeType !== 1) continue
-            const nodeName = dom.nodeName
-            let html = ''
-            switch (nodeName) {
-                case 'rect':
-                    html = SymbolParse.parseRect(dom, true)
-                    break
-                case 'polygon':
-                    html = SymbolParse.parsePolygon(dom, true)
-                    break
-                case 'polyline':
-                    html = SymbolParse.parsePolyline(dom, true)
-                    break
-                case 'ellipse':
-                    html = SymbolParse.parseEllipse(dom, true)
-                    break
-                case 'BusbarSection':
-                case 'ACLineSegment':
-                case 'line':
-                    html = SymbolParse.parseLine(dom, true)
-                    break
-                case 'Text':
-                    html = SymbolParse.parseText(dom, true)
-                    break
-                case 'DText':
-                    html = SymbolParse.parseDText(dom, true)
-                    break
-                case 'circlearc':
-                    html = SymbolParse.parseCirclearc(dom, true)
-                    break
-                case 'ellipsear':
-                    html = SymbolParse.parseEllipsear(dom, true)
-                    break
-                case 'Status':
-                case 'PT':
-                case 'GroundDisconnector':
-                case 'Disconnector':
-                case 'CBreaker':
-                    html = SymbolParse.parseDev(dom)
-                    break
-                default:
-                    if (onWarn) onWarn(nodeName, dom.getAttribute('id'))
-            }
-            if (html) sb.push(html)
-        }
-        return sb.join('')
-    }
-}
-
 async function buildSvgDocument(gEl, layerEl, options) {
     const w = gEl.getAttribute('w') || '2400'
     const h = gEl.getAttribute('h') || '1350'
@@ -207,7 +322,7 @@ async function buildSvgDocument(gEl, layerEl, options) {
         if (n.nodeType === 1) children.push(n)
     }
     const warnNodes = options?.quiet ? () => {} : (type, id) => console.warn(`[facG] 未转换节点: ${type} id=${id || ''}`)
-    const body = parseLayerItems(warnNodes)(children)
+    const body = buildLgCompatibleBody(children, warnNodes)
 
     let bg = ''
     if (bgc) {

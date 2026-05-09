@@ -22,14 +22,26 @@
         </div>
     </div> -->
 
-    <!-- 数据选择下拉框 -->
-    <div class="dataSelector" style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-        <label for="dataSelect" style="margin-right: 8px; font-size: 14px; font-weight: 500; color: #333;">选择数据源：</label>
+    <!-- 数据选择 + 上传 G 图 -->
+    <div class="dataSelector" style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: min(100vw - 24px, 560px);">
+        <span style="font-size: 14px; font-weight: 500; color: #333;">选择数据源：</span>
         <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
             <option value="zjtSvg">lgdata (示例数据)</option>
             <option value="svg1">svg1</option>
             <option value="svg2">svg2</option>
+            <option value="uploaded" :disabled="!uploadedSvg">本地上传的 G 图</option>
         </select>
+        <label class="gUploadLabel" style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 14px; color: #409eff;">
+            <input
+                ref="gFileInputRef"
+                type="file"
+                accept=".g,application/xml,text/xml"
+                style="display: none"
+                @change="onGFileSelected"
+            />
+            <span style="user-select: none;">上传 G 文件</span>
+        </label>
+        <span v-if="uploadingG" style="font-size: 13px; color: #909399;">正在转换为 SVG…</span>
     </div>
 
     <!-- 图形容器：包含图形编辑器和加载提示 -->
@@ -102,6 +114,9 @@ import App from '@/view/graph/lg/App'
 import { zjtSvg } from '@/view/graph/data/lgdata.js'                    // 测试用的正交图 SVG 数据
 import { svg1 } from '@/view/graph/data/svg1.js'                        // SVG 数据 1
 import { svg2 } from '@/view/graph/data/svg2.js'                        // SVG 数据 2
+
+// 导入 G 文件转换工具
+import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G 文件转 SVG
 // import { checkEditZjtPermission } from '@/api/tmzx/abnormalchange/index.ts'
 
 // 导入其他工具
@@ -167,16 +182,57 @@ let uiEditor                       // 编辑器 UI 实例（App 类的实例）
 let poleEle = ref()                 // 柱上辅助复选框的引用
 const selectedData = ref('zjtSvg')  // 当前选中的数据源
 
+// G 文件上传相关
+let uploadedSvg = ref('')           // 存储上传 G 文件转换后的 SVG 数据
+let uploadingG = ref(false)         // 上传状态标志
+let gFileInputRef = ref()           // 文件输入框的引用
+
 // 数据源映射
 const dataSources = {
     zjtSvg: zjtSvg,
     svg1: svg1,
-    svg2: svg2
+    svg2: svg2,
+    uploaded: null  // 动态获取
+}
+
+// G 文件选择处理函数
+async function onGFileSelected(event) {
+    const file = event.target.files && event.target.files[0]
+    if (!file) return
+
+    uploadingG.value = true
+    try {
+        const arrayBuffer = await file.arrayBuffer()
+        const { svg: svgStr, missingSymbols } = await convertFacGBufferToSvg(arrayBuffer, {})
+        uploadedSvg.value = svgStr
+        dataSources.uploaded = svgStr
+        if (missingSymbols?.length) {
+            console.warn('[facG] 以下图元未在工程中加载:', missingSymbols)
+        }
+        selectedData.value = 'uploaded'
+        // 自动切换到上传的 G 图
+        handleDataChange()
+        ElMessage.success('G 文件转换成功')
+    } catch (e) {
+        console.error('G 文件转换失败:', e)
+        ElMessage.error('G 文件转换失败: ' + (e.message || e))
+    } finally {
+        uploadingG.value = false
+        // 清空文件输入，允许重复上传同一文件
+        if (gFileInputRef.value) {
+            gFileInputRef.value.value = ''
+        }
+    }
 }
 
 // 数据切换处理函数（须用 window.initGraphWithSvg：赋值在 onMounted 内，模块内无同名变量）
 const handleDataChange = () => {
-    const selectedSvg = dataSources[selectedData.value]
+    let selectedSvg = null
+    if (selectedData.value === 'uploaded') {
+        selectedSvg = uploadedSvg.value
+    } else {
+        selectedSvg = dataSources[selectedData.value]
+    }
     const load = typeof window.initGraphWithSvg === 'function' ? window.initGraphWithSvg : null
     if (!selectedSvg || !load) return
     // App.main 在 isMainCalled 为 true 时直接 return，必须重置后才能再次加载新 SVG

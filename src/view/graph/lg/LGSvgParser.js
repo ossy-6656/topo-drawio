@@ -21,6 +21,23 @@ import $ from 'jquery'
 let pathReg = /[MLAH]([^MLAH])+/ig;
 let emptyReg = / +/;
 
+/**
+ * 读取 &lt;use&gt; 在 SVG 用户坐标系下的参考点（与 parseUse 中 _x/_y 一致）。
+ * CIM-G / fac 的 parseDev 将中心位置写在 transform 的首个 translate 上，x/y 属性仅为 -w/2、-h/2；
+ * 力光导出的图常在 x/y 上直接写中心坐标，translate 链中第一个 translate 一般与其一致。
+ */
+function readUseWorldXY(nodeUse, transformStr) {
+    const xa = nodeUse.getAttribute('x')
+    const ya = nodeUse.getAttribute('y')
+    const re =
+        /translate\s*\(\s*([-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?)(?:\s*,\s*|\s+)([-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?)\s*\)/i
+    const m = transformStr && re.exec(transformStr)
+    if (m) {
+        return { wx: parseFloat(m[1]), wy: parseFloat(m[2]) }
+    }
+    return { wx: parseFloat(xa) || 0, wy: parseFloat(ya) || 0 }
+}
+
 
 
 BaseFormatPanel.prototype.isFloatUnit = function() {
@@ -1335,23 +1352,30 @@ export default class LGSvgParser extends SvgBase {
         let props = $node.find('metadata')
 
         let propMap = this.getPropMap(props)
-        let { ObjectID, ObjectName, PSRType } = propMap['cge:PSR_Ref']
+        let psrRef = propMap['cge:PSR_Ref'] || {}
+        let ObjectID = psrRef.ObjectID || useNode.getAttribute('id')
+        let ObjectName = psrRef.ObjectName || ''
+        let PSRType = psrRef.PSRType || '0305'
         let LinkedList = propMap['cge:GLink_Ref']
 
-        metaMap.set(ObjectID, props.html())
+        metaMap.set(ObjectID, props.length ? props.html() : '')
         cellLinkMap.set(ObjectID, LinkedList)
 
         let $nodeUse = $node.find('use')
         let nodeUse = $nodeUse[0]
+        if (!nodeUse) {
+            return null
+        }
         let cls = $nodeUse.attr('class')
 
-        let symbolId = nodeUse.getAttribute('xlink:href').substring(1)
+        let hrefRaw = nodeUse.getAttribute('xlink:href') || nodeUse.getAttribute('href') || ''
+        if (!hrefRaw || hrefRaw === '#') {
+            console.warn('[LGSvgParser] parseUse: 缺少 xlink:href/href', ObjectID)
+            return null
+        }
+        let symbolId = hrefRaw.charAt(0) === '#' ? hrefRaw.substring(1) : hrefRaw
         propMap.symbolId = symbolId
         propMap.cls = cls
-
-        // 原始连接点，坐标需要转换
-        let x = nodeUse.getAttribute('x')
-        let y = nodeUse.getAttribute('y')
 
         let transform = nodeUse.getAttribute('transform')
         let param = this.getTransform(transform)
@@ -1363,6 +1387,10 @@ export default class LGSvgParser extends SvgBase {
         let symbol = symbolId.toLowerCase()
 
         let symbolArr = symbolMap[symbol]
+        if (!symbolArr) {
+            console.warn('[LGSvgParser] parseUse: 未注册图元 symbolId=', symbolId)
+            return null
+        }
 
         let initWidth = symbolArr['initWidth']
         let initHeight = symbolArr['initHeight']
@@ -1376,8 +1404,9 @@ export default class LGSvgParser extends SvgBase {
             initHeight = 2
         }
 
-        let _x = +x * this.getScale()
-        let _y = +y * this.getScale()
+        const { wx, wy } = readUseWorldXY(nodeUse, transform)
+        let _x = wx * this.getScale()
+        let _y = wy * this.getScale()
 
         let angle = parseFloat(param['rotate'])
         angle = angle % 360
