@@ -1334,7 +1334,146 @@ SvgGenerate.prototype.collectBusSubmitPayload = function () {
         })
     }
 
-    return { bus: bus, pending: pending }
+    // 收集母线连接线数据
+    let line = this.collectBusConnectorSubmitPayload()
+    
+    return { bus: bus, line: line, pending: pending }
+}
+
+/**
+ * 收集母线连接线提交数据
+ * @returns {Array} 母线连接线数据列表
+ */
+SvgGenerate.prototype.collectBusConnectorSubmitPayload = function () {
+    let graph = this.graph
+    let model = graph.getModel()
+    let view = graph.getView()
+    let list = graph.getVerticesAndEdges()
+    let line = []
+    let attrMap = this.attrMap
+
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        // 只处理边（连接线）
+        if (!model.isEdge(cell)) {
+            continue
+        }
+        
+        // 获取源终端和目标终端
+        let sourceCell = model.getTerminal(cell, true)
+        let targetCell = model.getTerminal(cell, false)
+        
+        // 检查是否为母线连接线（两端都是母线）
+        let isSourceBusbar = false
+        let isTargetBusbar = false
+        
+        if (sourceCell) {
+            let sourceCellStyle = graph.getCurrentCellStyle(sourceCell) || {}
+            let sourcePsrtype = sourceCell['psrtype'] || sourceCellStyle['psrtype'] || ''
+            isSourceBusbar = sourceCell.symbol == 'busbar' || sourcePsrtype == '0311' || sourceCellStyle['flag'] == 'busbar'
+        }
+        
+        if (targetCell) {
+            let targetCellStyle = graph.getCurrentCellStyle(targetCell) || {}
+            let targetPsrtype = targetCell['psrtype'] || targetCellStyle['psrtype'] || ''
+            isTargetBusbar = targetCell.symbol == 'busbar' || targetPsrtype == '0311' || targetCellStyle['flag'] == 'busbar'
+        }
+        
+        // 不是母线连接线，跳过
+        if (!isSourceBusbar || !isTargetBusbar) {
+            continue
+        }
+        
+        // 导入图元已在 attrMap 中登记，不进入「新增」提交列表
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+        
+        // 获取连接线样式
+        let cellStyle = graph.getCurrentCellStyle(cell) || {}
+        
+        // 生成线路唯一ID（UUID去除-）
+        let AClineid = this.generateUuid().replace(/-/g, '')
+        
+        // 获取线路名称
+        let name = cell['name'] || (cellStyle && cellStyle['name']) || ''
+        
+        // 获取电压等级（从母线获取）
+        let volt = 10 // 默认10kV
+        if (sourceCell) {
+            let dydj = this.getDydjFromCell(sourceCell)
+            volt = this.parseVoltFromDydj(dydj) || volt
+        }
+        
+        // 获取起始母线信息
+        let from_bus_id = sourceCell ? (sourceCell['busid'] || sourceCell.id || '') : ''
+        let from_bus_name = sourceCell ? (sourceCell['name'] || '') : ''
+        
+        // 获取终止母线信息
+        let to_bus_id = targetCell ? (targetCell['busid'] || targetCell.id || '') : ''
+        let to_bus_name = targetCell ? (targetCell['name'] || '') : ''
+        
+        // 获取线路型号和参数
+        let modelValue = cell['model'] || ''
+        let model_paras = cell['model_paras'] ? this.parseModelParas(cell['model_paras']) : [0.08, 0.417, 0, 0]
+        
+        // 获取额定载流量
+        let Ih = cell['Ih'] ? parseFloat(cell['Ih']) : 4.0
+        
+        // 获取线路长度
+        let lengthValue = cell['length'] || '100'
+        let length = [parseFloat(lengthValue), 'km']
+        
+        line.push({
+            name: String(name),
+            AClineid: AClineid,
+            volt: volt,
+            from_bus: [from_bus_id, String(from_bus_name)],
+            to_bus: [to_bus_id, String(to_bus_name)],
+            model: String(modelValue),
+            model_paras: model_paras,
+            Ih: Ih,
+            length: length
+        })
+    }
+    
+    return line
+}
+
+/**
+ * 生成UUID
+ * @returns {string} UUID字符串
+ */
+SvgGenerate.prototype.generateUuid = function () {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+    })
+}
+
+/**
+ * 解析线路型号参数
+ * @param {string} modelParasStr 型号参数字符串
+ * @returns {Array} 参数数组
+ */
+SvgGenerate.prototype.parseModelParas = function (modelParasStr) {
+    if (!modelParasStr) {
+        return [0.08, 0.417, 0, 0]
+    }
+    try {
+        // 尝试解析为JSON数组
+        if (modelParasStr.startsWith('[') && modelParasStr.endsWith(']')) {
+            return JSON.parse(modelParasStr)
+        }
+        // 尝试按逗号分隔
+        let parts = modelParasStr.split(',').map(p => parseFloat(p.trim()))
+        if (parts.length === 4 && parts.every(p => !isNaN(p))) {
+            return parts
+        }
+    } catch (e) {
+        console.warn('解析线路型号参数失败:', e)
+    }
+    return [0.08, 0.417, 0, 0]
 }
 
 SvgGenerate.prototype.applyPendingBusIds = function (pending) {
@@ -1586,7 +1725,8 @@ SvgGenerate.prototype.parseGraph = function ()
         svg_file: svgStr,
         cime_file: '',
         add: {
-            bus: busPayload.bus
+            bus: busPayload.bus,
+            line: busPayload.line || []
         }
     }
 }
