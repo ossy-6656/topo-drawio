@@ -95,6 +95,9 @@ window.EditDataDialog = function(ui, cell)
     var psrtype = cell['psrtype'] || cellStyle['psrtype'] || '';
     var isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle['flag'] == 'busbar';
 
+    var shapeLower = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
+    var isLgLoadDevice = shapeLower === 'substation' || shapeLower === 'xb'
+
     var id = (EditDataDialog.getDisplayIdForCell != null) ?
         EditDataDialog.getDisplayIdForCell(ui, cell) : null;
 
@@ -198,7 +201,9 @@ window.EditDataDialog = function(ui, cell)
         'model': '线路型号',
         'model_paras': '线路型号参数',
         'Ih': '额定载流量(kA)',
-        'length': '线路长度(km)'
+        'length': '线路长度(km)',
+        'P': '有功功率',
+        'Q': '无功功率'
     };
 
     var addTextArea = function(index, name, value)
@@ -320,6 +325,37 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
+    // 力光侧栏「负荷」：配电站(zf06)、箱式变(zf08) — 仅编辑设备名称、有功功率、无功功率
+    if (isLgLoadDevice) {
+        var loadKeys = ['name', 'P', 'Q']
+        var loadVals = {}
+        for (var li = 0; li < loadKeys.length; li++) {
+            var lk = loadKeys[li]
+            var vRaw = cell[lk] != null && cell[lk] !== '' ? cell[lk] : cellStyle[lk]
+            loadVals[lk] = vRaw != null && vRaw !== '' ? String(vRaw) : ''
+        }
+        temp = temp.filter(function (item) {
+            var n = item.name
+            return n === 'id' || n === 'shape' || loadKeys.indexOf(n) >= 0
+        })
+        for (var lj = 0; lj < loadKeys.length; lj++) {
+            var kn = loadKeys[lj]
+            var exists = temp.some(function (item) {
+                return item.name === kn
+            })
+            if (!exists) {
+                temp.push({ name: kn, value: loadVals[kn] })
+            } else {
+                for (var ti = 0; ti < temp.length; ti++) {
+                    if (temp[ti].name === kn && (!temp[ti].value || temp[ti].value === '')) {
+                        temp[ti].value = loadVals[kn]
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     // 母线连接线特殊处理：添加线路属性字段
     if (isBusbarConnector) {
         // 不展示母线侧 busid / 端点引用（保存与提交仍保留在模型上）
@@ -386,6 +422,22 @@ window.EditDataDialog = function(ui, cell)
         temp.sort(function(a, b) {
             var oa = Object.prototype.hasOwnProperty.call(connectorOrderPref, a.name) ? connectorOrderPref[a.name] : 100;
             var ob = Object.prototype.hasOwnProperty.call(connectorOrderPref, b.name) ? connectorOrderPref[b.name] : 100;
+            if (oa !== ob) {
+                return oa - ob;
+            }
+            if (a.name < b.name) {
+                return -1;
+            }
+            if (a.name > b.name) {
+                return 1;
+            }
+            return 0;
+        });
+    } else if (isLgLoadDevice) {
+        var loadOrderPref = { name: 0, P: 1, Q: 2, id: 98, shape: 99 };
+        temp.sort(function (a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(loadOrderPref, a.name) ? loadOrderPref[a.name] : 50;
+            var ob = Object.prototype.hasOwnProperty.call(loadOrderPref, b.name) ? loadOrderPref[b.name] : 50;
             if (oa !== ob) {
                 return oa - ob;
             }

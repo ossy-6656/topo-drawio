@@ -36,7 +36,9 @@ var tooltipAttrNameMap = {
     'shape': '图形',
     'lineType': '线型',
     'label': '标签',
-    'dydj': '电压等级'
+    'dydj': '电压等级',
+    'P': '有功功率',
+    'Q': '无功功率'
 };
 
 // 这个处理tooltip
@@ -65,13 +67,25 @@ Graph.prototype.getTooltipForCell = function (cell) {
 
             // 判断是否为母线图元（与编辑框 override 一致：样式上的 psrtype / flag）
             let isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle.flag == 'busbar';
-            
+            let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
+            let isLgLoadDevice = shapeTip === 'substation' || shapeTip === 'xb'
+
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
-            let fixedAttrs = isBusbar ? ['name'] : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+            let fixedAttrs = isBusbar
+                ? ['name']
+                : isLgLoadDevice
+                  ? ['name', 'P', 'Q']
+                  : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
                 let attrValue = cell[attrName] || cellStyle[attrName];
+                if (isLgLoadDevice && (attrName === 'name' || attrName === 'P' || attrName === 'Q')) {
+                    attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                    let dn = tooltipAttrNameMap[attrName] || attrName
+                    sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
+                    return
+                }
                 if (attrValue) {
                     // 转换营配标识的显示值
                     if (attrName == 'pubprivflag') {
@@ -122,7 +136,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 _sblx = '站内-母线(0311)';
             }
 
-            if (_sblx) {
+            if (_sblx && !isLgLoadDevice) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
 
