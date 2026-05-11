@@ -392,6 +392,31 @@ SvgGenerate.prototype.resolveSymbolProp = function (symbolMap, shape, cell) {
 }
 
 /**
+ * 导出 &lt;use&gt; 时与 symbol 坐标系一致的基准边长。
+ * lgdata 导入：attrMap 有记录，几何按 Stencil bbox(initWidth) 计算，仍用 bbox。
+ * 侧栏新增：无元数据，画布尺寸与 symbol 声明 width/height（symEntry.w/h）对齐；
+ * 若仅用 bbox 作 scale 分母会偏小；声明值异常小（力光 PSR 图元）时退回 bbox。
+ */
+SvgGenerate.prototype.getExportSymbolScaleBaseDim = function (symEntry, cellId, axis) {
+    let bbox = Number(axis === 'y' ? symEntry.initHeight : symEntry.initWidth)
+    if (isNaN(bbox) || bbox <= 0) {
+        return 1
+    }
+    let attr = parseFloat(axis === 'y' ? symEntry.h : symEntry.w)
+    let hasMeta = this.attrMap && this.attrMap.has && this.attrMap.has(cellId)
+    if (hasMeta) {
+        return bbox
+    }
+    if (!isNaN(attr) && attr > 0) {
+        if (attr < bbox * 0.22) {
+            return bbox
+        }
+        return Math.min(attr, bbox)
+    }
+    return bbox
+}
+
+/**
  * 解析顶点 cell
  * @param cell
  */
@@ -497,16 +522,37 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
             sb.push(`xlink:href="#${hrefId}" `)
             let cx = v.x
             let cy = v.y
-            let scale = width / Number(initWidth)
+
+            let hasDeviceMeta = this.attrMap && this.attrMap.has && this.attrMap.has(cell.id)
+            let xb = Number(initWidth)
+            let yb = Number(initHeight)
+            let scaleBW = this.getExportSymbolScaleBaseDim(symEntry, cell.id, 'x')
+            let scaleBH = this.getExportSymbolScaleBaseDim(symEntry, cell.id, 'y')
+            let scale = width / scaleBW
 
             let xmin = symEntry.xmin != null ? symEntry.xmin : 0
             let ymin = symEntry.ymin != null ? symEntry.ymin : 0
 
-            let stepx = cx + xmin + initWidth * xratio
-            let stepy = cy + ymin + initHeight * yratio
+            let stepx
+            let stepy
+            let useW
+            let useH
+            if (hasDeviceMeta || !(xb > 0) || !(yb > 0)) {
+                stepx = cx + xmin + xb * xratio
+                stepy = cy + ymin + yb * yratio
+                useW = xb
+                useH = yb
+            } else {
+                let rw = scaleBW / xb
+                let rh = scaleBH / yb
+                stepx = cx + xmin * rw + scaleBW * xratio
+                stepy = cy + ymin * rh + scaleBH * yratio
+                useW = scaleBW
+                useH = scaleBH
+            }
 
             sb.push(`x="${cx}" y="${cy}" `)
-            sb.push(`w="${initWidth}" h="${initHeight}" `)
+            sb.push(`w="${useW}" h="${useH}" `)
             sb.push(`width="${w}" height="${h}" `)
             sb.push(
                 `transform="rotate(${rotation},${cx},${cy}) translate(${cx}, ${cy}) scale(${scale}) translate(${-stepx}, ${-stepy})" `
@@ -595,16 +641,37 @@ SvgGenerate.prototype.parseCustomCell = function (cell, tranx, trany) {
         sb.push(`xlink:href="#${hrefId}" `);
         let cx = v.x;
         let cy = v.y;
-        let scale = width / Number(initWidth);
+
+        let hasDeviceMeta = this.attrMap && this.attrMap.has && this.attrMap.has(cell.id);
+        let xb = Number(initWidth);
+        let yb = Number(initHeight);
+        let scaleBW = this.getExportSymbolScaleBaseDim(symEntry, cell.id, 'x');
+        let scaleBH = this.getExportSymbolScaleBaseDim(symEntry, cell.id, 'y');
+        let scale = width / scaleBW;
 
         let xmin = symEntry.xmin != null ? symEntry.xmin : 0;
         let ymin = symEntry.ymin != null ? symEntry.ymin : 0;
 
-        let stepx = cx + xmin + initWidth * xratio;
-        let stepy = cy + ymin + initHeight * yratio;
+        let stepx;
+        let stepy;
+        let useW;
+        let useH;
+        if (hasDeviceMeta || !(xb > 0) || !(yb > 0)) {
+            stepx = cx + xmin + xb * xratio;
+            stepy = cy + ymin + yb * yratio;
+            useW = xb;
+            useH = yb;
+        } else {
+            let rw = scaleBW / xb;
+            let rh = scaleBH / yb;
+            stepx = cx + xmin * rw + scaleBW * xratio;
+            stepy = cy + ymin * rh + scaleBH * yratio;
+            useW = scaleBW;
+            useH = scaleBH;
+        }
 
         sb.push(`x="${cx}" y="${cy}" `);
-        sb.push(`w="${initWidth}" h="${initHeight}" `);
+        sb.push(`w="${useW}" h="${useH}" `);
         sb.push(`transform="rotate(${rotation},${cx},${cy}) translate(${cx}, ${cy}) scale(${scale}) translate(${-stepx}, ${-stepy})" `);
         sb.push('/>');
     }
