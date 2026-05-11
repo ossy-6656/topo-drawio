@@ -304,7 +304,8 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
                             const gScale = lgsvgParser.getScale() || 1
                             const dragDef = lgsvgParser.shapeDragDefaults || {}
-                            const lgDeviceFns = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
+                            // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
+                            const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
                                 const key = String(symbolId).toLowerCase()
                                 const fromGraph = dragDef[key]
                                 let w = fw * gScale
@@ -319,6 +320,18 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                         h = Number(arr.initHeight) * gScale
                                     }
                                 }
+                                return { symbolId, label, key, w, h }
+                            })
+                            const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
+                            if (pdSize && pdSize.w > 0 && pdSize.h > 0) {
+                                for (const row of lgDeviceSizes) {
+                                    if (row.key === 'xb') {
+                                        row.w = pdSize.w
+                                        row.h = pdSize.h
+                                    }
+                                }
+                            }
+                            const lgDeviceFns = lgDeviceSizes.map(({ symbolId, label, w, h }) => {
                                 const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;`
                                 return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
                             })
