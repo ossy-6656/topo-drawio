@@ -123,6 +123,7 @@ import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G �
 import $bus from '@/utils/bus'                                           // 全局事件总线
 import customSymbolStr from './data/symbol.js'                           // 自定义 SVG 符号
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
+import { LG_SIDEBAR_DEVICE_ENTRIES } from '@/view/graph/lg/Constants.js' // 电力设备侧栏与 lgdata 图元对齐
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
 
@@ -299,69 +300,25 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
-                            // ── 构建基础电力设备图元列表（基于 symbol.js 中的 SVG 符号）──
-                            // 定义图元数据：symbolId, 中文标签, 原宽度, 原高度
-                            const lgDeviceItems = [
-                                ['junction',            '节点/T接',          52,  60],
-                                ['breaker',             '断路器',            120,  63],
-                                ['breaker0305',         '站内-断路器(0305)', 120,  56],
-                                ['disconnector',        '隔离开关',          120,  74],
-                                ['fuse',                '熔断器',            120,  51],
-                                ['grounddisconnector',  '接地刀闸',          120,  61],
-                                ['powertransformer',    '变压器',             90,  98],
-                                ['currenttransformer',  '电流互感器',         60,  71],
-                                ['potentialtransformer','电压互感器',         70,  68],
-                                ['remoteunit',          '远动装置',           70,  70],
-                                ['polecode',            '杆塔',               50,  50],
-                                ['substation',          '配电站(zf06)',       70,  70],
-                                ['Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000', '变电站', 70, 70],
-                                ['xb',                  '箱式变电站(zf08)',   70,  70],
-                                ['lightningarrester',   '避雷器',             50,  80],
-                                ['LoadBreakSwitch_PMS25_a1fd8575-5bf1-47c6-950c-242129f7b2fe_4040011@0', '站内—负荷开关（分）', 120, 44],
-                            ]
-
-                            // 辅助函数：从 symbol.js 中提取指定 symbol 的 SVG（用于侧边栏 data URI 预览）
-                            const getSymbolSvg = (symbolId) => {
-                                const escaped =
-                                    typeof symbolId === 'string'
-                                        ? symbolId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                                        : ''
-                                const regex = new RegExp(
-                                    `<symbol[^>]*id=["']${escaped}["'][^>]*>([\\s\\S]*?)</symbol>`,
-                                    'i'
-                                )
-                                const match = customSymbolStr.match(regex)
-                                if (match && match[1]) {
-                                    // match[1] 是 symbol 标签内的内容
-                                    const symbolContent = match[0]
-                                    const widthMatch = symbolContent.match(/width=["'](\d+(?:\.\d+)?)["']/)
-                                    const heightMatch = symbolContent.match(/height=["'](\d+(?:\.\d+)?)["']/)
-                                    const viewBoxMatch = symbolContent.match(/viewBox=["']([^"']+)["']/)
-                                    const w = widthMatch ? widthMatch[1] : 100
-                                    const h = heightMatch ? heightMatch[1] : 100
-                                    let vb = viewBoxMatch ? viewBoxMatch[1] : `0 0 ${w} ${h}`
-
-                                    let inner = match[1]
-
-                                    return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="${vb}">${inner}</svg>`
+                            // 侧栏初始宽高：优先用 parseSvg 后从当前图统计的中位尺寸（与 lgdata 等已加载图一致），否则 symbol 模板 * getScale()
+                            const symbolMapForTpl = lgsvgParser.getSymbolMap()
+                            const gScale = lgsvgParser.getScale() || 1
+                            const dragDef = lgsvgParser.shapeDragDefaults || {}
+                            const lgDeviceFns = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
+                                const key = String(symbolId).toLowerCase()
+                                const fromGraph = dragDef[key]
+                                let w = fw * gScale
+                                let h = fh * gScale
+                                if (fromGraph && fromGraph.w > 0 && fromGraph.h > 0) {
+                                    w = fromGraph.w
+                                    h = fromGraph.h
+                                } else {
+                                    const arr = symbolMapForTpl[key]
+                                    if (arr && arr.initWidth != null && arr.initHeight != null) {
+                                        w = Number(arr.initWidth) * gScale
+                                        h = Number(arr.initHeight) * gScale
+                                    }
                                 }
-                                return null
-                            }
-
-                            // 创建基于 SVG symbol 的图元
-                            const lgDeviceFns = lgDeviceItems.map(([symbolId, label, w, h]) => {
-                                const svgStr = getSymbolSvg(symbolId)
-                                if (svgStr) {
-                                    /* draw.io/mxGraph 对 image= 多采用「仅编码 #」的 data URI；encodeURIComponent 会导致整栏预览失效 */
-                                    const encodedSvg = svgStr
-                                        .replace(/#/g, '%23')
-                                        .replace(/\n/g, '')
-                                        .replace(/\r/g, '')
-                                    const svgUri = 'data:image/svg+xml,' + encodedSvg
-                                    const style = `shape=image;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=${svgUri};`
-                                    return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
-                                }
-                                // 如果没有找到对应的 symbol，回退到使用 shape id
                                 const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;`
                                 return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
                             })
@@ -418,7 +375,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
 
                             // ── 连接线分类：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段 ──
                             const lgStraightVerticalLineStyle =
-                                'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;'
+                                'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;strokeWidth=0.4;strokeColor=rgb(185,72,66);'
                             const lgLineFns = [
                                 ui.sidebar.createEdgeTemplateEntry(
                                     lgStraightVerticalLineStyle,
@@ -545,14 +502,16 @@ window.initGraphWithSvg = (_svg, themecut) => {
                 lgsvgParser.setTaskId(taskId)
                 lgsvgParser.setThemecut(themecut)
 
-                svgTxtObj = lgsvgParser.getSvgSymbolStyle(_svg)
-
                 if (_svg.indexOf('bridgeOverRiver') == -1) {
                     let index = _svg.indexOf('</defs>')
                     let leftStr = _svg.substring(0, index)
                     let rightStr = _svg.substring(index)
                     mysvg = leftStr + customSymbolStr + rightStr
                 }
+
+                // 须用合并了 customSymbolStr 的 mysvg：保存/导出时 SvgGenerate 会原样写入 defsContent，
+                // 若仍用原始 _svg 抽 defs，则缺少 symbol.js 中的 <symbol>，<use xlink:href> 无法显示。
+                svgTxtObj = lgsvgParser.getSvgSymbolStyle(mysvg)
 
                 lgsvgParser.loadSvg(mysvg, () => {
                     lgsvgParser.parseStencil() // 先初始化图元

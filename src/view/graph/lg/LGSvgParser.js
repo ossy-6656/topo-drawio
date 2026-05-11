@@ -10,7 +10,7 @@ import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
-import { customShapeLs } from './Constants.js'
+import { customShapeLs, lgSidebarDeviceIdsByLengthDesc } from './Constants.js'
 import SvgBase from '../common/SvgBase.js'
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js'
 import Line2LineUtil  from '../common/Line2LineUtil.js'
@@ -57,6 +57,8 @@ export default class LGSvgParser extends SvgBase {
         this.metaMap = new Map() // 存储 metadata下的html字符串
         this.cellLinkMap = new Map()
         this.poleHelper = 1
+        /** 侧栏图元 key(小写简名) -> 当前图中该类设备的中位宽高 */
+        this.shapeDragDefaults = {}
     }
 
     initEvt() {
@@ -2212,6 +2214,81 @@ export default class LGSvgParser extends SvgBase {
         this.stencilDoc = parser.parseFromString(str, 'text/xml')
     }
 
+    /**
+     * 将画布上已有设备（如 lgdata 解析出的 PSR 图元）的宽高，按侧栏简名归类，
+     * 供侧栏模板初始尺寸与当前图一致；导出沿用 cell 几何，自然一致。
+     */
+    matchSidebarShapeKey(symLower) {
+        if (!symLower) {
+            return null
+        }
+        const known = lgSidebarDeviceIdsByLengthDesc().map((id) => id.toLowerCase())
+        for (const L of known) {
+            if (symLower === L || symLower.startsWith(L + '_')) {
+                return L
+            }
+        }
+        return null
+    }
+
+    collectShapeDragDefaultsFromGraph() {
+        const graph = this.graph
+        if (!graph) {
+            this.shapeDragDefaults = {}
+            return
+        }
+        const model = graph.getModel()
+        const byKey = {}
+        const walk = (parent) => {
+            const n = model.getChildCount(parent)
+            for (let i = 0; i < n; i++) {
+                const cell = model.getChildAt(parent, i)
+                if (model.getChildCount(cell) > 0) {
+                    walk(cell)
+                }
+                if (!cell.isVertex()) {
+                    continue
+                }
+                if (DeviceCategoryUtil.isTextCell(cell)) {
+                    continue
+                }
+                if (DeviceCategoryUtil.isBusCell(cell)) {
+                    continue
+                }
+                const st = graph.getCurrentCellStyle(cell)
+                if (st && st.flag === 'group') {
+                    continue
+                }
+                const sym = cell.symbol
+                if (!sym) {
+                    continue
+                }
+                const sk = this.matchSidebarShapeKey(String(sym).toLowerCase())
+                if (!sk) {
+                    continue
+                }
+                const g = graph.getCellGeometry(cell)
+                if (!g || !(g.width > 0) || !(g.height > 0)) {
+                    continue
+                }
+                if (!byKey[sk]) {
+                    byKey[sk] = []
+                }
+                byKey[sk].push({ w: g.width, h: g.height })
+            }
+        }
+        walk(graph.getDefaultParent())
+        const out = {}
+        for (const k of Object.keys(byKey)) {
+            const arr = byKey[k]
+            const ws = arr.map((o) => o.w).sort((a, b) => a - b)
+            const hs = arr.map((o) => o.h).sort((a, b) => a - b)
+            const mid = Math.floor(ws.length / 2)
+            out[k] = { w: ws[mid], h: hs[mid] }
+        }
+        this.shapeDragDefaults = out
+    }
+
     // 解析svg数据
     parseSvg() {
         let graph = this.graph
@@ -2238,6 +2315,7 @@ export default class LGSvgParser extends SvgBase {
         let pointList = $svgDom.find('#Point_Layer').children() // 测点数据
 
         if (layerlist.length == 0) {
+            this.shapeDragDefaults = {}
             return
         }
 
@@ -2575,6 +2653,9 @@ export default class LGSvgParser extends SvgBase {
         } finally {
             model.endUpdate()
         }
+
+        this.collectShapeDragDefaultsFromGraph()
+
         this.initValidateEvt()
 
         this.textBeauty = new TextBeauty(graph, this.getSymbolMap())

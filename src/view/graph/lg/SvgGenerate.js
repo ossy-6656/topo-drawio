@@ -322,9 +322,8 @@ SvgGenerate.prototype.parseBusbar = function (cell, tranx, trany) {
             sb.push(`class="${cls}" `);
         }
 
-        if (stroke) {
-            sb.push(`stroke="${stroke}" ` )
-        }
+        let strokeColor = stroke || 'rgb(185,72,66)'
+        sb.push(`stroke="${strokeColor}" `)
 
         if (preStrokeWidth) {
             sb.push(`stroke-width="${preStrokeWidth}" `);
@@ -344,6 +343,52 @@ SvgGenerate.prototype.parseBusbar = function (cell, tranx, trany) {
 
     sb.push('</g>');
     layer2ListMap[layerName].push(sb.join(''));
+}
+
+/**
+ * symbolMap 的键在 StencilParse 中统一为 symbol id 的小写；
+ * 图上 style 里的 shape 或 cell.symbol 可能大小写不一致，故做多键回退。
+ */
+SvgGenerate.prototype.resolveSymbolProp = function (symbolMap, shape, cell) {
+    if (!symbolMap) {
+        return null
+    }
+    let tried = new Set()
+    let tryKey = (k) => {
+        if (k == null || k === '') {
+            return null
+        }
+        let s = String(k)
+        if (tried.has(s)) {
+            return null
+        }
+        tried.add(s)
+        let v = symbolMap[s]
+        return v || null
+    }
+    let hit = tryKey(shape)
+    if (hit) {
+        return hit
+    }
+    if (typeof shape === 'string') {
+        hit = tryKey(shape.toLowerCase())
+        if (hit) {
+            return hit
+        }
+    }
+    if (cell) {
+        hit = tryKey(cell.symbol)
+        if (hit) {
+            return hit
+        }
+        if (cell.symbol != null && cell.symbol !== '') {
+            hit = tryKey(String(cell.symbol).toLowerCase())
+            if (hit) {
+                return hit
+            }
+        }
+    }
+    return null
 }
 
 /**
@@ -384,6 +429,16 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
             layer2ListMap[layerName] = []
         }
         id = cell.id
+        let symEntry = this.resolveSymbolProp(symbolMap, shape, cell)
+        if (!symEntry) {
+            console.warn('[SvgGenerate] parseCell: 未注册图元', {
+                id: cell.id,
+                shape,
+                symbol: cell.symbol,
+                symbolId: cell.symbolId
+            })
+            return minWidth
+        }
         let sb = []
 
         // 设备转字符串开始
@@ -404,7 +459,7 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
             // let pcell = model.getParent(cell);
             // 添加符号引用
 
-            let { initWidth, initHeight, xratio, yratio, w, h } = symbolMap[shape]
+            let { initWidth, initHeight, xratio, yratio, w, h } = symEntry
             let geometry = graph.getCellGeometry(cell)
             let { width, height } = geometry
 
@@ -438,16 +493,17 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
             // 计算真实位置
             let v = veco.clone().applyMatrix3(m)
 
-            sb.push(`xlink:href="#${cell.symbolId}" `)
+            let hrefId = cell.symbolId || symEntry.hrefId || symEntry.symbolId
+            sb.push(`xlink:href="#${hrefId}" `)
             let cx = v.x
             let cy = v.y
-            let scale = width / initWidth
+            let scale = width / Number(initWidth)
 
-            let symbol = cell.symbol
-            let symbolAttr = symbolMap[symbol]
+            let xmin = symEntry.xmin != null ? symEntry.xmin : 0
+            let ymin = symEntry.ymin != null ? symEntry.ymin : 0
 
-            let stepx = cx + symbolAttr.xmin + initWidth * xratio
-            let stepy = cy + symbolAttr.ymin + initHeight * yratio
+            let stepx = cx + xmin + initWidth * xratio
+            let stepy = cy + ymin + initHeight * yratio
 
             sb.push(`x="${cx}" y="${cy}" `)
             sb.push(`w="${initWidth}" h="${initHeight}" `)
@@ -486,6 +542,16 @@ SvgGenerate.prototype.parseCustomCell = function (cell, tranx, trany) {
         layer2ListMap[layerName] = [];
     }
     id = cell.id;
+    let symEntry = this.resolveSymbolProp(symbolMap, shape, cell);
+    if (!symEntry) {
+        console.warn('[SvgGenerate] parseCustomCell: 未注册图元', {
+            id: cell.id,
+            shape,
+            symbol: cell.symbol,
+            symbolId: cell.symbolId
+        });
+        return;
+    }
     let sb = [];
 
     // 设备转字符串开始
@@ -496,7 +562,7 @@ SvgGenerate.prototype.parseCustomCell = function (cell, tranx, trany) {
 
         let state = view.getState(cell);
 
-        let {initWidth, initHeight, xratio, yratio} = symbolMap[shape];
+        let {initWidth, initHeight, xratio, yratio} = symEntry;
         let geometry = graph.getCellGeometry(cell);
         let {x, y, width, height} = geometry;
 
@@ -525,16 +591,17 @@ SvgGenerate.prototype.parseCustomCell = function (cell, tranx, trany) {
         // 计算真实位置
         let v = veco.clone().applyMatrix3(m);
 
-        sb.push(`xlink:href="#${cell.symbolId}" `);
+        let hrefId = cell.symbolId || symEntry.hrefId || symEntry.symbolId;
+        sb.push(`xlink:href="#${hrefId}" `);
         let cx = v.x;
         let cy = v.y;
-        let scale = width / initWidth;
+        let scale = width / Number(initWidth);
 
-        let symbol = cell.symbol;
-        let symbolAttr = symbolMap[symbol];
+        let xmin = symEntry.xmin != null ? symEntry.xmin : 0;
+        let ymin = symEntry.ymin != null ? symEntry.ymin : 0;
 
-        let stepx = cx + symbolAttr.xmin + initWidth * xratio;
-        let stepy = cy + symbolAttr.ymin + initHeight * yratio;
+        let stepx = cx + xmin + initWidth * xratio;
+        let stepy = cy + ymin + initHeight * yratio;
 
         sb.push(`x="${cx}" y="${cy}" `);
         sb.push(`w="${initWidth}" h="${initHeight}" `);
@@ -866,6 +933,19 @@ SvgGenerate.prototype.parseEdge = function (edge, tranx, trany) {
     let strokeDasharray = propMap['strokeDasharray']
     let strokeWidth = propMap['strokeWidth']
     let stroke = propMap['stroke']
+    let cellStyle = graph.getCurrentCellStyle(edge)
+    if (strokeWidth == null || strokeWidth === '') {
+        let nw = mxUtils.getNumber(cellStyle, mxConstants.STYLE_STROKEWIDTH, NaN)
+        if (!isNaN(nw)) {
+            strokeWidth = String(nw)
+        }
+    }
+    if (stroke == null || stroke === '') {
+        let sc = mxUtils.getValue(cellStyle, mxConstants.STYLE_STROKECOLOR, null)
+        if (sc != null && sc !== '') {
+            stroke = sc
+        }
+    }
     let sb = []
 
     // 根据设备所属图层来归类
@@ -888,15 +968,13 @@ SvgGenerate.prototype.parseEdge = function (edge, tranx, trany) {
         if (cls) {
             sb.push(`class="${cls}" `)
         }
-        if (strokeWidth) {
-            sb.push(`stroke-width="${strokeWidth}" `)
-        }
+        let sw = strokeWidth != null && strokeWidth !== '' ? strokeWidth : '0.4'
+        sb.push(`stroke-width="${sw}" `)
         if (strokeDasharray) {
             sb.push(`stroke-dasharray="${strokeDasharray}" `)
         }
-        if (stroke) {
-            sb.push(`stroke="${stroke}"`)
-        }
+        let sc = stroke != null && stroke !== '' ? stroke : 'rgb(185,72,66)'
+        sb.push(`stroke="${sc}" `)
         sb.push(`points="${pointLs.join(' ')}"/>`)
     }
     // 添加元数据
@@ -1619,7 +1697,10 @@ SvgGenerate.prototype.parseGraph = function ()
             } else {
                 cellMap.set(cell.id, cell)
                 if (cell.flag == 'custom') {
-                    // this.parseCustomCell(cell, tranx, trany);
+                    this.parseCustomCell(cell, tranx, trany);
+                } else if (cell.flag == 'busbar' || DeviceCategoryUtil.isBusCell(cell)) {
+                    // 母线图元特殊处理
+                    this.parseBusbar(cell, tranx, trany);
                 } else {
                     let tmpWidth = this.parseCell(cell, tranx, trany)
                     if (tmpWidth && tmpWidth != -1) {

@@ -5850,14 +5850,22 @@ App.prototype.saveFile = function (forceDialog, success)
             }
 
             try {
-                // 仅打印「新增」业务数据（母线等在 parseGraph 已过滤）；不含 svg/taskId 等大字段或旧数据
+                // 打印「新增」业务数据（母线等在 parseGraph 已过滤）；不含 svg/taskId 等大字段或旧数据
                 console.log(
                     '[正交图保存] 新增数据(JSON):\n' +
                         JSON.stringify({ add: param.add || { bus: [] } }, null, 2)
                 )
+                // 打印完整的保存参数（包含 SVG 数据）
+                console.log(
+                    '[正交图保存] 完整保存数据(JSON):\n' +
+                        JSON.stringify(param, null, 2)
+                )
             } catch (e) {
                 console.warn('[正交图保存] JSON 打印失败', e)
             }
+            
+            // 导出 SVG 文件
+            this.exportSvgFile(svg_file, svgParser.taskId);
 
             // parseGraph 会为新增母线写入 busid 等，会触发模型变更；须在末尾再清「未保存」状态，
             // 否则第一次保存后仍显示红色保存提示（与 saveFile_bak / LocalFile 保存后行为一致）
@@ -5884,6 +5892,30 @@ App.prototype.saveFile = function (forceDialog, success)
             // })
     //     }
     // })
+}
+
+/**
+ * 导出 SVG 文件
+ * @param {string} svgContent SVG 内容
+ * @param {string} taskId 任务ID
+ */
+App.prototype.exportSvgFile = function (svgContent, taskId) {
+    try {
+        // 创建下载链接
+        var blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = (taskId || 'graph') + '_' + new Date().getTime() + '.svg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log('[正交图保存] SVG 文件已导出:', link.download);
+    } catch (e) {
+        console.warn('[正交图保存] SVG 文件导出失败:', e);
+    }
 }
 
 /**

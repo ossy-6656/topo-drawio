@@ -823,6 +823,7 @@ let StencilParse = {
         }
 
         symbolProp[symbolId] = {
+            hrefId: id,
             initWidth: width,
             initHeight: height,
             symbolId,
@@ -908,6 +909,7 @@ let StencilParse = {
         let symbolId = id.toLowerCase()
         sb.push('<constraint x="0.5" y="0.5" name="o" perimeter="0" />')
         symbolProp[symbolId] = {
+            hrefId: id,
             initWidth: 4,
             initHeight: 4,
             symbolId,
@@ -971,6 +973,7 @@ let StencilParse = {
 
 
                 symbolProp[symbolId] = {
+                    hrefId: name,
                     initWidth,
                     initHeight,
                     symbolId,
