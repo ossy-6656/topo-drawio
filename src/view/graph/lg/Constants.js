@@ -1,4 +1,4 @@
-/** 左侧电力设备面板：与 graphLg / parseUse 对齐；id 较长者须排在短 id 之前供前缀匹配 */
+/** 左侧「负荷」面板图元列表：与 graphLg / parseUse 对齐；id 较长者须排在短 id 之前供前缀匹配 */
 export const LG_SIDEBAR_DEVICE_ENTRIES = [
     ['LoadBreakSwitch_PMS25_a1fd8575-5bf1-47c6-950c-242129f7b2fe_4040011@0', '站内—负荷开关（分）', 120, 44],
     ['Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000', '变电站', 70, 70],

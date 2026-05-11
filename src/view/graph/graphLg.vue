@@ -123,7 +123,7 @@ import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G �
 import $bus from '@/utils/bus'                                           // 全局事件总线
 import customSymbolStr from './data/symbol.js'                           // 自定义 SVG 符号
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
-import { LG_SIDEBAR_DEVICE_ENTRIES } from '@/view/graph/lg/Constants.js' // 电力设备侧栏与 lgdata 图元对齐
+import { LG_SIDEBAR_DEVICE_ENTRIES } from '@/view/graph/lg/Constants.js' // 「负荷」侧栏与 lgdata 图元对齐
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
 
@@ -294,7 +294,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                         console.log('画布调整成功')
                     }
 
-                    // 初始化 Sidebar，只加载电力设备面板
+                    // 初始化 Sidebar，只加载「负荷」面板
                     if (ui.sidebar) {
                         try {
                             // 调用 Sidebar 的 init() 方法
@@ -369,9 +369,9 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 return nodes
                             }
 
-                            // ── 用 StorageFile.getFileContent 异步读取便笺本，追加到电力设备面板 ──
+                            // ── 用 StorageFile.getFileContent 异步读取便笺本，追加到「负荷」面板 ──
                             // 先渲染基础图元
-                            ui.sidebar.addPaletteFunctions('lg-devices', '电力设备', true, lgDeviceFns)
+                            ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
 
                             // ── 连接线分类：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段 ──
                             const lgStraightVerticalLineStyle =
@@ -416,7 +416,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             ]
                             ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
 
-                            // ── 辅助：将解析出的图元节点追加到电力设备面板 ──
+                            // ── 辅助：将解析出的图元节点追加到「负荷」面板 ──
                             const appendScratchNodes = (scratchNodes) => {
                                 if (!scratchNodes || scratchNodes.length === 0) return
                                 // palettes['lg-devices'] = [titleEl, outerDiv]
@@ -425,9 +425,9 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 const contentDiv = palette && palette[1] && palette[1].firstChild
                                 if (contentDiv) {
                                     scratchNodes.forEach(node => contentDiv.appendChild(node))
-                                    console.log('便笺本图元已追加到电力设备面板，共', scratchNodes.length, '个')
+                                    console.log('便笺本图元已追加到「负荷」面板，共', scratchNodes.length, '个')
                                 } else {
-                                    console.warn('未找到电力设备面板 content div，palettes:', ui.sidebar.palettes['lg-devices'])
+                                    console.warn('未找到「负荷」面板 content div，palettes:', ui.sidebar.palettes['lg-devices'])
                                 }
                             }
 
