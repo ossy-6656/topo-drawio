@@ -127,6 +127,36 @@ import { LG_SIDEBAR_DEVICE_ENTRIES } from '@/view/graph/lg/Constants.js' // 「�
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
 
+/**
+ * 与 LGSvgParser.parseSvg / getMinFontSize 一致：由 #Text_Layer 首段文字字号推算 scale，
+ * 供 svg1/svg2 侧栏与 lgdata 对齐（未先打开 lgdata 时也有预估值）。
+ */
+function computeLgSidebarScaleFromSvgString(svgStr) {
+    if (!svgStr || typeof svgStr !== 'string') return 1
+    try {
+        const doc = new DOMParser().parseFromString(svgStr, 'image/svg+xml')
+        const layer = doc.querySelector('#Text_Layer')
+        if (!layer) return 1
+        let minFs = 999
+        const children = layer.children
+        for (let i = 0; i < children.length; i++) {
+            const gNode = children[i]
+            const textEl = gNode.querySelector && gNode.querySelector('text')
+            if (!textEl) continue
+            const fs = parseFloat(textEl.getAttribute('font-size')) || 8
+            if (fs < minFs) minFs = fs
+        }
+        if (minFs >= 999) return 1
+        return minFs < 8 ? 8 / minFs : 1
+    } catch {
+        return 1
+    }
+}
+
+/** 以 lgdata 为基准的侧栏缩放与图中位尺寸（切换 svg1/svg2 时沿用，与 lgdata 视觉一致） */
+let cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(zjtSvg)
+let cachedLgSidebarDragDef = null
+
 /** 替换 draw.io 默认「保存」图（易与下载混淆），与 .geStatusAlert 文字同色 #b62623（grapheditor.css） */
 function applyDrawioSaveStatusIcon() {
     if (typeof Editor === 'undefined') return
@@ -300,10 +330,22 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
-                            // 侧栏初始宽高：优先用 parseSvg 后从当前图统计的中位尺寸（与 lgdata 等已加载图一致），否则 symbol 模板 * getScale()
+                            if (selectedData.value === 'zjtSvg') {
+                                cachedLgSidebarScale = lgsvgParser.getScale() || 1
+                                const d = lgsvgParser.shapeDragDefaults || {}
+                                cachedLgSidebarDragDef = { ...d }
+                            }
+
+                            const useLgRefSidebar =
+                                selectedData.value === 'svg1' || selectedData.value === 'svg2'
+                            // 侧栏初始宽高：svg1/svg2 与 lgdata 一致；lgdata/上传仍跟当前解析结果
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
-                            const gScale = lgsvgParser.getScale() || 1
-                            const dragDef = lgsvgParser.shapeDragDefaults || {}
+                            const gScale = useLgRefSidebar
+                                ? (cachedLgSidebarScale != null ? cachedLgSidebarScale : (lgsvgParser.getScale() || 1))
+                                : (lgsvgParser.getScale() || 1)
+                            const dragDef = useLgRefSidebar
+                                ? (cachedLgSidebarDragDef != null ? cachedLgSidebarDragDef : {})
+                                : (lgsvgParser.shapeDragDefaults || {})
                             // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
                             const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
                                 const key = String(symbolId).toLowerCase()
