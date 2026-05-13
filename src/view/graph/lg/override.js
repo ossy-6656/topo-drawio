@@ -108,6 +108,11 @@ window.EditDataDialog = function(ui, cell)
     var shapeLower = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
     var isLgLoadDevice = shapeLower === 'substation' || shapeLower === 'xb'
     var isLgGeneratingUnit = shapeLower === 'generatingunit'
+    var isLgTransformer =
+        shapeLower === 'potentialtransformer2w' ||
+        shapeLower === 'potentialtransformer3w' ||
+        shapeLower.indexOf('potentialtransformer2w_') === 0 ||
+        shapeLower.indexOf('potentialtransformer3w_') === 0
 
     var id = (EditDataDialog.getDisplayIdForCell != null) ?
         EditDataDialog.getDisplayIdForCell(ui, cell) : null;
@@ -165,6 +170,15 @@ window.EditDataDialog = function(ui, cell)
         'Q_max': '机组最大无功功率',
         'Q_min': '机组最小无功功率',
         'P_meas': '机组目标出力',
+        'I_Vol': '高压侧额定电压',
+        'K_Vol': '中压侧额定电压',
+        'J_Vol': '低压侧额定电压',
+        'hv_paras': '高-中压侧参数',
+        'mv_paras': '中-低压侧参数',
+        'lv_paras': '高-低压侧参数',
+        'I_S': '高压侧容量',
+        'K_S': '中压侧容量',
+        'J_S': '低压侧容量',
     };
 
     var addTextArea = function(index, name, value)
@@ -178,6 +192,9 @@ window.EditDataDialog = function(ui, cell)
         }
         if (isLgGeneratingUnit && name == 'name') {
             displayName = '机组名称';
+        }
+        if (isLgTransformer && name === 'model') {
+            displayName = '变压器型号';
         }
         if (isLgGeneratingUnit && name === 'type') {
             var sel = form.addCombo(displayName + ':', false);
@@ -388,6 +405,49 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
+    // 力光侧栏「变压器」双绕组/三绕组：电压、型号、参数、容量等约定字段
+    if (isLgTransformer) {
+        var xfKeys = [
+            'name',
+            'I_Vol',
+            'K_Vol',
+            'J_Vol',
+            'model',
+            'hv_paras',
+            'mv_paras',
+            'lv_paras',
+            'I_S',
+            'K_S',
+            'J_S',
+        ]
+        var xfVals = {}
+        for (var xi = 0; xi < xfKeys.length; xi++) {
+            var xk = xfKeys[xi]
+            var xRaw = cell[xk] != null && cell[xk] !== '' ? cell[xk] : cellStyle[xk]
+            xfVals[xk] = xRaw != null && xRaw !== '' ? String(xRaw) : ''
+        }
+        temp = temp.filter(function (item) {
+            var n = item.name
+            return n === 'id' || n === 'shape' || xfKeys.indexOf(n) >= 0
+        })
+        for (var xj = 0; xj < xfKeys.length; xj++) {
+            var xkn = xfKeys[xj]
+            var xExists = temp.some(function (item) {
+                return item.name === xkn
+            })
+            if (!xExists) {
+                temp.push({ name: xkn, value: xfVals[xkn] })
+            } else {
+                for (var xti = 0; xti < temp.length; xti++) {
+                    if (temp[xti].name === xkn && (!temp[xti].value || temp[xti].value === '')) {
+                        temp[xti].value = xfVals[xkn]
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     // 母线连接线特殊处理：添加线路属性字段
     if (isBusbarConnector) {
         // 不展示 busid / 母线端点引用（模型与提交仍保留；含命名空间前缀如 cge:busid）
@@ -482,6 +542,36 @@ window.EditDataDialog = function(ui, cell)
             }
             return 0;
         });
+    } else if (isLgTransformer) {
+        var xfOrderPref = {
+            name: 0,
+            I_Vol: 1,
+            K_Vol: 2,
+            J_Vol: 3,
+            model: 4,
+            hv_paras: 5,
+            mv_paras: 6,
+            lv_paras: 7,
+            I_S: 8,
+            K_S: 9,
+            J_S: 10,
+            id: 98,
+            shape: 99,
+        }
+        temp.sort(function (a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(xfOrderPref, a.name) ? xfOrderPref[a.name] : 50
+            var ob = Object.prototype.hasOwnProperty.call(xfOrderPref, b.name) ? xfOrderPref[b.name] : 50
+            if (oa !== ob) {
+                return oa - ob
+            }
+            if (a.name < b.name) {
+                return -1
+            }
+            if (a.name > b.name) {
+                return 1
+            }
+            return 0
+        })
     } else if (isLgGeneratingUnit) {
         var unitOrderPref = {
             name: 0,
@@ -628,7 +718,7 @@ window.EditDataDialog = function(ui, cell)
     nameInput.style.maxWidth = '100%';
     newProp.appendChild(nameInput);
     top.appendChild(newProp);
-    if (isLgGeneratingUnit) {
+    if (isLgGeneratingUnit || isLgTransformer) {
         newProp.style.display = 'none';
     }
     div.appendChild(top);
@@ -831,6 +921,28 @@ window.EditDataDialog = function(ui, cell)
                         }
                         var usv = texts[uix] != null ? texts[uix].value : ''
                         graph.setCellStyles(names[uix], usv, [cell])
+                    }
+                }
+                if (isLgTransformer) {
+                    var xfStyleKeys = [
+                        'name',
+                        'I_Vol',
+                        'K_Vol',
+                        'J_Vol',
+                        'model',
+                        'hv_paras',
+                        'mv_paras',
+                        'lv_paras',
+                        'I_S',
+                        'K_S',
+                        'J_S',
+                    ]
+                    for (var xix = 0; xix < names.length; xix++) {
+                        if (xfStyleKeys.indexOf(names[xix]) < 0) {
+                            continue
+                        }
+                        var xsv = texts[xix] != null ? texts[xix].value : ''
+                        graph.setCellStyles(names[xix], xsv, [cell])
                     }
                 }
             }

@@ -1,8 +1,8 @@
 export default `
-        <!-- 电压互感器-双绕组(0314)：仅双圆、无黑底；小 init 尺寸避免 × getScale 后过大 -->
+        <!-- 电压互感器-双绕组(0314)：双圆竖向排列、无黑底；与 3w 同量级坐标 -->
         <symbol id="potentialtransformer2w" viewBox="0 0 3 3" width="3" height="3">
-            <circle cx="64" cy="44" r="30" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
-            <circle cx="36" cy="44" r="30" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
+            <circle cx="50" cy="34" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
+            <circle cx="50" cy="72" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
         </symbol>
 
         <!-- 电压互感器-三绕组(0314)：三圆品字、无黑底 -->

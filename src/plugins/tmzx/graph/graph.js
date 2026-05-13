@@ -51,6 +51,15 @@ var tooltipAttrNameMap = {
     'Q_max': '机组最大无功功率',
     'Q_min': '机组最小无功功率',
     'P_meas': '机组目标出力',
+    'I_Vol': '高压侧额定电压',
+    'K_Vol': '中压侧额定电压',
+    'J_Vol': '低压侧额定电压',
+    'hv_paras': '高-中压侧参数',
+    'mv_paras': '中-低压侧参数',
+    'lv_paras': '高-低压侧参数',
+    'I_S': '高压侧容量',
+    'K_S': '中压侧容量',
+    'J_S': '低压侧容量',
 };
 
 // 这个处理tooltip
@@ -82,6 +91,24 @@ Graph.prototype.getTooltipForCell = function (cell) {
             let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
             let isLgLoadDevice = shapeTip === 'substation' || shapeTip === 'xb'
             let isLgGeneratingUnit = shapeTip === 'generatingunit'
+            let isLgTransformer =
+                shapeTip === 'potentialtransformer2w' ||
+                shapeTip === 'potentialtransformer3w' ||
+                shapeTip.indexOf('potentialtransformer2w_') === 0 ||
+                shapeTip.indexOf('potentialtransformer3w_') === 0
+            let lgTransformerTooltipAttrs = [
+                'name',
+                'I_Vol',
+                'K_Vol',
+                'J_Vol',
+                'model',
+                'hv_paras',
+                'mv_paras',
+                'lv_paras',
+                'I_S',
+                'K_S',
+                'J_S',
+            ]
             let lgGenUnitTooltipAttrs = [
                 'name',
                 'type',
@@ -114,17 +141,28 @@ Graph.prototype.getTooltipForCell = function (cell) {
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
             let fixedAttrs = isBusbar
                 ? ['name']
-                : isLgGeneratingUnit
-                  ? lgGenUnitTooltipAttrs
-                  : isLgLoadDevice
-                    ? ['name', 'P', 'Q']
-                    : isBusbarConnectorEdge
-                      ? ['name', 'model', 'model_paras', 'Ih', 'length']
-                      : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+                : isLgTransformer
+                  ? lgTransformerTooltipAttrs
+                  : isLgGeneratingUnit
+                    ? lgGenUnitTooltipAttrs
+                    : isLgLoadDevice
+                      ? ['name', 'P', 'Q']
+                      : isBusbarConnectorEdge
+                        ? ['name', 'model', 'model_paras', 'Ih', 'length']
+                        : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
                 let attrValue = cell[attrName] || cellStyle[attrName];
+                if (isLgTransformer && lgTransformerTooltipAttrs.indexOf(attrName) >= 0) {
+                    attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                    let dn = tooltipAttrNameMap[attrName] || attrName
+                    if (attrName === 'model') {
+                        dn = '变压器型号'
+                    }
+                    sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
+                    return
+                }
                 if (isLgGeneratingUnit && lgGenUnitTooltipAttrs.indexOf(attrName) >= 0) {
                     attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
                     let dn = tooltipAttrNameMap[attrName] || attrName
@@ -211,7 +249,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 _sblx = '站内-母线(0311)';
             }
 
-            if (_sblx && !isLgLoadDevice && !isLgGeneratingUnit) {
+            if (_sblx && !isLgLoadDevice && !isLgGeneratingUnit && !isLgTransformer) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
 
@@ -227,6 +265,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     // 母线不展示 XML 中的扩展属性（含电压等级）；机组与侧栏编辑字段一致，不重复展示 XML 杂项
                     var shouldShow = !isBusbar &&
                         !isLgGeneratingUnit &&
+                        !isLgTransformer &&
                         fixedAttrs.indexOf(attrName) == -1 &&
                         attrName != 'label' && attrName != 'placeholders' &&
                         attrName != 'psrtype' && attrName != 'id';
