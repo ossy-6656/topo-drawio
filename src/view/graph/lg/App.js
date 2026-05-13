@@ -5836,7 +5836,7 @@ App.prototype.saveFile = function (forceDialog, success)
     //     } else {
             let svgGenerate = new SvgGenerate(this, this.svgTxtObj, svgParser);
             let data = svgGenerate.parseGraph();
-            let { svg, svg_file, cime_file, add } = data;
+            let { svg, svg_file, cime_file, add, delete: delPayload, deviceSubmit } = data;
 
             let codedSvg = encodeURIComponent(svg);
 
@@ -5846,14 +5846,22 @@ App.prototype.saveFile = function (forceDialog, success)
                 svg: codedSvg,
                 svg_file: svg_file || svg,
                 cime_file: cime_file || '',
-                add: add || { bus: [] }
+                add: add || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                deviceSubmit:
+                    deviceSubmit || {
+                        svg_file: '',
+                        cime_file: '',
+                        add: add || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                        delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                    },
             }
 
             try {
-                // 打印「新增」业务数据（母线等在 parseGraph 已过滤）；不含 svg/taskId 等大字段或旧数据
+                // 打印「新增/删除」业务数据；deviceSubmit 为无完整 SVG 字段的接口形态
                 console.log(
-                    '[正交图保存] 新增数据(JSON):\n' +
-                        JSON.stringify({ add: param.add || { bus: [] } }, null, 2)
+                    '[正交图保存] 增删设备(JSON):\n' +
+                        JSON.stringify(param.deviceSubmit, null, 2)
                 )
                 // 打印完整的保存参数（包含 SVG 数据）
                 console.log(

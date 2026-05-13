@@ -894,7 +894,7 @@ window.EditDataDialog = function(ui, cell)
 
                 // 母线连接线：样式与 XML 双写，便于导出与 collectBusConnectorSubmitPayload 读取
                 if (isBusbarConnector) {
-                    var connectorStyleKeys = ['name', 'model', 'model_paras', 'Ih', 'length'];
+                    var connectorStyleKeys = ['name', 'model', 'model_paras', 'Ih', 'length', 'AClineid'];
                     for (var si = 0; si < names.length; si++) {
                         if (connectorStyleKeys.indexOf(names[si]) < 0) {
                             continue;

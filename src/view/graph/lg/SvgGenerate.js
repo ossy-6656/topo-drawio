@@ -25,6 +25,131 @@ SvgGenerate.prototype.init = function () {
     // buffer.push(svgTxtObj['bgColor']);
 }
 
+/** 读取图元属性：cell → 样式 → XML value */
+SvgGenerate.prototype.pickCellAttr = function (cell, key) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let v = cell[key]
+    if (v != null && v !== '') {
+        return String(v)
+    }
+    let cellStyle = graph.getCurrentCellStyle(cell) || {}
+    if (cellStyle[key] != null && cellStyle[key] !== '') {
+        return String(cellStyle[key])
+    }
+    let valueNode = model.getValue(cell)
+    if (mxUtils.isNode(valueNode)) {
+        let a = valueNode.getAttribute(key)
+        if (a != null && a !== '') {
+            return a
+        }
+    }
+    return ''
+}
+
+/** 将「1,2,3,4」或 JSON 数组字符串解析为数字数组；失败返回 [] */
+SvgGenerate.prototype.parseBracketNumberArray = function (str) {
+    if (str == null || str === '') {
+        return []
+    }
+    let s = String(str).trim()
+    try {
+        if (s.startsWith('[') && s.endsWith(']')) {
+            let arr = JSON.parse(s)
+            if (Array.isArray(arr)) {
+                return arr.map((x) => (typeof x === 'number' ? x : parseFloat(x))).filter((x) => !isNaN(x))
+            }
+        }
+    } catch (e) {
+        /* ignore */
+    }
+    let parts = s.split(/[,，;\s]+/).map((p) => parseFloat(p.trim()))
+    if (parts.length && parts.every((p) => !isNaN(p))) {
+        return parts
+    }
+    return []
+}
+
+/** 与顶点相连的母线列表（去重，按 id 排序） */
+SvgGenerate.prototype.getBusesAdjacentToVertex = function (cell) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let edges = model.getEdges(cell) || []
+    let seen = new Set()
+    let out = []
+    for (let ei = 0; ei < edges.length; ei++) {
+        let edge = edges[ei]
+        let s = model.getTerminal(edge, true)
+        let t = model.getTerminal(edge, false)
+        let o = s === cell ? t : t === cell ? s : null
+        if (!o || !DeviceCategoryUtil.isBusCell(o)) {
+            continue
+        }
+        let oid = String(o.id || '')
+        if (seen.has(oid)) {
+            continue
+        }
+        seen.add(oid)
+        let busid = this.pickCellAttr(o, 'busid')
+        if (!busid) {
+            busid = o.busid != null && o.busid !== '' ? String(o.busid) : String(o.id || '')
+        }
+        busid = String(busid).replace(/-/g, '')
+        let nm = this.getBusNameForSubmit(o)
+        out.push([busid, nm])
+    }
+    out.sort(function (a, b) {
+        return String(a[0]).localeCompare(String(b[0]))
+    })
+    return out
+}
+
+SvgGenerate.prototype.setCellXmlOrStyleAttr = function (cell, key, val) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let value = model.getValue(cell)
+    let obj
+    if (!mxUtils.isNode(value)) {
+        let doc = mxUtils.createXmlDocument()
+        obj = doc.createElement('object')
+        if (value != null && value !== '') {
+            obj.setAttribute('label', String(value))
+        }
+    } else {
+        obj = value.cloneNode(true)
+    }
+    obj.setAttribute(key, val)
+    model.setValue(cell, obj)
+    cell[key] = val
+    graph.setCellStyles(key, val, [cell])
+}
+
+SvgGenerate.prototype.applyPendingSubmitAttrs = function (pending) {
+    if (!pending || pending.length === 0) {
+        return
+    }
+    let graph = this.graph
+    let model = graph.getModel()
+    model.beginUpdate()
+    try {
+        for (let i = 0; i < pending.length; i++) {
+            let item = pending[i]
+            if (!item || !item.attrs) {
+                continue
+            }
+            let cell = item.cell
+            let attrs = item.attrs || {}
+            for (let k in attrs) {
+                if (Object.prototype.hasOwnProperty.call(attrs, k)) {
+                    this.setCellXmlOrStyleAttr(cell, k, attrs[k])
+                }
+            }
+        }
+    } finally {
+        model.endUpdate()
+    }
+}
+
 /**
  * 获取设备的属性信息
  * @param propMap
@@ -1417,6 +1542,26 @@ SvgGenerate.prototype.getDydjFromCell = function (cell) {
     return ''
 }
 
+SvgGenerate.prototype.getBusEndpointPairForSubmit = function (busCell) {
+    if (!busCell) {
+        return ['', '']
+    }
+    let bid = this.pickCellAttr(busCell, 'busid')
+    bid = bid ? String(bid).replace(/-/g, '') : ''
+    if (!bid) {
+        let propMap = this.attrMap && this.attrMap.get(busCell.id)
+        let psr = propMap && propMap['cge:PSR_Ref']
+        if (psr && psr.GlobeID) {
+            bid = String(psr.GlobeID).replace(/-/g, '')
+        }
+    }
+    if (!bid) {
+        let m = String(busCell.id || '').match(/^PD_0311_(.+)$/i)
+        bid = m ? m[1].replace(/-/g, '') : String(busCell.id || '').replace(/-/g, '')
+    }
+    return [bid, this.getBusNameForSubmit(busCell)]
+}
+
 /**
  * 保存接口 add.bus：仅「新增」母线（侧栏拖入等），不含 SVG 导入时已存在的母线。
  * 判定：导入解析时写入 svgParser.attrMap 的为旧数据；无 attrMap 记录的为新数据。
@@ -1474,22 +1619,27 @@ SvgGenerate.prototype.collectBusSubmitPayload = function () {
         bus.push({
             name: name,
             busid: busid,
-            volt: volt,
+            volt: String(volt),
             station: [sid, sname]
         })
     }
 
     // 收集母线连接线数据
-    let line = this.collectBusConnectorSubmitPayload()
-    
-    return { bus: bus, line: line, pending: pending }
+    let line = this.collectBusConnectorSubmitPayload(pending)
+
+    let transformer = this.collectTransformerSubmitPayload(pending)
+    let gen = this.collectGenSubmitPayload(pending)
+    let load = this.collectLoadSubmitPayload(pending)
+
+    return { bus: bus, line: line, transformer: transformer, gen: gen, load: load, pending: pending }
 }
 
 /**
  * 收集母线连接线提交数据
+ * @param {Array} pending 回写 cell 的 AClineid 等
  * @returns {Array} 母线连接线数据列表
  */
-SvgGenerate.prototype.collectBusConnectorSubmitPayload = function () {
+SvgGenerate.prototype.collectBusConnectorSubmitPayload = function (pending) {
     let graph = this.graph
     let model = graph.getModel()
     let view = graph.getView()
@@ -1554,52 +1704,58 @@ SvgGenerate.prototype.collectBusConnectorSubmitPayload = function () {
             return ''
         }
         
-        // 生成线路唯一ID（UUID去除-）
-        let AClineid = this.generateUuid().replace(/-/g, '')
-        
+        // 线路唯一 ID：已写入 cell 的 AClineid 则复用，否则生成 UUID（无横线）并加入 pending 回写
+        let rawAid = pickConn('AClineid').replace(/-/g, '')
+        let AClineid = rawAid
+        if (!AClineid) {
+            AClineid = this.generateUuid().replace(/-/g, '')
+            if (pending) {
+                pending.push({ cell: cell, attrs: { AClineid: AClineid } })
+            }
+        }
+
         // 获取线路名称及电气参数（与编辑框一致：cell / 样式 / XML）
         let name = pickConn('name')
-        
+
         // 获取电压等级（从母线获取）
-        let volt = 10 // 默认10kV
+        let voltNum = 10
         if (sourceCell) {
             let dydj = this.getDydjFromCell(sourceCell)
-            volt = this.parseVoltFromDydj(dydj) || volt
+            voltNum = this.parseVoltFromDydj(dydj) || voltNum
         }
-        
-        // 获取起始母线信息
-        let from_bus_id = sourceCell ? (sourceCell['busid'] || sourceCell.id || '') : ''
-        let from_bus_name = sourceCell ? (sourceCell['name'] || '') : ''
-        
-        // 获取终止母线信息
-        let to_bus_id = targetCell ? (targetCell['busid'] || targetCell.id || '') : ''
-        let to_bus_name = targetCell ? (targetCell['name'] || '') : ''
-        
+
+        let fromPair = this.getBusEndpointPairForSubmit(sourceCell)
+        let toPair = this.getBusEndpointPairForSubmit(targetCell)
+
         // 获取线路型号和参数
         let modelValue = pickConn('model')
         let modelParasStr = pickConn('model_paras')
         let model_paras = modelParasStr ? this.parseModelParas(modelParasStr) : [0.08, 0.417, 0, 0]
-        
-        // 获取额定载流量
+
+        // 获取额定载流量（kA，字符串）
         let IhStr = pickConn('Ih')
-        let Ih = IhStr !== '' ? parseFloat(IhStr) : 4.0
-        if (isNaN(Ih)) {
-            Ih = 4.0
+        let IhNum = IhStr !== '' ? parseFloat(IhStr) : 4.0
+        if (isNaN(IhNum)) {
+            IhNum = 4.0
         }
-        
-        // 获取线路长度
+
+        // 获取线路长度 [数值字符串, km]
         let lengthValue = pickConn('length') || '100'
-        let length = [parseFloat(lengthValue), 'km']
-        
+        let lenNum = parseFloat(lengthValue)
+        if (isNaN(lenNum)) {
+            lenNum = 100
+        }
+        let length = [String(lenNum), 'km']
+
         line.push({
             name: String(name),
             AClineid: AClineid,
-            volt: volt,
-            from_bus: [from_bus_id, String(from_bus_name)],
-            to_bus: [to_bus_id, String(to_bus_name)],
+            volt: String(voltNum),
+            from_bus: [fromPair[0], String(fromPair[1])],
+            to_bus: [toPair[0], String(toPair[1])],
             model: String(modelValue),
             model_paras: model_paras,
-            Ih: Ih,
+            Ih: String(IhNum),
             length: length
         })
     }
@@ -1643,6 +1799,265 @@ SvgGenerate.prototype.parseModelParas = function (modelParasStr) {
     return [0.08, 0.417, 0, 0]
 }
 
+/**
+ * 新增：发电机组（侧栏拖入，attrMap 中无记录）
+ */
+SvgGenerate.prototype.collectGenSubmitPayload = function (pending) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let list = graph.getVerticesAndEdges()
+    let attrMap = this.attrMap
+    let out = []
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        if (!model.isVertex(cell)) {
+            continue
+        }
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+        if (
+            cell.flag == 'range' ||
+            cell.flag == 'pointline' ||
+            cell.flag == 'virtualCell' ||
+            cell.flag == 'virtualLine'
+        ) {
+            continue
+        }
+        let st = graph.view.getState(cell)
+        let style = st ? st.style : {}
+        let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+        if (shape !== 'generatingunit') {
+            continue
+        }
+        let uid = this.pickCellAttr(cell, 'unitid').replace(/-/g, '')
+        if (!uid) {
+            uid = this.generateUuid().replace(/-/g, '')
+            if (pending) {
+                pending.push({ cell: cell, attrs: { unitid: uid } })
+            }
+        }
+        let buses = this.getBusesAdjacentToVertex(cell)
+        let busPair = buses[0] || ['', '']
+        out.push({
+            name:
+                this.pickCellAttr(cell, 'name') ||
+                (cell.name != null && cell.name !== '' ? String(cell.name) : ''),
+            unitid: uid,
+            type: this.pickCellAttr(cell, 'type'),
+            V_Rate: this.pickCellAttr(cell, 'V_Rate'),
+            bus: [busPair[0], busPair[1]],
+            P_Rate: this.pickCellAttr(cell, 'P_Rate'),
+            P_max: this.pickCellAttr(cell, 'P_max'),
+            P_min: this.pickCellAttr(cell, 'P_min'),
+            Q_max: this.pickCellAttr(cell, 'Q_max'),
+            Q_min: this.pickCellAttr(cell, 'Q_min'),
+            P_meas: this.pickCellAttr(cell, 'P_meas'),
+        })
+    }
+    return out
+}
+
+/**
+ * 新增：负荷（配电站 substation / 箱式变 xb）
+ */
+SvgGenerate.prototype.collectLoadSubmitPayload = function (pending) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let list = graph.getVerticesAndEdges()
+    let attrMap = this.attrMap
+    let out = []
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        if (!model.isVertex(cell)) {
+            continue
+        }
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+        if (
+            cell.flag == 'range' ||
+            cell.flag == 'pointline' ||
+            cell.flag == 'virtualCell' ||
+            cell.flag == 'virtualLine'
+        ) {
+            continue
+        }
+        let st = graph.view.getState(cell)
+        let style = st ? st.style : {}
+        let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+        if (shape !== 'substation' && shape !== 'xb') {
+            continue
+        }
+        let lid = this.pickCellAttr(cell, 'loadid').replace(/-/g, '')
+        if (!lid) {
+            lid = this.generateUuid().replace(/-/g, '')
+            if (pending) {
+                pending.push({ cell: cell, attrs: { loadid: lid } })
+            }
+        }
+        let buses = this.getBusesAdjacentToVertex(cell)
+        let busPair = buses[0] || ['', '']
+        let volt = this.pickCellAttr(cell, 'volt')
+        if (!volt && busPair[0]) {
+            let bcell = null
+            for (let j = 0; j < list.length; j++) {
+                if (model.isVertex(list[j]) && DeviceCategoryUtil.isBusCell(list[j])) {
+                    let bp = this.getBusEndpointPairForSubmit(list[j])
+                    if (bp[0] === busPair[0]) {
+                        bcell = list[j]
+                        break
+                    }
+                }
+            }
+            if (bcell) {
+                let dydj = this.getDydjFromCell(bcell)
+                volt = String(this.parseVoltFromDydj(dydj))
+            }
+        }
+        out.push({
+            name: this.pickCellAttr(cell, 'name') || '',
+            loadid: lid,
+            volt: volt,
+            bus: [busPair[0], busPair[1]],
+            P: this.pickCellAttr(cell, 'P'),
+            Q: this.pickCellAttr(cell, 'Q'),
+        })
+    }
+    return out
+}
+
+/**
+ * 新增：电压互感器双绕组/三绕组（力光侧栏）
+ */
+SvgGenerate.prototype.collectTransformerSubmitPayload = function (pending) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let list = graph.getVerticesAndEdges()
+    let attrMap = this.attrMap
+    let out = []
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        if (!model.isVertex(cell)) {
+            continue
+        }
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+        if (
+            cell.flag == 'range' ||
+            cell.flag == 'pointline' ||
+            cell.flag == 'virtualCell' ||
+            cell.flag == 'virtualLine'
+        ) {
+            continue
+        }
+        let st = graph.view.getState(cell)
+        let style = st ? st.style : {}
+        let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+        let is3w =
+            shape === 'potentialtransformer3w' || shape.indexOf('potentialtransformer3w_') === 0
+        let is2w =
+            shape === 'potentialtransformer2w' || shape.indexOf('potentialtransformer2w_') === 0
+        if (!is2w && !is3w) {
+            continue
+        }
+        let tid = this.pickCellAttr(cell, 'transformerid').replace(/-/g, '')
+        if (!tid) {
+            tid = this.generateUuid().replace(/-/g, '')
+            if (pending) {
+                pending.push({ cell: cell, attrs: { transformerid: tid } })
+            }
+        }
+        let buses = this.getBusesAdjacentToVertex(cell)
+        let hv = buses[0] || ['', '']
+        let mv = is3w ? buses[1] || ['', ''] : ['', '']
+        let lv = is3w ? buses[2] || ['', ''] : buses[1] || ['', '']
+        if (is2w && buses[1]) {
+            lv = buses[1]
+        }
+        let hvP = this.parseBracketNumberArray(this.pickCellAttr(cell, 'hv_paras'))
+        let mvP = this.parseBracketNumberArray(this.pickCellAttr(cell, 'mv_paras'))
+        let lvP = this.parseBracketNumberArray(this.pickCellAttr(cell, 'lv_paras'))
+        if (is2w) {
+            let base = hvP.length ? hvP : mvP.length ? mvP : lvP
+            if (base.length) {
+                hvP = base.slice()
+                mvP = base.slice()
+                lvP = base.slice()
+            }
+        }
+        out.push({
+            name: this.pickCellAttr(cell, 'name') || '',
+            transformerid: tid,
+            type: is3w ? 3 : 2,
+            hv_bus: [hv[0], String(hv[1])],
+            mv_bus: [mv[0], String(mv[1])],
+            lv_bus: [lv[0], String(lv[1])],
+            I_Vol: this.pickCellAttr(cell, 'I_Vol'),
+            K_Vol: is2w ? '0' : this.pickCellAttr(cell, 'K_Vol'),
+            J_Vol: this.pickCellAttr(cell, 'J_Vol'),
+            model: this.pickCellAttr(cell, 'model'),
+            hv_paras: hvP,
+            mv_paras: mvP,
+            lv_paras: lvP,
+            I_S: this.pickCellAttr(cell, 'I_S'),
+            K_S: is2w ? '' : this.pickCellAttr(cell, 'K_S'),
+            J_S: this.pickCellAttr(cell, 'J_S'),
+        })
+    }
+    return out
+}
+
+/**
+ * 删除：相对 parseSvg 完成时的导入快照，图中已不存在的图元。
+ */
+SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
+    let empty = {
+        bus: [],
+        line: [],
+        transformer: [],
+        gen: [],
+        load: [],
+    }
+    let snap = this.svgParser && this.svgParser.importedDeviceSnapshot
+    if (!snap || snap.length === 0) {
+        return empty
+    }
+    let graph = this.graph
+    let model = graph.getModel()
+    let cur = new Set()
+    let all = graph.getVerticesAndEdges()
+    for (let i = 0; i < all.length; i++) {
+        cur.add(all[i].id)
+    }
+    let del = {
+        bus: [],
+        line: [],
+        transformer: [],
+        gen: [],
+        load: [],
+    }
+    for (let si = 0; si < snap.length; si++) {
+        let rec = snap[si]
+        if (cur.has(rec.graphId)) {
+            continue
+        }
+        if (rec.category === 'bus') {
+            del.bus.push({ name: rec.name || '', busid: rec.busid || '' })
+        } else if (rec.category === 'line') {
+            del.line.push({ name: rec.name || '', AClineid: rec.AClineid || '' })
+        } else if (rec.category === 'transformer') {
+            del.transformer.push({ name: rec.name || '', transformerid: rec.transformerid || '' })
+        } else if (rec.category === 'gen') {
+            del.gen.push({ name: rec.name || '', unitid: rec.unitid || '' })
+        } else if (rec.category === 'load') {
+            del.load.push({ name: rec.name || '', loadid: rec.loadid || '' })
+        }
+    }
+    return del
+}
+
 SvgGenerate.prototype.applyPendingBusIds = function (pending) {
     if (!pending || pending.length === 0) {
         return
@@ -1653,6 +2068,9 @@ SvgGenerate.prototype.applyPendingBusIds = function (pending) {
     try {
         for (let i = 0; i < pending.length; i++) {
             let item = pending[i]
+            if (!item || item.busid == null || item.busid === '') {
+                continue
+            }
             let cell = item.cell
             let busid = item.busid
             let value = model.getValue(cell)
@@ -1886,7 +2304,17 @@ SvgGenerate.prototype.parseGraph = function ()
 
     let svgStr = buffer.join('')
     let busPayload = this.collectBusSubmitPayload()
+    let deletePayload = this.collectDeleteSubmitPayload()
     this.applyPendingBusIds(busPayload.pending)
+    this.applyPendingSubmitAttrs(busPayload.pending)
+
+    let addPayload = {
+        bus: busPayload.bus,
+        line: busPayload.line || [],
+        transformer: busPayload.transformer || [],
+        gen: busPayload.gen || [],
+        load: busPayload.load || [],
+    }
 
     return {
         dkxid: svgParser.id,
@@ -1894,9 +2322,13 @@ SvgGenerate.prototype.parseGraph = function ()
         txt: '',
         svg_file: svgStr,
         cime_file: '',
-        add: {
-            bus: busPayload.bus,
-            line: busPayload.line || []
-        }
+        add: addPayload,
+        delete: deletePayload,
+        deviceSubmit: {
+            svg_file: '',
+            cime_file: '',
+            add: addPayload,
+            delete: deletePayload,
+        },
     }
 }

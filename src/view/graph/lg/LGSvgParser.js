@@ -59,6 +59,8 @@ export default class LGSvgParser extends SvgBase {
         this.poleHelper = 1
         /** 侧栏图元 key(小写简名) -> 当前图中该类设备的中位宽高 */
         this.shapeDragDefaults = {}
+        /** parseSvg 完成后由 captureImportedDeviceSnapshot 填充，用于保存时 delete */
+        this.importedDeviceSnapshot = []
     }
 
     initEvt() {
@@ -2316,6 +2318,7 @@ export default class LGSvgParser extends SvgBase {
 
         if (layerlist.length == 0) {
             this.shapeDragDefaults = {}
+            this.importedDeviceSnapshot = []
             return
         }
 
@@ -2656,6 +2659,8 @@ export default class LGSvgParser extends SvgBase {
 
         this.collectShapeDragDefaultsFromGraph()
 
+        this.captureImportedDeviceSnapshot()
+
         this.initValidateEvt()
 
         this.textBeauty = new TextBeauty(graph, this.getSymbolMap())
@@ -2666,6 +2671,82 @@ export default class LGSvgParser extends SvgBase {
             this.ui.editor.undoManager.clear()
             this.ui.editor.setModified(false)
         }, 300)
+    }
+
+    /**
+     * 记录导入图元快照，供保存时计算 delete（attrMap 中有且图中已删除的图元）。
+     * graphId 与 attrMap 键一致，一般为 SVG 中 ObjectID。
+     */
+    captureImportedDeviceSnapshot() {
+        let graph = this.graph
+        let model = graph.getModel()
+        let list = []
+        for (let [idStr] of this.attrMap) {
+            let cell = model.getCell(idStr)
+            if (!cell) {
+                continue
+            }
+            let name =
+                cell.name != null && cell.name !== ''
+                    ? String(cell.name)
+                    : ''
+            if (!name) {
+                let st = graph.view.getState(cell)
+                if (st && st.style && st.style.name) {
+                    name = String(st.style.name)
+                }
+            }
+            if (DeviceCategoryUtil.isBusCell(cell)) {
+                let busid = ''
+                let val = model.getValue(cell)
+                if (mxUtils.isNode(val) && val.getAttribute('busid')) {
+                    busid = String(val.getAttribute('busid')).replace(/-/g, '')
+                }
+                if (!busid) {
+                    let pm = this.attrMap.get(idStr)
+                    let psr = pm && pm['cge:PSR_Ref']
+                    if (psr && psr.GlobeID) {
+                        busid = String(psr.GlobeID).replace(/-/g, '')
+                    }
+                }
+                if (!busid) {
+                    let m = String(cell.id || '').match(/^PD_0311_(.+)$/i)
+                    busid = m ? m[1].replace(/-/g, '') : String(cell.id).replace(/-/g, '')
+                }
+                list.push({ graphId: idStr, category: 'bus', name, busid })
+                continue
+            }
+            if (model.isEdge(cell)) {
+                list.push({ graphId: idStr, category: 'line', name, AClineid: String(cell.id) })
+                continue
+            }
+            let st = graph.view.getState(cell)
+            let style = st ? st.style : {}
+            let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+            if (shape === 'generatingunit') {
+                list.push({ graphId: idStr, category: 'gen', name, unitid: String(cell.id) })
+                continue
+            }
+            if (shape === 'substation' || shape === 'xb') {
+                list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
+                continue
+            }
+            if (
+                shape === 'potentialtransformer2w' ||
+                shape === 'potentialtransformer3w' ||
+                shape.indexOf('potentialtransformer2w_') === 0 ||
+                shape.indexOf('potentialtransformer3w_') === 0
+            ) {
+                list.push({
+                    graphId: idStr,
+                    category: 'transformer',
+                    name,
+                    transformerid: String(cell.id),
+                })
+                continue
+            }
+        }
+        this.importedDeviceSnapshot = list
     }
 
     // 多设备缩放操作
