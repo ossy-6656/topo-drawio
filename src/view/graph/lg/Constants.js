@@ -1,17 +1,23 @@
+/**
+ * 无图中 shapeDragDefaults 时，侧栏拖入宽高 = ((1-t)×条目网格 + t×symbol 声明宽高 symEntry.w/h)×getScale。
+ * t=0 偏小，t=1 偏大；配电站/箱变 w=h=3 时与 t 无关。变压器/机组由 graphLg 以双绕组为锚统一尺寸。
+ */
+export const LG_SIDEBAR_DRAG_SYMBOL_BLEND = 0.12
+
 /** 左侧「负荷」面板：默认宽高与 lgdata.js 内嵌 symbol（3×3）一致，× getScale 后与解析图元一致 */
 export const LG_SIDEBAR_DEVICE_ENTRIES = [
     ['substation', '配电站(zf06)', 3, 3],
     ['xb', '箱式变电站(zf08)', 3, 3],
 ]
 
-/** 左侧「变压器」面板：0314；无黑底；init 约 14×12 / 15×13，× getScale 后接近站内其它设备量级 */
+/** 左侧「变压器」面板：0314；先 resolve 再统一为双绕组尺寸（同箱式变对齐配电站） */
 export const LG_SIDEBAR_TRANSFORMER_ENTRIES = [
-    ['potentialtransformer2w', '电压互感器-双绕组(0314)', 14, 12, 'psrtype=0314;'],
-    ['potentialtransformer3w', '电压互感器-三绕组(0314)', 15, 13, 'psrtype=0314;'],
+    ['potentialtransformer2w', '电压互感器-双绕组(0314)', 3, 3],
+    ['potentialtransformer3w', '电压互感器-三绕组(0314)', 3, 3],
 ]
 
-/** 左侧「机组」面板：空心圆 + G，与变压器同量级 */
-export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 14, 14]]
+/** 左侧「机组」面板：resolve 后宽高对齐变压器锚点(2w)，与 LG_SIDEBAR_DRAG_SYMBOL_BLEND 联动 */
+export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 3, 3]]
 
 /** 侧栏可拖拽顶点图元的 shape 简名（供 LGSvgParser.matchSidebarShapeKey / collectShapeDragDefaultsFromGraph） */
 const LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS = [

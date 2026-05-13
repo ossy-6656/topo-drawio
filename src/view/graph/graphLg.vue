@@ -125,6 +125,7 @@ import customSymbolStr from './data/symbol.js'                           // 自�
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
 import {
     LG_SIDEBAR_DEVICE_ENTRIES,
+    LG_SIDEBAR_DRAG_SYMBOL_BLEND,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
 } from '@/view/graph/lg/Constants.js' // 力光侧栏图元与 lgdata / symbol.js 对齐
@@ -132,7 +133,40 @@ import {
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
 
 /**
- * 由侧栏条目生成 createVertexTemplateEntry 列表（宽高优先图中 shapeDragDefaults，其次 symbol 模板）
+ * 侧栏拖入顶点宽高：优先图中 shapeDragDefaults；否则条目网格与 symbol 模板按 LG_SIDEBAR_DRAG_SYMBOL_BLEND 折中
+ */
+function resolveLgSidebarDragWh(key, fw, fh, fromGraph, symbolMapForTpl, gScale) {
+    const blend = Number(LG_SIDEBAR_DRAG_SYMBOL_BLEND)
+    const t = Number.isFinite(blend) ? Math.min(1, Math.max(0, blend)) : 0.5
+    if (fromGraph && fromGraph.w > 0 && fromGraph.h > 0) {
+        return { w: fromGraph.w, h: fromGraph.h }
+    }
+    const arr = symbolMapForTpl[key]
+    const entryMissing =
+        fw == null || fh == null || !(Number(fw) > 0) || !(Number(fh) > 0)
+    if (entryMissing && arr && arr.initWidth != null && arr.initHeight != null) {
+        return {
+            w: Number(arr.initWidth) * gScale,
+            h: Number(arr.initHeight) * gScale,
+        }
+    }
+    let w = Number(fw) * gScale
+    let h = Number(fh) * gScale
+    if (!entryMissing && arr && arr.initWidth != null && arr.initHeight != null) {
+        const sw = Number(arr.initWidth)
+        const sh = Number(arr.initHeight)
+        if (Number.isFinite(sw) && Number.isFinite(sh) && sw > 0 && sh > 0) {
+            const gw = Number(fw)
+            const gh = Number(fh)
+            w = ((1 - t) * gw + t * sw) * gScale
+            h = ((1 - t) * gh + t * sh) * gScale
+        }
+    }
+    return { w, h }
+}
+
+/**
+ * 由侧栏条目生成 createVertexTemplateEntry 列表（宽高见 resolveLgSidebarDragWh）
  */
 function createLgVertexPaletteFns(ui, entries, symbolMapForTpl, dragDef, gScale) {
     const rows = entries.map((entry) => {
@@ -143,18 +177,7 @@ function createLgVertexPaletteFns(ui, entries, symbolMapForTpl, dragDef, gScale)
         const styleExtra = entry.length > 4 && entry[4] ? String(entry[4]) : ''
         const key = String(symbolId).toLowerCase()
         const fromGraph = dragDef[key]
-        let w = fw * gScale
-        let h = fh * gScale
-        if (fromGraph && fromGraph.w > 0 && fromGraph.h > 0) {
-            w = fromGraph.w
-            h = fromGraph.h
-        } else {
-            const arr = symbolMapForTpl[key]
-            if (arr && arr.initWidth != null && arr.initHeight != null) {
-                w = Number(arr.initWidth) * gScale
-                h = Number(arr.initHeight) * gScale
-            }
-        }
+        const { w, h } = resolveLgSidebarDragWh(key, fw, fh, fromGraph, symbolMapForTpl, gScale)
         return { symbolId, label, w, h, styleExtra }
     })
     return rows.map(({ symbolId, label, w, h, styleExtra }) => {
@@ -386,18 +409,14 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
                                 const key = String(symbolId).toLowerCase()
                                 const fromGraph = dragDef[key]
-                                let w = fw * gScale
-                                let h = fh * gScale
-                                if (fromGraph && fromGraph.w > 0 && fromGraph.h > 0) {
-                                    w = fromGraph.w
-                                    h = fromGraph.h
-                                } else {
-                                    const arr = symbolMapForTpl[key]
-                                    if (arr && arr.initWidth != null && arr.initHeight != null) {
-                                        w = Number(arr.initWidth) * gScale
-                                        h = Number(arr.initHeight) * gScale
-                                    }
-                                }
+                                const { w, h } = resolveLgSidebarDragWh(
+                                    key,
+                                    fw,
+                                    fh,
+                                    fromGraph,
+                                    symbolMapForTpl,
+                                    gScale
+                                )
                                 return { symbolId, label, key, w, h }
                             })
                             const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
@@ -460,29 +479,21 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 return nodes
                             }
 
-                            // ── 用 StorageFile.getFileContent 异步读取便笺本，追加到「负荷」面板 ──
-                            // 先渲染基础图元
-                            ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
-
-                            const lgTransformerFns = createLgVertexPaletteFns(
-                                ui,
-                                LG_SIDEBAR_TRANSFORMER_ENTRIES,
-                                symbolMapForTpl,
-                                dragDef,
-                                gScale
-                            )
-                            ui.sidebar.addPaletteFunctions('lg-transformer', '变压器', true, lgTransformerFns)
-
-                            const lgUnitFns = createLgVertexPaletteFns(
-                                ui,
-                                LG_SIDEBAR_UNIT_ENTRIES,
-                                symbolMapForTpl,
-                                dragDef,
-                                gScale
-                            )
-                            ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
-
-                            // ── 连接线分类：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段 ──
+                            // ── 母线 / 连接线模板（与下方 add 顺序一致：母线→连接线→变压器→机组→负荷）──
+                            const lgBusbarFns = [
+                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar）
+                                ui.sidebar.createVertexTemplateEntry(
+                                    'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;',
+                                    200,
+                                    1.6,  // 拖入画布默认高度与 LGSvgParser 母线 busbarThin 锁定一致
+                                    '',
+                                    '站内-母线（0311）',
+                                    null,
+                                    null,
+                                    '站内-母线（0311）'
+                                ),
+                            ]
+                            // 连接线：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段
                             const lgStraightVerticalLineStyle =
                                 'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;strokeWidth=0.4;strokeColor=rgb(185,72,66);'
                             const lgLineFns = [
@@ -507,23 +518,30 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     '连接线 普通 设备'
                                 ),
                             ]
+
+                            // 侧栏分类顺序：母线、连接线、变压器、机组、负荷（便笺本仍追加到「负荷」）
+                            ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
                             ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
 
-                            // ── 母线分类 ──
-                            const lgBusbarFns = [
-                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar）
-                                ui.sidebar.createVertexTemplateEntry(
-                                    'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;',
-                                    200,
-                                    1.6,  // 拖入画布默认高度与 LGSvgParser 母线 busbarThin 锁定一致
-                                    '',
-                                    '站内-母线（0311）',
-                                    null,
-                                    null,
-                                    '站内-母线（0311）'
-                                ),
-                            ]
-                            ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
+                            const lgTransformerFns = createLgVertexPaletteFns(
+                                ui,
+                                LG_SIDEBAR_TRANSFORMER_ENTRIES,
+                                symbolMapForTpl,
+                                dragDef,
+                                gScale
+                            )
+                            ui.sidebar.addPaletteFunctions('lg-transformer', '变压器', true, lgTransformerFns)
+
+                            const lgUnitFns = createLgVertexPaletteFns(
+                                ui,
+                                LG_SIDEBAR_UNIT_ENTRIES,
+                                symbolMapForTpl,
+                                dragDef,
+                                gScale
+                            )
+                            ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
+
+                            ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
 
                             // ── 辅助：将解析出的图元节点追加到「负荷」面板 ──
                             const appendScratchNodes = (scratchNodes) => {
