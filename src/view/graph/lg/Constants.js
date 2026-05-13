@@ -1,17 +1,17 @@
-/** 左侧「负荷」面板：配电站(zf06)、箱式变电站(zf08)；与 graphLg / parseUse 对齐 */
+/** 左侧「负荷」面板：默认宽高与 lgdata.js 内嵌 symbol（3×3）一致，× getScale 后与解析图元一致 */
 export const LG_SIDEBAR_DEVICE_ENTRIES = [
-    ['substation', '配电站(zf06)', 70, 70],
-    ['xb', '箱式变电站(zf08)', 70, 70],
+    ['substation', '配电站(zf06)', 3, 3],
+    ['xb', '箱式变电站(zf08)', 3, 3],
 ]
 
-/** 左侧「变压器」面板：0314 电压互感器；第 5 段为拖入画布附加样式（与 graphLg createLgVertexPaletteFns 一致） */
+/** 左侧「变压器」面板：0314；无黑底；init 约 14×12 / 15×13，× getScale 后接近站内其它设备量级 */
 export const LG_SIDEBAR_TRANSFORMER_ENTRIES = [
-    ['potentialtransformer2w', '电压互感器-双绕组(0314)', 56, 98, 'psrtype=0314;'],
-    ['potentialtransformer3w', '电压互感器-三绕组(0314)', 82, 72, 'psrtype=0314;'],
+    ['potentialtransformer2w', '电压互感器-双绕组(0314)', 14, 12, 'psrtype=0314;'],
+    ['potentialtransformer3w', '电压互感器-三绕组(0314)', 15, 13, 'psrtype=0314;'],
 ]
 
-/** 左侧「机组」面板：与 symbol.js 中 symbol id 一致 */
-export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 70, 70]]
+/** 左侧「机组」面板：空心圆 + G，与变压器同量级 */
+export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 14, 14]]
 
 /** 侧栏可拖拽顶点图元的 shape 简名（供 LGSvgParser.matchSidebarShapeKey / collectShapeDragDefaultsFromGraph） */
 const LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS = [

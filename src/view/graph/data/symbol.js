@@ -92,34 +92,29 @@ export default `
             <circle cx="42" cy="49" r="13" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
         </symbol>
 
-        <!-- 电压互感器 PotentialTransformer：两个重叠圆，viewBox=83x81（旧图兼容，侧栏已用 2w/3w） -->
-        <symbol id="potentialtransformer" viewBox="0 0 83 81" width="70" height="68">
-            <!-- 右圆 -->
+        <!-- 电压互感器 PotentialTransformer：旧图兼容，仅双圆、无底色 -->
+        <symbol id="potentialtransformer" viewBox="0 0 83 81" width="14" height="13">
             <circle cx="55" cy="43" r="23" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <!-- 左圆 -->
             <circle cx="25" cy="43" r="23" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
         </symbol>
 
-        <!-- 电压互感器-双绕组(0314)：两圆竖向交叠 + 上下蓝色端子（力光侧栏） -->
-        <symbol id="potentialtransformer2w" viewBox="0 0 64 112" width="56" height="98">
-            <circle cx="32" cy="44" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <circle cx="32" cy="68" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <circle cx="32" cy="12" r="5" fill="rgb(0,120,215)" stroke="none"/>
-            <circle cx="32" cy="100" r="5" fill="rgb(0,120,215)" stroke="none"/>
+        <!-- 电压互感器-双绕组(0314)：仅双圆、无黑底；小 init 尺寸避免 × getScale 后过大 -->
+        <symbol id="potentialtransformer2w" viewBox="0 0 100 88" width="14" height="12">
+            <circle cx="64" cy="44" r="30" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
+            <circle cx="36" cy="44" r="30" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
         </symbol>
 
-        <!-- 电压互感器-三绕组(0314)：三圆品字形交叠 + 顶部蓝色端子（力光侧栏） -->
-        <symbol id="potentialtransformer3w" viewBox="0 0 104 92" width="82" height="72">
-            <circle cx="52" cy="34" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <circle cx="30" cy="66" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <circle cx="74" cy="66" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
-            <circle cx="52" cy="8" r="5" fill="rgb(0,120,215)" stroke="none"/>
+        <!-- 电压互感器-三绕组(0314)：三圆品字、无黑底 -->
+        <symbol id="potentialtransformer3w" viewBox="0 0 110 100" width="15" height="13">
+            <circle cx="55" cy="34" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
+            <circle cx="32" cy="72" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
+            <circle cx="78" cy="72" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="4"/>
         </symbol>
 
-        <!-- 发电机组 GeneratingUnit：外圆+字母 G，viewBox=300x300（侧栏「机组」） -->
-        <symbol id="generatingunit" viewBox="0 0 300 300" width="70" height="70">
-            <circle cx="150" cy="150" r="132" fill="none" stroke="rgb(185,72,66)" stroke-width="8"/>
-            <text x="150" y="195" fill="rgb(185,72,66)" font-family="SimSun" font-size="130" text-anchor="middle" font-weight="bold">G</text>
+        <!-- 发电机组：黑底圆 + 赭红边 + 红色「G」（与负荷块设备配色一致） -->
+        <symbol id="generatingunit" viewBox="0 0 100 100" width="14" height="14">
+            <circle cx="50" cy="50" r="40" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="5"/>
+            <text x="50" y="58" fill="rgb(185,72,66)" font-family="SimSun" font-size="34" text-anchor="middle" dominant-baseline="middle">G</text>
         </symbol>
 
         <!-- 远动装置 RemoteUnit：圆+内部十字+三角，viewBox=299x300 -->
@@ -139,21 +134,21 @@ export default `
             <circle cx="82" cy="82" r="78" fill="rgb(168,56,0)" stroke="rgb(0,0,0)" stroke-width="6"/>
         </symbol>
 
-        <!-- 配电站(zf06)：黑色矩形+红色"PD"文字，viewBox=300x300 -->
-        <symbol id="substation" viewBox="0 0 300 300" width="70" height="70">
-            <rect x="2" y="2" width="296" height="296" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="8"/>
-            <text x="150" y="170" fill="rgb(185,72,66)" font-family="SimSun" font-size="140" text-anchor="middle" dominant-baseline="middle">PD</text>
+        <!-- 配电站(zf06)：与 lgdata Substation_30000005_1030020 一致 3×3 单位 -->
+        <symbol id="substation" viewBox="0 0 3 3" width="3" height="3">
+            <polygon fill="rgb(0,0,0)" points="0.025,0.025 0.025,3.025 3.025,3.025 3.025,0.025" stroke="rgb(185,72,66)" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="0.15"/>
+            <text dy=".3em" fill="rgb(185,72,66)" font-family="SimSun" font-size="2" stroke="none" style="text-anchor:middle" x="1.538" y="1.503">PD</text>
         </symbol>
 
-        <!-- 箱式变电站(zf08) XB：黑色矩形+红色"XB"文字，viewBox=300x300 -->
-        <symbol id="xb" viewBox="0 0 300 300" width="70" height="70">
-            <rect x="2" y="2" width="296" height="296" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="8"/>
-            <text x="150" y="170" fill="rgb(185,72,66)" font-family="SimSun" font-size="140" text-anchor="middle" dominant-baseline="middle">XB</text>
+        <!-- 箱式变电站(zf08)：与 lgdata Substation_32300000_1030050 一致 3×3 单位 -->
+        <symbol id="xb" viewBox="0 0 3 3" width="3" height="3">
+            <polygon fill="rgb(0,0,0)" points="0.025,0.025 0.025,3.025 3.025,3.025 3.025,0.025" stroke="rgb(185,72,66)" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="0.15"/>
+            <text dy=".3em" fill="rgb(185,72,66)" font-family="SimSun" font-size="2" stroke="none" style="text-anchor:middle" x="1.538" y="1.503">XB</text>
         </symbol>
         <!--自定义图元1030000:变电站-->
-        <symbol id="Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000" viewBox="0 0 300 300" width="70" height="70">
-            <rect x="2" y="2" width="296" height="296" fill="rgb(0,0,0)" stroke="rgb(185,72,66)" stroke-width="8"/>
-            <text x="150" y="170" fill="rgb(185,72,66)" font-family="SimSun" font-size="140" text-anchor="middle" dominant-baseline="middle">B</text>
+        <symbol id="Substation_PMS25_d5483a04-3f50-423d-ad63-93cf5d024385_1030000" viewBox="0 0 3 3" width="3" height="3">
+            <polygon fill="rgb(0,0,0)" points="0.025,0.025 0.025,3.025 3.025,3.025 3.025,0.025" stroke="rgb(185,72,66)" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="0.15"/>
+            <text dy=".3em" fill="rgb(185,72,66)" font-family="SimSun" font-size="2" stroke="none" style="text-anchor:middle" x="1.538" y="1.503">B</text>
         </symbol>
         <!-- 避雷器 LightningArrester：竖线+外圆（蓝）+内圆（红），viewBox=100x160 -->
         <symbol id="lightningarrester" viewBox="0 0 100 160" width="50" height="80">
