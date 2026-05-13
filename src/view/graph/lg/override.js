@@ -8,6 +8,7 @@
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
+import { lgSidebarPaletteTitleForShape } from '@/view/graph/lg/Constants.js'
 
 let preAddPopupMenuItems = Menus.prototype.addPopupMenuItems;
 Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
@@ -52,6 +53,12 @@ Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
 window.EditDataDialog = function(ui, cell)
 {
     var div = document.createElement('div');
+    div.style.boxSizing = 'border-box';
+    // 子节点均为 absolute，不设高度且 overflow:hidden 会导致父级高度为 0、内容被裁成空白
+    div.style.width = '100%';
+    div.style.height = '100%';
+    div.style.minHeight = '0';
+    div.style.position = 'relative';
     var graph = ui.editor.graph;
 
     var value = graph.getModel().getValue(cell);
@@ -84,6 +91,9 @@ window.EditDataDialog = function(ui, cell)
     // Creates the dialog contents
     var form = new mxForm('properties');
     form.table.style.width = '100%';
+    form.table.style.maxWidth = '100%';
+    form.table.style.boxSizing = 'border-box';
+    form.table.style.tableLayout = 'fixed';
 
     var attrs = value.attributes;
     var names = [];
@@ -97,66 +107,10 @@ window.EditDataDialog = function(ui, cell)
 
     var shapeLower = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
     var isLgLoadDevice = shapeLower === 'substation' || shapeLower === 'xb'
+    var isLgGeneratingUnit = shapeLower === 'generatingunit'
 
     var id = (EditDataDialog.getDisplayIdForCell != null) ?
         EditDataDialog.getDisplayIdForCell(ui, cell) : null;
-
-    var addRemoveButton = function(text, name)
-    {
-        var wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
-        wrapper.style.paddingRight = '20px';
-        wrapper.style.boxSizing = 'border-box';
-        wrapper.style.width = '100%';
-
-        var removeAttr = document.createElement('a');
-        var img = mxUtils.createImage(Dialog.prototype.closeImage);
-        img.style.height = '9px';
-        img.style.fontSize = '9px';
-        img.style.marginBottom = (mxClient.IS_IE11) ? '-1px' : '5px';
-
-        removeAttr.className = 'geButton';
-        removeAttr.setAttribute('title', mxResources.get('delete'));
-        removeAttr.style.position = 'absolute';
-        removeAttr.style.top = '4px';
-        removeAttr.style.right = '0px';
-        removeAttr.style.margin = '0px';
-        removeAttr.style.width = '9px';
-        removeAttr.style.height = '9px';
-        removeAttr.style.cursor = 'pointer';
-        removeAttr.appendChild(img);
-
-        var removeAttrFn = (function(name)
-        {
-            return function()
-            {
-                var count = 0;
-
-                for (var j = 0; j < names.length; j++)
-                {
-                    if (names[j] == name)
-                    {
-                        texts[j] = null;
-                        form.table.deleteRow(count + ((id != null) ? 1 : 0));
-
-                        break;
-                    }
-
-                    if (texts[j] != null)
-                    {
-                        count++;
-                    }
-                }
-            };
-        })(name);
-
-        mxEvent.addListener(removeAttr, 'click', removeAttrFn);
-
-        var parent = text.parentNode;
-        wrapper.appendChild(text);
-        wrapper.appendChild(removeAttr);
-        parent.appendChild(wrapper);
-    };
 
     // 判断是否为母线连接线（连接两条母线的线）
     var isBusbarConnector = false;
@@ -202,7 +156,15 @@ window.EditDataDialog = function(ui, cell)
         'Ih': '额定载流量(kA)',
         'length': '线路长度(km)',
         'P': '有功功率',
-        'Q': '无功功率'
+        'Q': '无功功率',
+        'type': '机组类型',
+        'V_Rate': '机组额定电压',
+        'P_Rate': '机组额定有功功率',
+        'P_max': '机组最大有功功率',
+        'P_min': '机组最小有功功率',
+        'Q_max': '机组最大无功功率',
+        'Q_min': '机组最小无功功率',
+        'P_meas': '机组目标出力',
     };
 
     var addTextArea = function(index, name, value)
@@ -214,18 +176,16 @@ window.EditDataDialog = function(ui, cell)
         if (isBusbarConnector && name == 'name') {
             displayName = '线路名称';
         }
+        if (isLgGeneratingUnit && name == 'name') {
+            displayName = '机组名称';
+        }
         texts[index] = form.addTextarea(displayName + ':', strValue, 2);
         texts[index].style.width = '100%';
-
+        texts[index].style.maxWidth = '100%';
+        texts[index].style.boxSizing = 'border-box';
         if (strValue.indexOf('\n') > 0)
         {
             texts[index].setAttribute('rows', '2');
-        }
-
-        // id和shape字段不能删除，不添加删除按钮；母线图元设备类型与 tooltip 一致，只读不可删
-        if (name != 'id' && name != 'shape' && !(isBusbar && name == 'sblx'))
-        {
-            addRemoveButton(texts[index], name);
         }
 
         // 设备名称可编辑，id和shape不可编辑；母线设备类型只读（与 Graph.getTooltipForCell 一致）
@@ -358,6 +318,47 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
+    // 力光侧栏「机组」：仅编辑名称、类型、额定/限值/目标出力等约定字段
+    if (isLgGeneratingUnit) {
+        var unitKeys = [
+            'name',
+            'type',
+            'V_Rate',
+            'P_Rate',
+            'P_max',
+            'P_min',
+            'Q_max',
+            'Q_min',
+            'P_meas',
+        ]
+        var unitVals = {}
+        for (var gi = 0; gi < unitKeys.length; gi++) {
+            var gk = unitKeys[gi]
+            var gRaw = cell[gk] != null && cell[gk] !== '' ? cell[gk] : cellStyle[gk]
+            unitVals[gk] = gRaw != null && gRaw !== '' ? String(gRaw) : ''
+        }
+        temp = temp.filter(function (item) {
+            var n = item.name
+            return n === 'id' || n === 'shape' || unitKeys.indexOf(n) >= 0
+        })
+        for (var gj = 0; gj < unitKeys.length; gj++) {
+            var gkn = unitKeys[gj]
+            var gExists = temp.some(function (item) {
+                return item.name === gkn
+            })
+            if (!gExists) {
+                temp.push({ name: gkn, value: unitVals[gkn] })
+            } else {
+                for (var gti = 0; gti < temp.length; gti++) {
+                    if (temp[gti].name === gkn && (!temp[gti].value || temp[gti].value === '')) {
+                        temp[gti].value = unitVals[gkn]
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     // 母线连接线特殊处理：添加线路属性字段
     if (isBusbarConnector) {
         // 不展示 busid / 母线端点引用（模型与提交仍保留；含命名空间前缀如 cge:busid）
@@ -452,6 +453,34 @@ window.EditDataDialog = function(ui, cell)
             }
             return 0;
         });
+    } else if (isLgGeneratingUnit) {
+        var unitOrderPref = {
+            name: 0,
+            type: 1,
+            V_Rate: 2,
+            P_Rate: 3,
+            P_max: 4,
+            P_min: 5,
+            Q_max: 6,
+            Q_min: 7,
+            P_meas: 8,
+            id: 98,
+            shape: 99,
+        }
+        temp.sort(function (a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(unitOrderPref, a.name) ? unitOrderPref[a.name] : 50
+            var ob = Object.prototype.hasOwnProperty.call(unitOrderPref, b.name) ? unitOrderPref[b.name] : 50
+            if (oa !== ob) {
+                return oa - ob
+            }
+            if (a.name < b.name) {
+                return -1
+            }
+            if (a.name > b.name) {
+                return 1
+            }
+            return 0
+        })
     } else if (isLgLoadDevice) {
         var loadOrderPref = { name: 0, P: 1, Q: 2, id: 98, shape: 99 };
         temp.sort(function (a, b) {
@@ -507,24 +536,54 @@ window.EditDataDialog = function(ui, cell)
         count++;
     }
 
+    var dialogTitle = '编辑属性';
+    if (isBusbar) {
+        dialogTitle = '站内-母线（0311）';
+    } else if (isBusbarConnector) {
+        dialogTitle = '母线连接线';
+    } else {
+        var shapeForTitle = (cellStyle.shape || cell.symbol || '').toString();
+        var paletteTitle = lgSidebarPaletteTitleForShape(shapeForTitle);
+        if (paletteTitle) {
+            dialogTitle = paletteTitle;
+        } else if (graph.getModel().isEdge(cell)) {
+            dialogTitle = '连接线';
+        }
+    }
+    var headerEl = document.createElement('div');
+    headerEl.setAttribute('role', 'heading');
+    headerEl.setAttribute('aria-level', '2');
+    headerEl.style.cssText =
+        'position:absolute;top:10px;left:24px;right:24px;height:44px;box-sizing:border-box;' +
+        'padding:10px 2px 8px 2px;margin:0;border-bottom:1px solid #e5e5e5;' +
+        'font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.35;text-align:center;' +
+        'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    mxUtils.write(headerEl, dialogTitle);
+    div.appendChild(headerEl);
+
     var top = document.createElement('div');
     top.style.position = 'absolute';
-    top.style.top = '30px';
-    top.style.left = '30px';
-    top.style.right = '30px';
+    top.style.top = '60px';
+    top.style.left = '24px';
+    top.style.right = '24px';
     top.style.bottom = '80px';
     top.style.overflowY = 'auto';
+    top.style.overflowX = 'hidden';
+    top.style.boxSizing = 'border-box';
 
     top.appendChild(form.table);
 
     var newProp = document.createElement('div');
     newProp.style.display = 'flex';
     newProp.style.alignItems = 'center';
+    newProp.style.flexWrap = 'wrap';
+    newProp.style.gap = '6px 8px';
     newProp.style.boxSizing = 'border-box';
-    newProp.style.paddingRight = '160px';
-    newProp.style.whiteSpace = 'nowrap';
-    newProp.style.marginTop = '6px';
+    newProp.style.whiteSpace = 'normal';
+    newProp.style.marginTop = '10px';
     newProp.style.width = '100%';
+    newProp.style.maxWidth = '100%';
+    newProp.style.minWidth = '0';
 
     var nameInput = document.createElement('input');
     nameInput.setAttribute('placeholder', mxResources.get('enterPropertyName'));
@@ -533,12 +592,16 @@ window.EditDataDialog = function(ui, cell)
     nameInput.style.boxSizing = 'border-box';
     nameInput.style.borderWidth = '1px';
     nameInput.style.borderStyle = 'solid';
-    nameInput.style.marginLeft = '2px';
+    nameInput.style.marginLeft = '0';
     nameInput.style.padding = '4px';
-    nameInput.style.width = '100%';
-
+    nameInput.style.flex = '1 1 120px';
+    nameInput.style.minWidth = '0';
+    nameInput.style.maxWidth = '100%';
     newProp.appendChild(nameInput);
     top.appendChild(newProp);
+    if (isLgGeneratingUnit) {
+        newProp.style.display = 'none';
+    }
     div.appendChild(top);
 
     var addBtn = mxUtils.button(mxResources.get('addProperty'), function()
@@ -572,8 +635,9 @@ window.EditDataDialog = function(ui, cell)
                     names.push(name);
                     var text = form.addTextarea(name + ':', '', 2);
                     text.style.width = '100%';
+                    text.style.maxWidth = '100%';
+                    text.style.boxSizing = 'border-box';
                     texts.push(text);
-                    addRemoveButton(text, name);
 
                     text.focus();
                 }
@@ -615,10 +679,10 @@ window.EditDataDialog = function(ui, cell)
     addBtn.setAttribute('title', mxResources.get('addProperty'));
     addBtn.setAttribute('disabled', 'disabled');
     addBtn.style.textOverflow = 'ellipsis';
-    addBtn.style.position = 'absolute';
+    addBtn.style.position = 'static';
     addBtn.style.overflow = 'hidden';
-    addBtn.style.width = '144px';
-    addBtn.style.right = '0px';
+    addBtn.style.flex = '0 0 auto';
+    addBtn.style.maxWidth = '100%';
     addBtn.className = 'geBtn';
     newProp.appendChild(addBtn);
 
@@ -720,6 +784,26 @@ window.EditDataDialog = function(ui, cell)
                         graph.setCellStyles(names[si], sv, [cell]);
                     }
                 }
+                if (isLgGeneratingUnit) {
+                    var unitStyleKeys = [
+                        'name',
+                        'type',
+                        'V_Rate',
+                        'P_Rate',
+                        'P_max',
+                        'P_min',
+                        'Q_max',
+                        'Q_min',
+                        'P_meas',
+                    ]
+                    for (var uix = 0; uix < names.length; uix++) {
+                        if (unitStyleKeys.indexOf(names[uix]) < 0) {
+                            continue
+                        }
+                        var usv = texts[uix] != null ? texts[uix].value : ''
+                        graph.setCellStyles(names[uix], usv, [cell])
+                    }
+                }
             }
             finally
             {
@@ -761,45 +845,7 @@ window.EditDataDialog = function(ui, cell)
     mxEvent.addListener(nameInput, 'change', updateAddBtn);
 
     var buttons = document.createElement('div');
-    buttons.style.cssText = 'position:absolute;left:30px;right:30px;text-align:right;bottom:30px;height:40px;'
-
-    if (ui.editor.graph.getModel().isVertex(cell) || ui.editor.graph.getModel().isEdge(cell))
-    {
-        var replace = document.createElement('span');
-        replace.style.marginRight = '10px';
-        var input = document.createElement('input');
-        input.setAttribute('type', 'checkbox');
-        input.style.marginRight = '6px';
-
-        if (value.getAttribute('placeholders') == '1')
-        {
-            input.setAttribute('checked', 'checked');
-            input.defaultChecked = true;
-        }
-
-        mxEvent.addListener(input, 'click', function()
-        {
-            if (value.getAttribute('placeholders') == '1')
-            {
-                value.removeAttribute('placeholders');
-            }
-            else
-            {
-                value.setAttribute('placeholders', '1');
-            }
-        });
-
-        replace.appendChild(input);
-        mxUtils.write(replace, mxResources.get('placeholders'));
-
-        if (EditDataDialog.placeholderHelpLink != null)
-        {
-            replace.appendChild(ui.createHelpIcon(
-                EditDataDialog.placeholderHelpLink));
-        }
-
-        buttons.appendChild(replace);
-    }
+    buttons.style.cssText = 'position:absolute;left:24px;right:24px;text-align:right;bottom:24px;height:40px;'
 
     if (ui.editor.cancelFirst)
     {

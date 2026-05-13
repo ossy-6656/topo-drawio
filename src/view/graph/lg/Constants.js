@@ -31,6 +31,24 @@ export function lgSidebarDeviceIdsByLengthDesc() {
     return [...new Set(ids)].sort((a, b) => b.length - a.length)
 }
 
+/**
+ * 根据 style.shape / cell.symbol 匹配侧栏图元显示名（如 substation_* → 配电站(zf06)），与 graphLg 侧栏文案一致
+ */
+export function lgSidebarPaletteTitleForShape(shapeOrSymbol) {
+    const symLower = String(shapeOrSymbol || '').toLowerCase()
+    if (!symLower) return null
+    const entries = LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS.flat()
+    entries.sort((a, b) => String(b[0]).length - String(a[0]).length)
+    for (let i = 0; i < entries.length; i++) {
+        const id = String(entries[i][0]).toLowerCase()
+        const label = entries[i][1]
+        if (symLower === id || symLower.startsWith(id + '_')) {
+            return label
+        }
+    }
+    return null
+}
+
 // 自定义的symbol id
 // 注意：列入此表的图元在 StencilParse.symbol2shape 中不会生成 <shape> 模板，侧栏/缩略图将无法绘制
 //（仅写入 symbolProp）。箱式变(zf08) 等须与 substation 一样走 parseSymbol，故不放此表。

@@ -42,7 +42,15 @@ var tooltipAttrNameMap = {
     'model': '线路型号',
     'model_paras': '线路型号参数',
     'Ih': '额定载流量(kA)',
-    'length': '线路长度(km)'
+    'length': '线路长度(km)',
+    'type': '机组类型',
+    'V_Rate': '机组额定电压',
+    'P_Rate': '机组额定有功功率',
+    'P_max': '机组最大有功功率',
+    'P_min': '机组最小有功功率',
+    'Q_max': '机组最大无功功率',
+    'Q_min': '机组最小无功功率',
+    'P_meas': '机组目标出力',
 };
 
 // 这个处理tooltip
@@ -73,6 +81,18 @@ Graph.prototype.getTooltipForCell = function (cell) {
             let isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle.flag == 'busbar';
             let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
             let isLgLoadDevice = shapeTip === 'substation' || shapeTip === 'xb'
+            let isLgGeneratingUnit = shapeTip === 'generatingunit'
+            let lgGenUnitTooltipAttrs = [
+                'name',
+                'type',
+                'V_Rate',
+                'P_Rate',
+                'P_max',
+                'P_min',
+                'Q_max',
+                'Q_min',
+                'P_meas',
+            ]
 
             // 母线连接线：两端均为母线的边（与 override.js EditDataDialog 一致）
             let isBusbarConnectorEdge = false
@@ -94,15 +114,26 @@ Graph.prototype.getTooltipForCell = function (cell) {
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
             let fixedAttrs = isBusbar
                 ? ['name']
-                : isLgLoadDevice
-                  ? ['name', 'P', 'Q']
-                  : isBusbarConnectorEdge
-                    ? ['name', 'model', 'model_paras', 'Ih', 'length']
-                    : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+                : isLgGeneratingUnit
+                  ? lgGenUnitTooltipAttrs
+                  : isLgLoadDevice
+                    ? ['name', 'P', 'Q']
+                    : isBusbarConnectorEdge
+                      ? ['name', 'model', 'model_paras', 'Ih', 'length']
+                      : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
                 let attrValue = cell[attrName] || cellStyle[attrName];
+                if (isLgGeneratingUnit && lgGenUnitTooltipAttrs.indexOf(attrName) >= 0) {
+                    attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                    let dn = tooltipAttrNameMap[attrName] || attrName
+                    if (attrName === 'name') {
+                        dn = '机组名称'
+                    }
+                    sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
+                    return
+                }
                 if (isLgLoadDevice && (attrName === 'name' || attrName === 'P' || attrName === 'Q')) {
                     attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
                     let dn = tooltipAttrNameMap[attrName] || attrName
@@ -168,7 +199,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 _sblx = '站内-母线(0311)';
             }
 
-            if (_sblx && !isLgLoadDevice) {
+            if (_sblx && !isLgLoadDevice && !isLgGeneratingUnit) {
                 sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
             }
 
@@ -181,8 +212,9 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     var attrName = attrs[i].nodeName;
                     var attrValue = attrs[i].nodeValue;
                     
-                    // 母线不展示 XML 中的扩展属性（含电压等级）
+                    // 母线不展示 XML 中的扩展属性（含电压等级）；机组与侧栏编辑字段一致，不重复展示 XML 杂项
                     var shouldShow = !isBusbar &&
+                        !isLgGeneratingUnit &&
                         fixedAttrs.indexOf(attrName) == -1 &&
                         attrName != 'label' && attrName != 'placeholders' &&
                         attrName != 'psrtype' && attrName != 'id';
