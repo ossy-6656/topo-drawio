@@ -38,7 +38,11 @@ var tooltipAttrNameMap = {
     'label': '标签',
     'dydj': '电压等级',
     'P': '有功功率',
-    'Q': '无功功率'
+    'Q': '无功功率',
+    'model': '线路型号',
+    'model_paras': '线路型号参数',
+    'Ih': '额定载流量(kA)',
+    'length': '线路长度(km)'
 };
 
 // 这个处理tooltip
@@ -70,12 +74,31 @@ Graph.prototype.getTooltipForCell = function (cell) {
             let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
             let isLgLoadDevice = shapeTip === 'substation' || shapeTip === 'xb'
 
+            // 母线连接线：两端均为母线的边（与 override.js EditDataDialog 一致）
+            let isBusbarConnectorEdge = false
+            if (model.isEdge(cell)) {
+                let sv = model.getTerminal(cell, true)
+                let tv = model.getTerminal(cell, false)
+                let isEndBusbar = function (v) {
+                    if (!v) {
+                        return false
+                    }
+                    let st = view.getState(v)
+                    let sty = st ? st.style : {}
+                    let pt = v['psrtype'] != null && v['psrtype'] !== '' ? v['psrtype'] : sty['psrtype']
+                    return v.symbol == 'busbar' || pt == '0311' || sty['flag'] == 'busbar'
+                }
+                isBusbarConnectorEdge = isEndBusbar(sv) && isEndBusbar(tv)
+            }
+
             // 定义固定顺序的属性列表（移除 psrtype，因为后面会统一处理设备类型）
             let fixedAttrs = isBusbar
                 ? ['name']
                 : isLgLoadDevice
                   ? ['name', 'P', 'Q']
-                  : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+                  : isBusbarConnectorEdge
+                    ? ['name', 'model', 'model_paras', 'Ih', 'length']
+                    : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
@@ -84,6 +107,15 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
                     let dn = tooltipAttrNameMap[attrName] || attrName
                     sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
+                    return
+                }
+                if (isBusbarConnectorEdge && (attrName === 'name' || attrName === 'model' || attrName === 'model_paras' || attrName === 'Ih' || attrName === 'length')) {
+                    attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                    let displayName = tooltipAttrNameMap[attrName] || attrName
+                    if (attrName === 'name') {
+                        displayName = '线路名称'
+                    }
+                    sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`)
                     return
                 }
                 if (attrValue) {

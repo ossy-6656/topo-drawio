@@ -186,7 +186,6 @@ window.EditDataDialog = function(ui, cell)
     // 属性名称中英文映射
     var attrNameMap = {
         'name': '设备名称',
-        'attr': '设备属性',
         'switchrolename': '开关作用',
         'pubprivflag': '营配标识',
         'psrtype': 'PSR类型',
@@ -212,6 +211,9 @@ window.EditDataDialog = function(ui, cell)
         // 使用中文属性名称显示（cell / 样式上可能为数字等非字符串）
         var strValue = (value == null || value === undefined) ? '' : String(value);
         var displayName = attrNameMap[name] || name;
+        if (isBusbarConnector && name == 'name') {
+            displayName = '线路名称';
+        }
         texts[index] = form.addTextarea(displayName + ':', strValue, 2);
         texts[index].style.width = '100%';
 
@@ -636,55 +638,76 @@ window.EditDataDialog = function(ui, cell)
             // Clones and updates the value
             value = value.cloneNode(true);
             var removeLabel = false;
+            var gmodel = graph.getModel();
 
-            for (var i = 0; i < names.length; i++)
+            gmodel.beginUpdate();
+            try
             {
-                if (texts[i] == null)
+                for (var i = 0; i < names.length; i++)
                 {
-                    value.removeAttribute(names[i]);
-                    // 删除属性时也从 cell 对象上移除
-                    if (cell[names[i]] != null)
+                    if (texts[i] == null)
                     {
-                        delete cell[names[i]];
-                    }
-                }
-                else
-                {
-                    // 设备类型行为只读展示，不落库（与 tooltip 推导一致）
-                    if (isBusbar && names[i] == 'sblx') {
-                        continue;
-                    }
-
-                    value.setAttribute(names[i], texts[i].value);
-                    
-                    // 同步更新 cell 对象上的所有属性（用于 tooltip 显示）
-                    // 营配标识需要转换回数字
-                    if (names[i] == 'pubprivflag')
-                    {
-                        cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
+                        value.removeAttribute(names[i]);
+                        // 删除属性时也从 cell 对象上移除
+                        if (cell[names[i]] != null)
+                        {
+                            delete cell[names[i]];
+                        }
                     }
                     else
                     {
-                        cell[names[i]] = texts[i].value;
+                        // 设备类型行为只读展示，不落库（与 tooltip 推导一致）
+                        if (isBusbar && names[i] == 'sblx') {
+                            continue;
+                        }
+
+                        value.setAttribute(names[i], texts[i].value);
+                        
+                        // 同步更新 cell 对象上的所有属性（用于 tooltip 显示）
+                        // 营配标识需要转换回数字
+                        if (names[i] == 'pubprivflag')
+                        {
+                            cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
+                        }
+                        else
+                        {
+                            cell[names[i]] = texts[i].value;
+                        }
+                        
+                        removeLabel = removeLabel || (names[i] == 'placeholder' &&
+                            value.getAttribute('placeholders') == '1');
                     }
-                    
-                    removeLabel = removeLabel || (names[i] == 'placeholder' &&
-                        value.getAttribute('placeholders') == '1');
+                }
+
+                if (isBusbar && value.removeAttribute) {
+                    value.removeAttribute('sblx');
+                }
+
+                // Removes label if placeholder is assigned
+                if (removeLabel)
+                {
+                    value.removeAttribute('label');
+                }
+
+                // Updates the value of the cell (undoable)
+                gmodel.setValue(cell, value);
+
+                // 母线连接线：样式与 XML 双写，便于导出与 collectBusConnectorSubmitPayload 读取
+                if (isBusbarConnector) {
+                    var connectorStyleKeys = ['name', 'model', 'model_paras', 'Ih', 'length'];
+                    for (var si = 0; si < names.length; si++) {
+                        if (connectorStyleKeys.indexOf(names[si]) < 0) {
+                            continue;
+                        }
+                        var sv = texts[si] != null ? texts[si].value : '';
+                        graph.setCellStyles(names[si], sv, [cell]);
+                    }
                 }
             }
-
-            if (isBusbar && value.removeAttribute) {
-                value.removeAttribute('sblx');
-            }
-
-            // Removes label if placeholder is assigned
-            if (removeLabel)
+            finally
             {
-                value.removeAttribute('label');
+                gmodel.endUpdate();
             }
-
-            // Updates the value of the cell (undoable)
-            graph.getModel().setValue(cell, value);
         }
         catch (e)
         {

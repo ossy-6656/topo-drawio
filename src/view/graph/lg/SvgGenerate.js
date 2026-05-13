@@ -1536,12 +1536,29 @@ SvgGenerate.prototype.collectBusConnectorSubmitPayload = function () {
         
         // 获取连接线样式
         let cellStyle = graph.getCurrentCellStyle(cell) || {}
+        let valueNode = model.getValue(cell)
+        let pickConn = function (key) {
+            let v = cell[key]
+            if (v != null && v !== '') {
+                return String(v)
+            }
+            if (cellStyle[key] != null && cellStyle[key] !== '') {
+                return String(cellStyle[key])
+            }
+            if (mxUtils.isNode(valueNode)) {
+                let a = valueNode.getAttribute(key)
+                if (a != null && a !== '') {
+                    return a
+                }
+            }
+            return ''
+        }
         
         // 生成线路唯一ID（UUID去除-）
         let AClineid = this.generateUuid().replace(/-/g, '')
         
-        // 获取线路名称
-        let name = cell['name'] || (cellStyle && cellStyle['name']) || ''
+        // 获取线路名称及电气参数（与编辑框一致：cell / 样式 / XML）
+        let name = pickConn('name')
         
         // 获取电压等级（从母线获取）
         let volt = 10 // 默认10kV
@@ -1559,14 +1576,19 @@ SvgGenerate.prototype.collectBusConnectorSubmitPayload = function () {
         let to_bus_name = targetCell ? (targetCell['name'] || '') : ''
         
         // 获取线路型号和参数
-        let modelValue = cell['model'] || ''
-        let model_paras = cell['model_paras'] ? this.parseModelParas(cell['model_paras']) : [0.08, 0.417, 0, 0]
+        let modelValue = pickConn('model')
+        let modelParasStr = pickConn('model_paras')
+        let model_paras = modelParasStr ? this.parseModelParas(modelParasStr) : [0.08, 0.417, 0, 0]
         
         // 获取额定载流量
-        let Ih = cell['Ih'] ? parseFloat(cell['Ih']) : 4.0
+        let IhStr = pickConn('Ih')
+        let Ih = IhStr !== '' ? parseFloat(IhStr) : 4.0
+        if (isNaN(Ih)) {
+            Ih = 4.0
+        }
         
         // 获取线路长度
-        let lengthValue = cell['length'] || '100'
+        let lengthValue = pickConn('length') || '100'
         let length = [parseFloat(lengthValue), 'km']
         
         line.push({
