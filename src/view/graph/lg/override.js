@@ -179,13 +179,42 @@ window.EditDataDialog = function(ui, cell)
         if (isLgGeneratingUnit && name == 'name') {
             displayName = '机组名称';
         }
-        texts[index] = form.addTextarea(displayName + ':', strValue, 2);
-        texts[index].style.width = '100%';
-        texts[index].style.maxWidth = '100%';
-        texts[index].style.boxSizing = 'border-box';
-        if (strValue.indexOf('\n') > 0)
-        {
-            texts[index].setAttribute('rows', '2');
+        if (isLgGeneratingUnit && name === 'type') {
+            var sel = form.addCombo(displayName + ':', false);
+            sel.style.width = '100%';
+            sel.style.maxWidth = '100%';
+            sel.style.boxSizing = 'border-box';
+            var typeOpts = [
+                { label: '煤', value: 'coal' },
+                { label: '燃气', value: 'gas' },
+                { label: '生物质', value: 'biomass' },
+                { label: '风', value: 'wind' },
+                { label: '光', value: 'solar' },
+                { label: '核', value: 'nuclear' },
+                { label: '水', value: 'hydro' },
+            ];
+            var cur = strValue.trim();
+            var known = false;
+            for (var toi = 0; toi < typeOpts.length; toi++) {
+                if (typeOpts[toi].value === cur) {
+                    known = true;
+                    break;
+                }
+            }
+            form.addOption(sel, '（请选择）', '', cur === '' || !known);
+            for (var toj = 0; toj < typeOpts.length; toj++) {
+                form.addOption(sel, typeOpts[toj].label, typeOpts[toj].value, cur === typeOpts[toj].value);
+            }
+            texts[index] = sel;
+        } else {
+            texts[index] = form.addTextarea(displayName + ':', strValue, 2);
+            texts[index].style.width = '100%';
+            texts[index].style.maxWidth = '100%';
+            texts[index].style.boxSizing = 'border-box';
+            if (strValue.indexOf('\n') > 0)
+            {
+                texts[index].setAttribute('rows', '2');
+            }
         }
 
         // 设备名称可编辑，id和shape不可编辑；母线设备类型只读（与 Graph.getTooltipForCell 一致）

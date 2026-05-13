@@ -131,6 +131,18 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     if (attrName === 'name') {
                         dn = '机组名称'
                     }
+                    if (attrName === 'type' && attrValue) {
+                        var genTypeMap = {
+                            coal: '煤',
+                            gas: '燃气',
+                            biomass: '生物质',
+                            wind: '风',
+                            solar: '光',
+                            nuclear: '核',
+                            hydro: '水',
+                        }
+                        attrValue = genTypeMap[attrValue] || attrValue
+                    }
                     sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
                     return
                 }
