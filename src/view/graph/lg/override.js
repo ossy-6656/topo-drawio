@@ -360,10 +360,27 @@ window.EditDataDialog = function(ui, cell)
 
     // 母线连接线特殊处理：添加线路属性字段
     if (isBusbarConnector) {
-        // 不展示母线侧 busid / 端点引用（保存与提交仍保留在模型上）
-        var hideConnectorBusAttrs = ['busid', 'from_bus_id', 'to_bus_id', 'from_bus', 'to_bus']
+        // 不展示 busid / 母线端点引用（模型与提交仍保留；含命名空间前缀如 cge:busid）
+        var hideConnectorBusAttrs = [
+            'busid',
+            'bus_id',
+            'from_bus_id',
+            'to_bus_id',
+            'from_bus',
+            'to_bus',
+            'frombusid',
+            'tobusid'
+        ]
+        var connectorAttrLocalName = function (attrName) {
+            var s = (attrName || '').toString().trim()
+            var c = s.indexOf(':')
+            if (c >= 0) {
+                s = s.slice(c + 1)
+            }
+            return s.toLowerCase()
+        }
         temp = temp.filter(function (item) {
-            return hideConnectorBusAttrs.indexOf((item.name || '').toLowerCase()) < 0
+            return hideConnectorBusAttrs.indexOf(connectorAttrLocalName(item.name)) < 0
         })
         // 确保 name 字段存在（线路名称）
         var lineNameFound = false;

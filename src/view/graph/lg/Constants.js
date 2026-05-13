@@ -4,10 +4,25 @@ export const LG_SIDEBAR_DEVICE_ENTRIES = [
     ['xb', '箱式变电站(zf08)', 70, 70],
 ]
 
+/** 左侧「变压器」面板：0314 电压互感器；第 5 段为拖入画布附加样式（与 graphLg createLgVertexPaletteFns 一致） */
+export const LG_SIDEBAR_TRANSFORMER_ENTRIES = [
+    ['potentialtransformer2w', '电压互感器-双绕组(0314)', 56, 98, 'psrtype=0314;'],
+    ['potentialtransformer3w', '电压互感器-三绕组(0314)', 82, 72, 'psrtype=0314;'],
+]
+
+/** 左侧「机组」面板：与 symbol.js 中 symbol id 一致 */
+export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 70, 70]]
+
+/** 侧栏可拖拽顶点图元的 shape 简名（供 LGSvgParser.matchSidebarShapeKey / collectShapeDragDefaultsFromGraph） */
+const LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS = [
+    LG_SIDEBAR_DEVICE_ENTRIES,
+    LG_SIDEBAR_TRANSFORMER_ENTRIES,
+    LG_SIDEBAR_UNIT_ENTRIES,
+]
+
 export function lgSidebarDeviceIdsByLengthDesc() {
-    return [...new Set(LG_SIDEBAR_DEVICE_ENTRIES.map((e) => e[0]))].sort(
-        (a, b) => b.length - a.length
-    )
+    const ids = LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS.flat().map((e) => e[0])
+    return [...new Set(ids)].sort((a, b) => b.length - a.length)
 }
 
 // 自定义的symbol id

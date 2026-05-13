@@ -92,12 +92,34 @@ export default `
             <circle cx="42" cy="49" r="13" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
         </symbol>
 
-        <!-- 电压互感器 PotentialTransformer：两个重叠圆，viewBox=83x81 -->
+        <!-- 电压互感器 PotentialTransformer：两个重叠圆，viewBox=83x81（旧图兼容，侧栏已用 2w/3w） -->
         <symbol id="potentialtransformer" viewBox="0 0 83 81" width="70" height="68">
             <!-- 右圆 -->
             <circle cx="55" cy="43" r="23" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
             <!-- 左圆 -->
             <circle cx="25" cy="43" r="23" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+        </symbol>
+
+        <!-- 电压互感器-双绕组(0314)：两圆竖向交叠 + 上下蓝色端子（力光侧栏） -->
+        <symbol id="potentialtransformer2w" viewBox="0 0 64 112" width="56" height="98">
+            <circle cx="32" cy="44" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+            <circle cx="32" cy="68" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+            <circle cx="32" cy="12" r="5" fill="rgb(0,120,215)" stroke="none"/>
+            <circle cx="32" cy="100" r="5" fill="rgb(0,120,215)" stroke="none"/>
+        </symbol>
+
+        <!-- 电压互感器-三绕组(0314)：三圆品字形交叠 + 顶部蓝色端子（力光侧栏） -->
+        <symbol id="potentialtransformer3w" viewBox="0 0 104 92" width="82" height="72">
+            <circle cx="52" cy="34" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+            <circle cx="30" cy="66" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+            <circle cx="74" cy="66" r="26" fill="none" stroke="rgb(185,72,66)" stroke-width="3"/>
+            <circle cx="52" cy="8" r="5" fill="rgb(0,120,215)" stroke="none"/>
+        </symbol>
+
+        <!-- 发电机组 GeneratingUnit：外圆+字母 G，viewBox=300x300（侧栏「机组」） -->
+        <symbol id="generatingunit" viewBox="0 0 300 300" width="70" height="70">
+            <circle cx="150" cy="150" r="132" fill="none" stroke="rgb(185,72,66)" stroke-width="8"/>
+            <text x="150" y="195" fill="rgb(185,72,66)" font-family="SimSun" font-size="130" text-anchor="middle" font-weight="bold">G</text>
         </symbol>
 
         <!-- 远动装置 RemoteUnit：圆+内部十字+三角，viewBox=299x300 -->

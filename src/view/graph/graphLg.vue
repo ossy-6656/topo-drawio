@@ -123,9 +123,45 @@ import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G �
 import $bus from '@/utils/bus'                                           // 全局事件总线
 import customSymbolStr from './data/symbol.js'                           // 自定义 SVG 符号
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
-import { LG_SIDEBAR_DEVICE_ENTRIES } from '@/view/graph/lg/Constants.js' // 「负荷」侧栏与 lgdata 图元对齐
+import {
+    LG_SIDEBAR_DEVICE_ENTRIES,
+    LG_SIDEBAR_TRANSFORMER_ENTRIES,
+    LG_SIDEBAR_UNIT_ENTRIES,
+} from '@/view/graph/lg/Constants.js' // 力光侧栏图元与 lgdata / symbol.js 对齐
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
+
+/**
+ * 由侧栏条目生成 createVertexTemplateEntry 列表（宽高优先图中 shapeDragDefaults，其次 symbol 模板）
+ */
+function createLgVertexPaletteFns(ui, entries, symbolMapForTpl, dragDef, gScale) {
+    const rows = entries.map((entry) => {
+        const symbolId = entry[0]
+        const label = entry[1]
+        const fw = entry[2]
+        const fh = entry[3]
+        const styleExtra = entry.length > 4 && entry[4] ? String(entry[4]) : ''
+        const key = String(symbolId).toLowerCase()
+        const fromGraph = dragDef[key]
+        let w = fw * gScale
+        let h = fh * gScale
+        if (fromGraph && fromGraph.w > 0 && fromGraph.h > 0) {
+            w = fromGraph.w
+            h = fromGraph.h
+        } else {
+            const arr = symbolMapForTpl[key]
+            if (arr && arr.initWidth != null && arr.initHeight != null) {
+                w = Number(arr.initWidth) * gScale
+                h = Number(arr.initHeight) * gScale
+            }
+        }
+        return { symbolId, label, w, h, styleExtra }
+    })
+    return rows.map(({ symbolId, label, w, h, styleExtra }) => {
+        const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` + styleExtra
+        return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
+    })
+}
 
 /**
  * 与 LGSvgParser.parseSvg / getMinFontSize 一致：由 #Text_Layer 首段文字字号推算 scale，
@@ -427,6 +463,24 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // ── 用 StorageFile.getFileContent 异步读取便笺本，追加到「负荷」面板 ──
                             // 先渲染基础图元
                             ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
+
+                            const lgTransformerFns = createLgVertexPaletteFns(
+                                ui,
+                                LG_SIDEBAR_TRANSFORMER_ENTRIES,
+                                symbolMapForTpl,
+                                dragDef,
+                                gScale
+                            )
+                            ui.sidebar.addPaletteFunctions('lg-transformer', '变压器', true, lgTransformerFns)
+
+                            const lgUnitFns = createLgVertexPaletteFns(
+                                ui,
+                                LG_SIDEBAR_UNIT_ENTRIES,
+                                symbolMapForTpl,
+                                dragDef,
+                                gScale
+                            )
+                            ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
 
                             // ── 连接线分类：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段 ──
                             const lgStraightVerticalLineStyle =
