@@ -9,6 +9,21 @@ import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
 import { lgSidebarPaletteTitleForShape } from '@/view/graph/lg/Constants.js'
+import './lg-edit-dialog.css'
+
+function lgStyleField(el, placeholder)
+{
+    if (el == null) {
+        return;
+    }
+    el.classList.add('lg-edit-field');
+    if (placeholder != null && !el.getAttribute('placeholder')) {
+        el.setAttribute('placeholder', placeholder);
+    }
+    if (el.tagName === 'TEXTAREA') {
+        el.style.resize = 'none';
+    }
+}
 
 let preAddPopupMenuItems = Menus.prototype.addPopupMenuItems;
 Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
@@ -53,8 +68,8 @@ Menus.prototype.addPopupMenuItems = function(menu, cell, evt)
 window.EditDataDialog = function(ui, cell)
 {
     var div = document.createElement('div');
+    div.className = 'lg-edit-dialog';
     div.style.boxSizing = 'border-box';
-    // 子节点均为 absolute，不设高度且 overflow:hidden 会导致父级高度为 0、内容被裁成空白
     div.style.width = '100%';
     div.style.height = '100%';
     div.style.minHeight = '0';
@@ -89,11 +104,8 @@ window.EditDataDialog = function(ui, cell)
     }
 
     // Creates the dialog contents
-    var form = new mxForm('properties');
-    form.table.style.width = '100%';
-    form.table.style.maxWidth = '100%';
-    form.table.style.boxSizing = 'border-box';
-    form.table.style.tableLayout = 'fixed';
+    var form = new mxForm('properties lg-edit-dialog-form');
+    form.table.className = 'properties lg-edit-dialog-form';
 
     var attrs = value.attributes;
     var names = [];
@@ -163,13 +175,13 @@ window.EditDataDialog = function(ui, cell)
         'P': '有功功率',
         'Q': '无功功率',
         'type': '机组类型',
-        'V_Rate': '机组额定电压',
-        'P_Rate': '机组额定有功功率',
-        'P_max': '机组最大有功功率',
-        'P_min': '机组最小有功功率',
-        'Q_max': '机组最大无功功率',
-        'Q_min': '机组最小无功功率',
-        'P_meas': '机组目标出力',
+        'V_Rate': '额定电压',
+        'P_Rate': '额定有功功率',
+        'P_max': '最大有功功率',
+        'P_min': '最小有功功率',
+        'Q_max': '最大无功功率',
+        'Q_min': '最小无功功率',
+        'P_meas': '目标出力',
         'I_Vol': '高压侧额定电压',
         'K_Vol': '中压侧额定电压',
         'J_Vol': '低压侧额定电压',
@@ -197,10 +209,8 @@ window.EditDataDialog = function(ui, cell)
             displayName = '变压器型号';
         }
         if (isLgGeneratingUnit && name === 'type') {
-            var sel = form.addCombo(displayName + ':', false);
-            sel.style.width = '100%';
-            sel.style.maxWidth = '100%';
-            sel.style.boxSizing = 'border-box';
+            var sel = form.addCombo(displayName, false);
+            lgStyleField(sel, '请选择');
             var typeOpts = [
                 { label: '煤', value: 'coal' },
                 { label: '燃气', value: 'gas' },
@@ -224,13 +234,15 @@ window.EditDataDialog = function(ui, cell)
             }
             texts[index] = sel;
         } else {
-            texts[index] = form.addTextarea(displayName + ':', strValue, 2);
-            texts[index].style.width = '100%';
-            texts[index].style.maxWidth = '100%';
-            texts[index].style.boxSizing = 'border-box';
+            texts[index] = form.addTextarea(displayName, strValue, 2);
+            lgStyleField(texts[index], '请输入');
             if (strValue.indexOf('\n') > 0)
             {
                 texts[index].setAttribute('rows', '2');
+            }
+            else
+            {
+                texts[index].setAttribute('rows', '1');
             }
         }
 
@@ -638,15 +650,14 @@ window.EditDataDialog = function(ui, cell)
     {
         var text = document.createElement('div');
         text.style.width = '100%';
-        text.style.fontSize = '11px';
+        text.style.fontSize = '12px';
         text.style.textAlign = 'center';
-        text.style.color = '#999';
+        text.style.color = '#909399';
         mxUtils.write(text, id);
 
-        var idInput = form.addField(mxResources.get('id') + ':', text);
-        
-        // id 字段不可编辑，禁用双击编辑功能
+        form.addField('', text);
         text.style.cursor = 'default';
+        form.body.lastChild.className = 'lg-edit-dialog-id';
     }
 
     for (var i = 0; i < temp.length; i++)
@@ -670,118 +681,39 @@ window.EditDataDialog = function(ui, cell)
         }
     }
     var headerEl = document.createElement('div');
+    headerEl.className = 'lg-edit-dialog-header';
     headerEl.setAttribute('role', 'heading');
     headerEl.setAttribute('aria-level', '2');
-    headerEl.style.cssText =
-        'position:absolute;top:10px;left:24px;right:24px;height:44px;box-sizing:border-box;' +
-        'padding:10px 2px 8px 2px;margin:0;border-bottom:1px solid #e5e5e5;' +
-        'font-size:15px;font-weight:600;color:#1a1a1a;line-height:1.35;text-align:center;' +
-        'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    mxUtils.write(headerEl, dialogTitle);
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'lg-edit-dialog-title';
+    mxUtils.write(titleEl, dialogTitle);
+    headerEl.appendChild(titleEl);
+
+    var headerCloseBtn = document.createElement('button');
+    headerCloseBtn.type = 'button';
+    headerCloseBtn.className = 'lg-edit-dialog-close';
+    headerCloseBtn.setAttribute('title', mxResources.get('close') || '关闭');
+    headerCloseBtn.innerHTML = '&times;';
+    mxEvent.addListener(headerCloseBtn, 'click', function()
+    {
+        ui.hideDialog(true);
+    });
+    headerEl.appendChild(headerCloseBtn);
     div.appendChild(headerEl);
 
     var top = document.createElement('div');
+    top.className = 'lg-edit-dialog-body';
     top.style.position = 'absolute';
-    top.style.top = '60px';
-    top.style.left = '24px';
-    top.style.right = '24px';
-    top.style.bottom = '80px';
+    top.style.top = '48px';
+    top.style.left = '0';
+    top.style.right = '0';
+    top.style.bottom = '64px';
     top.style.overflowY = 'auto';
     top.style.overflowX = 'hidden';
     top.style.boxSizing = 'border-box';
 
     top.appendChild(form.table);
-
-    var newProp = document.createElement('div');
-    newProp.style.display = 'flex';
-    newProp.style.alignItems = 'center';
-    newProp.style.flexWrap = 'wrap';
-    newProp.style.gap = '6px 8px';
-    newProp.style.boxSizing = 'border-box';
-    newProp.style.whiteSpace = 'normal';
-    newProp.style.marginTop = '10px';
-    newProp.style.width = '100%';
-    newProp.style.maxWidth = '100%';
-    newProp.style.minWidth = '0';
-
-    var nameInput = document.createElement('input');
-    nameInput.setAttribute('placeholder', mxResources.get('enterPropertyName'));
-    nameInput.setAttribute('type', 'text');
-    nameInput.setAttribute('size', (mxClient.IS_IE || mxClient.IS_IE11) ? '36' : '40');
-    nameInput.style.boxSizing = 'border-box';
-    nameInput.style.borderWidth = '1px';
-    nameInput.style.borderStyle = 'solid';
-    nameInput.style.marginLeft = '0';
-    nameInput.style.padding = '4px';
-    nameInput.style.flex = '1 1 120px';
-    nameInput.style.minWidth = '0';
-    nameInput.style.maxWidth = '100%';
-    newProp.appendChild(nameInput);
-    top.appendChild(newProp);
-    if (isLgGeneratingUnit || isLgTransformer) {
-        newProp.style.display = 'none';
-    }
     div.appendChild(top);
-
-    var addBtn = mxUtils.button(mxResources.get('addProperty'), function()
-    {
-        var name = nameInput.value;
-
-        // Avoid ':' in attribute names which seems to be valid in Chrome
-        if (name.length > 0 && name != 'label' && name != 'id' &&
-            name != 'placeholders' && name.indexOf(':') < 0)
-        {
-            try
-            {
-                var idx = mxUtils.indexOf(names, name);
-
-                if (idx >= 0 && texts[idx] != null)
-                {
-                    texts[idx].focus();
-                }
-                else
-                {
-                    // Checks if the name is valid
-                    var clone = value.cloneNode(false);
-                    clone.setAttribute(name, '');
-
-                    if (idx >= 0)
-                    {
-                        names.splice(idx, 1);
-                        texts.splice(idx, 1);
-                    }
-
-                    names.push(name);
-                    var text = form.addTextarea(name + ':', '', 2);
-                    text.style.width = '100%';
-                    text.style.maxWidth = '100%';
-                    text.style.boxSizing = 'border-box';
-                    texts.push(text);
-
-                    text.focus();
-                }
-
-                addBtn.setAttribute('disabled', 'disabled');
-                nameInput.value = '';
-            }
-            catch (e)
-            {
-                mxUtils.alert(e);
-            }
-        }
-        else
-        {
-            mxUtils.alert(mxResources.get('invalidName'));
-        }
-    });
-
-    mxEvent.addListener(nameInput, 'keypress', function(e)
-    {
-        if (e.keyCode == 13 )
-        {
-            addBtn.click();
-        }
-    });
 
     this.init = function()
     {
@@ -789,29 +721,15 @@ window.EditDataDialog = function(ui, cell)
         {
             texts[0].focus();
         }
-        else
-        {
-            nameInput.focus();
-        }
     };
 
-    addBtn.setAttribute('title', mxResources.get('addProperty'));
-    addBtn.setAttribute('disabled', 'disabled');
-    addBtn.style.textOverflow = 'ellipsis';
-    addBtn.style.position = 'static';
-    addBtn.style.overflow = 'hidden';
-    addBtn.style.flex = '0 0 auto';
-    addBtn.style.maxWidth = '100%';
-    addBtn.className = 'geBtn';
-    newProp.appendChild(addBtn);
-
-    var cancelBtn = mxUtils.button(mxResources.get('cancel'), function()
+    var cancelBtn = mxUtils.button('取消', function()
     {
         ui.hideDialog.apply(ui, arguments);
     });
 
     cancelBtn.setAttribute('title', 'Escape');
-    cancelBtn.className = 'geBtn';
+    cancelBtn.className = 'lg-edit-btn lg-edit-btn-cancel';
 
     var exportBtn = mxUtils.button(mxResources.get('export'), mxUtils.bind(this, function(evt)
     {
@@ -829,7 +747,7 @@ window.EditDataDialog = function(ui, cell)
     exportBtn.setAttribute('title', mxResources.get('export'));
     exportBtn.className = 'geBtn';
 
-    var applyBtn = mxUtils.button(mxResources.get('apply'), function()
+    var applyBtn = mxUtils.button('确认', function()
     {
         try
         {
@@ -958,7 +876,7 @@ window.EditDataDialog = function(ui, cell)
     });
 
     applyBtn.setAttribute('title', 'Ctrl+Enter');
-    applyBtn.className = 'geBtn gePrimaryBtn';
+    applyBtn.className = 'lg-edit-btn lg-edit-btn-primary';
 
     mxEvent.addListener(div, 'keypress', function(e)
     {
@@ -968,32 +886,14 @@ window.EditDataDialog = function(ui, cell)
         }
     });
 
-    function updateAddBtn()
-    {
-        if (nameInput.value.length > 0)
-        {
-            addBtn.removeAttribute('disabled');
-        }
-        else
-        {
-            addBtn.setAttribute('disabled', 'disabled');
-        }
-    };
-
-    mxEvent.addListener(nameInput, 'keyup', updateAddBtn);
-
-    // Catches all changes that don't fire a keyup (such as paste via mouse)
-    mxEvent.addListener(nameInput, 'change', updateAddBtn);
-
     var buttons = document.createElement('div');
-    buttons.style.cssText = 'position:absolute;left:24px;right:24px;text-align:right;bottom:24px;height:40px;'
+    buttons.className = 'lg-edit-dialog-footer';
 
     if (ui.editor.cancelFirst)
     {
         buttons.appendChild(cancelBtn);
     }
 
-    // buttons.appendChild(exportBtn);
     buttons.appendChild(applyBtn);
 
     if (!ui.editor.cancelFirst)
@@ -1002,7 +902,41 @@ window.EditDataDialog = function(ui, cell)
     }
 
     div.appendChild(buttons);
+
+    var formRowCount = count + (id != null ? 1 : 0);
+    var gridRowCount = Math.max(1, Math.ceil(formRowCount / 2));
+    this.preferredWidth = 720;
+    this.preferredHeight = Math.min(580, Math.max(360, 48 + 64 + 32 + gridRowCount * 50));
+
     this.container = div;
+};
+
+var lgShowDataDialog = EditorUi.prototype.showDataDialog;
+EditorUi.prototype.showDataDialog = function(cell)
+{
+    if (cell != null && typeof window.EditDataDialog !== 'undefined')
+    {
+        var dlg = new EditDataDialog(this, cell);
+        var w = dlg.preferredWidth || 720;
+        var h = dlg.preferredHeight || 420;
+        this.showDialog(dlg.container, w, h, true, false, null, false);
+
+        if (this.dialog != null && this.dialog.dialogImg != null)
+        {
+            this.dialog.dialogImg.style.display = 'none';
+        }
+
+        if (dlg.container.parentNode != null)
+        {
+            dlg.container.parentNode.classList.add('lg-edit-dialog-shell');
+        }
+
+        dlg.init();
+    }
+    else if (lgShowDataDialog != null)
+    {
+        lgShowDataDialog.apply(this, arguments);
+    }
 };
 
 window.TextareaDialog = function(editorUi, title, url, fn, cancelFn, cancelTitle, w, h,
