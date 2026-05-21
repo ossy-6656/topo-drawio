@@ -22,6 +22,80 @@ let pathReg = /[MLAH]([^MLAH])+/ig;
 let emptyReg = / +/;
 
 /**
+ * 解析阶段标记配线图元：馈线段（ACLineSegment/ConnLine）、dxd 干线/分支、出线 superlink、Hot 热点。
+ */
+function applyLgPeiXianMark(cell, propMap, objectName, psrType) {
+    if (cell == null || propMap == null) {
+        return
+    }
+    const layerRef = propMap['cge:Layer_Ref']
+    const layerName = layerRef ? String(layerRef.ObjectName || '') : ''
+    if (layerName === 'ACLineSegment_Layer' || layerName === 'ConnLine_Layer') {
+        cell.lgPeiXian = true
+        return
+    }
+    const pt = String(psrType || '')
+    if (pt === 'dxd') {
+        cell.lgPeiXian = true
+        return
+    }
+    const psr = propMap['cge:PSR_Ref']
+    if (psr && psr.superlinkpsrid) {
+        cell.lgPeiXian = true
+        cell.superlinkpsrid = String(psr.superlinkpsrid)
+        return
+    }
+    const name = String(objectName || '')
+    if (name.indexOf('配线') >= 0 || name.indexOf('干线') >= 0 || name.indexOf('分支线') >= 0) {
+        cell.lgPeiXian = true
+    }
+}
+
+/** 站外-大馈线（sbzlx 10000100，图元 id 形如 PD_10000100_*） */
+const LG_SBZLX_DAKUIXIAN = '10000100'
+
+function applyLgDakuixianMark(cell, objectId, psrType) {
+    if (cell == null) {
+        return
+    }
+    const pt = String(psrType || '')
+    if (pt === LG_SBZLX_DAKUIXIAN) {
+        cell.lgDakuixian = true
+        cell.sbzlx = LG_SBZLX_DAKUIXIAN
+        return
+    }
+    const id = objectId != null ? String(objectId) : String(cell.id || '')
+    if (!id || id.indexOf('virtual') >= 0) {
+        return
+    }
+    const parts = id.split('_')
+    if (parts.length >= 2 && parts[1] === LG_SBZLX_DAKUIXIAN) {
+        cell.lgDakuixian = true
+        cell.sbzlx = LG_SBZLX_DAKUIXIAN
+    }
+}
+
+/** parseSvg 结束后遍历全图，确保所有站外-大馈线图元带 lgDakuixian（覆盖各解析分支） */
+function markAllLgDakuixianCells(graph) {
+    const model = graph.getModel()
+    const visit = (parent) => {
+        const count = model.getChildCount(parent)
+        for (let i = 0; i < count; i++) {
+            const cell = model.getChildAt(parent, i)
+            if (!cell) {
+                continue
+            }
+            applyLgDakuixianMark(cell, cell.id, cell.psrtype)
+            if (cell.sbid) {
+                applyLgDakuixianMark(cell, cell.sbid, null)
+            }
+            visit(cell)
+        }
+    }
+    visit(model.getRoot())
+}
+
+/**
  * 读取 &lt;use&gt; 在 SVG 用户坐标系下的参考点（与 parseUse 中 _x/_y 一致）。
  * CIM-G / fac 的 parseDev 将中心位置写在 transform 的首个 translate 上，x/y 属性仅为 -w/2、-h/2；
  * 力光导出的图常在 x/y 上直接写中心坐标，translate 链中第一个 translate 一般与其一致。
@@ -1030,6 +1104,8 @@ export default class LGSvgParser extends SvgBase {
 
         cell.psrtype = PSRType
         cell.name = ObjectName
+        applyLgPeiXianMark(cell, propMap, ObjectName, PSRType)
+        applyLgDakuixianMark(cell, ObjectID, PSRType)
 
         attrMap.set(ObjectID, propMap)
         return cell
@@ -1339,6 +1415,8 @@ export default class LGSvgParser extends SvgBase {
 
         cell.psrtype = PSRType
         cell.name = ObjectName
+        applyLgPeiXianMark(cell, propMap, ObjectName, PSRType)
+        applyLgDakuixianMark(cell, ObjectID, PSRType)
 
         attrMap.set(ObjectID, propMap)
         return cell
@@ -1477,6 +1555,7 @@ export default class LGSvgParser extends SvgBase {
         cell.psrtype = PSRType
         cell.name = ObjectName
         cell.layer = layerId
+        applyLgDakuixianMark(cell, ObjectID, PSRType)
 
         attrMap.set(cell.id, propMap)
         return cell
@@ -1817,7 +1896,7 @@ export default class LGSvgParser extends SvgBase {
 
             superlinkname = $node.attr('superlinkname')
             superlinkpsrid = $node.attr('superlinkpsrid')
-            href = $node.attr('xlink:href')
+            href = $node.attr('xlink:href') || $node.attr('href')
         } else {
             id = $node.attr('id')
             // 关联的设备ID
@@ -1921,6 +2000,10 @@ export default class LGSvgParser extends SvgBase {
         cell.superlinkname = superlinkname
         cell.superlinkpsrid = superlinkpsrid
         cell.href = href
+        if (nodeName === 'a') {
+            cell.lgPeiXian = true
+            applyLgDakuixianMark(cell, sbid, null)
+        }
 
         cell.setVertex(true)
         cell.setConnectable(false)
@@ -2658,6 +2741,8 @@ export default class LGSvgParser extends SvgBase {
         }
 
         this.collectShapeDragDefaultsFromGraph()
+
+        markAllLgDakuixianCells(graph)
 
         this.captureImportedDeviceSnapshot()
 

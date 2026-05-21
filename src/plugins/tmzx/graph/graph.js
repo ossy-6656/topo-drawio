@@ -8,10 +8,176 @@ import mathutil from '@/plugins/tmzx/mathutil.js'
 mxGraph.prototype.splitEnabled = false
 
 export let sbzlx2nameMap = new Map()
+const LG_SBZLX_DAKUIXIAN = '10000100'
+const LG_SBZLX_ALIAS_DAKUIXIAN = '站外-大馈线'
 mxConstants.LINE_HEIGHT = 1
 for (let item of sbzlxList) {
     let { sbzlx, sbzlxalias } = item
     sbzlx2nameMap.set(sbzlx + '', sbzlxalias)
+}
+
+/** 从 cell.id / sbid 解析设备子类型编码（PD_{sbzlx}_{globeId}） */
+function getCellSbzlxCode(cell) {
+    if (cell == null) {
+        return ''
+    }
+    if (cell.sbzlx != null && cell.sbzlx !== '') {
+        return String(cell.sbzlx)
+    }
+    const tryId = (raw) => {
+        const id = raw != null ? String(raw) : ''
+        if (!id || id.indexOf('virtual') >= 0) {
+            return ''
+        }
+        const parts = id.split('_')
+        return parts.length >= 2 ? parts[1] : ''
+    }
+    let code = tryId(cell.id)
+    if (code) {
+        return code
+    }
+    return tryId(cell.sbid)
+}
+
+/** 设备类型是否为站外-大馈线 */
+function isZhanWaiDakuixianCell(cell) {
+    if (cell == null) {
+        return false
+    }
+    if (cell.lgDakuixian === true) {
+        return true
+    }
+    const psr = cell.psrtype != null ? String(cell.psrtype) : ''
+    if (psr === LG_SBZLX_DAKUIXIAN) {
+        return true
+    }
+    const code = getCellSbzlxCode(cell)
+    if (code === LG_SBZLX_DAKUIXIAN) {
+        return true
+    }
+    return sbzlx2nameMap.get(code) === LG_SBZLX_ALIAS_DAKUIXIAN
+}
+
+/** 配线图元：解析阶段 lgPeiXian 标记 + 运行时兜底 */
+function isPeiXianLinkCell(cell, graph) {
+    if (cell == null || graph == null) {
+        return false
+    }
+    if (cell.lgPeiXian === true) {
+        return true
+    }
+    const model = graph.getModel()
+    const style = graph.getCurrentCellStyle(cell) || {}
+    if (model.isVertex(cell) && style.layer === 'Hot_Layer') {
+        return true
+    }
+    if (style.flag === 'pointline' || cell.flag === 'pointline') {
+        return false
+    }
+    const superlinkname = (cell.superlinkname || '').toString()
+    const href = (cell.href || '').toString()
+    const name = (cell.name || '').toString()
+    const psr = (cell.psrtype || style.psrtype || '').toString()
+    if (superlinkname || href) {
+        if (href.indexOf('单线图') >= 0 || superlinkname.indexOf('配线') >= 0 || href.indexOf('配线') >= 0) {
+            return true
+        }
+    }
+    if (cell.superlinkpsrid) {
+        return true
+    }
+    if (psr === 'dxd') {
+        return true
+    }
+    if (model.isEdge(cell) && (style.flag === 'line' || cell.flag === 'line')) {
+        if (
+            name.indexOf('配线') >= 0 ||
+            name.indexOf('干线') >= 0 ||
+            name.indexOf('分支线') >= 0
+        ) {
+            return true
+        }
+    }
+    return false
+}
+
+/** 点击配线：打印方法名；站房图热点可跳转 dkxdata */
+function handlePeiXianCellClick(cell, graph) {
+    if (!isPeiXianLinkCell(cell, graph)) {
+        return false
+    }
+    console.log('[配线点击] handlePeiXianCellClick', {
+        method: 'handlePeiXianCellClick',
+        cellId: cell.id,
+        name: cell.name,
+        superlinkname: cell.superlinkname,
+        superlinkpsrid: cell.superlinkpsrid,
+        href: cell.href,
+        psrtype: cell.psrtype,
+        lgPeiXian: cell.lgPeiXian,
+    })
+    const style = graph.getCurrentCellStyle(cell) || {}
+    const fromHotLayer = graph.getModel().isVertex(cell) && style.layer === 'Hot_Layer'
+    const hasFeederLink = !!(cell.superlinkname || cell.href || cell.superlinkpsrid)
+    if ((fromHotLayer || hasFeederLink) && typeof window.switchToDkxData === 'function') {
+        window.switchToDkxData()
+    }
+    return true
+}
+
+/** 点击站外-大馈线：打印方法名并切换数据源为 svg2.js */
+function handleDakuixianCellClick(cell, graph) {
+    if (!isZhanWaiDakuixianCell(cell)) {
+        return false
+    }
+    const sbzlxCode = getCellSbzlxCode(cell)
+    console.log('[大馈线点击] handleDakuixianCellClick', {
+        method: 'handleDakuixianCellClick',
+        cellId: cell.id,
+        sbzlxCode,
+        sblxAlias: sbzlx2nameMap.get(sbzlxCode) || LG_SBZLX_ALIAS_DAKUIXIAN,
+        name: cell.name,
+        sbid: cell.sbid,
+        superlinkname: cell.superlinkname,
+        href: cell.href,
+    })
+    if (typeof window.switchToSvg2 === 'function') {
+        window.switchToSvg2()
+    }
+    return true
+}
+
+var graphInitPre = Graph.prototype.init
+Graph.prototype.init = function (container) {
+    graphInitPre.apply(this, arguments)
+    if (this._lgPeiXianClickBound) {
+        return
+    }
+    this._lgPeiXianClickBound = true
+    this.addListener(mxEvent.CLICK, function (sender, evt) {
+        const cell = evt.getProperty('cell')
+        let handled = false
+        if (handleDakuixianCellClick(cell, sender)) {
+            handled = true
+        } else if (handlePeiXianCellClick(cell, sender)) {
+            handled = true
+        }
+        if (!handled) {
+            return
+        }
+        const ev = evt.getProperty('event')
+        if (ev) {
+            mxEvent.consume(ev)
+        }
+    })
+}
+
+var graphGetCursorForCellPre = Graph.prototype.getCursorForCell
+Graph.prototype.getCursorForCell = function (cell) {
+    if (isZhanWaiDakuixianCell(cell) || isPeiXianLinkCell(cell, this)) {
+        return 'pointer'
+    }
+    return graphGetCursorForCellPre.apply(this, arguments)
 }
 
 // 去掉母线预定连接点

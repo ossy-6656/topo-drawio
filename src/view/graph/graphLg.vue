@@ -27,6 +27,7 @@
         <span style="font-size: 14px; font-weight: 500; color: #333;">选择数据源：</span>
         <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
             <option value="zjtSvg">lgdata (示例数据)</option>
+            <option value="dkxSvg">dkxdata (配线)</option>
             <option value="svg1">svg1</option>
             <option value="svg2">svg2</option>
             <option value="uploaded" :disabled="!uploadedSvg">本地上传的 G 图</option>
@@ -112,6 +113,7 @@ import App from '@/view/graph/lg/App'
 // 导入 API 接口（已注释，使用测试数据）
 // import { getZjtSvg } from '@/api/tmzx/svg/index.ts'
 import { zjtSvg } from '@/view/graph/data/lgdata.js'                    // 测试用的正交图 SVG 数据
+import { dkxSvg } from '@/view/graph/data/dkxdata.js'                  // 配线单线图 SVG 数据
 import { svg1 } from '@/view/graph/data/svg1.js'                        // SVG 数据 1
 import { svg2 } from '@/view/graph/data/svg2.js'                        // SVG 数据 2
 
@@ -280,6 +282,7 @@ let gFileInputRef = ref()           // 文件输入框的引用
 // 数据源映射
 const dataSources = {
     zjtSvg: zjtSvg,
+    dkxSvg: dkxSvg,
     svg1: svg1,
     svg2: svg2,
     uploaded: null  // 动态获取
@@ -338,6 +341,28 @@ const handleDataChange = () => {
     load(selectedSvg, undefined)
 }
 
+/** 切换为配线数据（dkxdata.js），供图中「配线」热点点击调用 */
+function switchToDkxData() {
+    if (selectedData.value === 'dkxSvg') {
+        return
+    }
+    selectedData.value = 'dkxSvg'
+    handleDataChange()
+    ElMessage.success('已切换至配线数据')
+}
+window.switchToDkxData = switchToDkxData
+
+/** 切换为 svg2.js 数据，供「站外-大馈线」点击调用 */
+function switchToSvg2() {
+    if (selectedData.value === 'svg2') {
+        return
+    }
+    selectedData.value = 'svg2'
+    handleDataChange()
+    ElMessage.success('已切换至 svg2 数据')
+}
+window.switchToSvg2 = switchToSvg2
+
 // ==================== 容器 ID 生成 ====================
 // 生成唯一的容器 ID，避免多个实例冲突
 // 格式: geEditor_时间戳
@@ -389,7 +414,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
 
-                            if (selectedData.value === 'zjtSvg') {
+                            if (selectedData.value === 'zjtSvg' || selectedData.value === 'dkxSvg') {
                                 cachedLgSidebarScale = lgsvgParser.getScale() || 1
                                 const d = lgsvgParser.shapeDragDefaults || {}
                                 cachedLgSidebarDragDef = { ...d }
