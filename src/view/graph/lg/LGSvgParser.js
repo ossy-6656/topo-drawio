@@ -15,6 +15,7 @@ import SvgBase from '../common/SvgBase.js'
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js'
 import Line2LineUtil  from '../common/Line2LineUtil.js'
 import TextBeauty from '@/plugins/tmzx/graph/TextBeauty.js'
+import TextHandler from '@/plugins/tmzx/graph/TextHandler.js'
 import $ from 'jquery'
 
 // symbol：对应draw io中的图元；symbolId：对应svg中的图元
@@ -138,6 +139,7 @@ export default class LGSvgParser extends SvgBase {
     }
 
     initEvt() {
+        const parser = this
         let graph = this.graph
         let view = graph.view
         let model = graph.getModel()
@@ -485,6 +487,7 @@ export default class LGSvgParser extends SvgBase {
 
         // resize处理
         let cellResizeEventHandlerCommon = function (obj, eo) {
+            const syncName = parser.syncDeviceNameLabel
             let cells = eo.getProperty('cells')
             let cell = cells[0]
             let state = view.getState(cell)
@@ -510,6 +513,10 @@ export default class LGSvgParser extends SvgBase {
                     let edges = model.getEdges(cell) // 获取与母线关联的所有连接线
                     for (let edge of edges) {
                         GraphHandler.computeLine2BusConnectionCommon(graph, p0, p1, cell, edge)
+                    }
+                    const txtCell = model.getCell('TXT-' + cell.id)
+                    if (txtCell && typeof syncName === 'function') {
+                        syncName.call(parser, cell)
                     }
                 } finally {
                     model.endUpdate()
@@ -2372,6 +2379,264 @@ export default class LGSvgParser extends SvgBase {
             out[k] = { w: ws[mid], h: hs[mid] }
         }
         this.shapeDragDefaults = out
+    }
+
+    /** 侧栏负荷/机组/变压器（与 EditDataDialog、tooltip 判定一致） */
+    isLgSidebarVertexCell(cell, style) {
+        if (cell == null) {
+            return false
+        }
+        const shape = ((style && style.shape) || cell.symbol || '').toString().toLowerCase()
+        return (
+            shape === 'substation' ||
+            shape === 'xb' ||
+            shape === 'generatingunit' ||
+            shape === 'potentialtransformer2w' ||
+            shape === 'potentialtransformer3w' ||
+            shape.indexOf('potentialtransformer2w_') === 0 ||
+            shape.indexOf('potentialtransformer3w_') === 0
+        )
+    }
+
+    /** 母线（0311 / flag=busbar） */
+    isBusbarCell(cell, style) {
+        if (cell == null) {
+            return false
+        }
+        const st = style || {}
+        const psr = cell.psrtype != null && cell.psrtype !== '' ? cell.psrtype : st.psrtype
+        return (
+            cell.symbol === 'busbar' ||
+            psr === '0311' ||
+            st.flag === 'busbar' ||
+            DeviceCategoryUtil.isBusCell(cell)
+        )
+    }
+
+    /** 母线连接线：两端均为母线的边（与 override.js EditDataDialog 一致） */
+    isBusbarConnectorEdge(cell, graph) {
+        if (cell == null || graph == null || !graph.getModel().isEdge(cell)) {
+            return false
+        }
+        const model = graph.getModel()
+        const sv = model.getTerminal(cell, true)
+        const tv = model.getTerminal(cell, false)
+        const isEndBusbar = (v) => {
+            if (!v) {
+                return false
+            }
+            const st = graph.getCurrentCellStyle(v) || {}
+            return this.isBusbarCell(v, st)
+        }
+        return isEndBusbar(sv) && isEndBusbar(tv)
+    }
+
+    resolveCellDisplayName(cell, style) {
+        const nameRaw =
+            cell.name != null && cell.name !== ''
+                ? cell.name
+                : style && style.name != null && style.name !== ''
+                  ? style.name
+                  : ''
+        return String(nameRaw).replace(/\n/g, '').trim()
+    }
+
+    insertOrUpdateNameTxtCell(graph, model, txtId, sbid, name, fs, anchorX, anchorY) {
+        const dim = TextUtil.getTextDimensionFromTxtList(fs, [name])
+        const parent = graph.getDefaultParent()
+        let txtCell = model.getCell(txtId)
+        if (!txtCell) {
+            const sb = []
+            sb.push('text;')
+            sb.push('id=' + txtId + ';')
+            sb.push('flag=text;')
+            sb.push('layer=Text_Layer;')
+            sb.push('fontColor=#fff;')
+            sb.push('fontSize=' + fs + ';')
+            sb.push('fontFamily=Microsoft YaHei;')
+            sb.push('rotation=0;')
+            sb.push('autosize=0;')
+            sb.push('align=center;')
+            sb.push(
+                'strokeColor=none;strokeWidth=0;fillColor=none;verticalAlign=middle;spacing=0;html=0;'
+            )
+            txtCell = graph.insertVertex(
+                parent,
+                txtId,
+                name,
+                anchorX - dim.width / 2,
+                anchorY,
+                dim.width,
+                dim.height,
+                sb.join('')
+            )
+            txtCell.sbid = sbid
+            txtCell.setVertex(true)
+            txtCell.setConnectable(false)
+            txtCell.isText = true
+            txtCell.isPoint = false
+        } else {
+            model.setValue(txtCell, name)
+            const txtGeo = model.getGeometry(txtCell).clone()
+            txtGeo.width = dim.width
+            txtGeo.height = dim.height
+            model.setGeometry(txtCell, txtGeo)
+        }
+        return txtCell
+    }
+
+    /** 母线连接线名称：置于线段中点法向偏移（图元下方/外侧） */
+    repositionBusbarConnectorNameLabel(graph, edge, txtCell, gapTxt) {
+        const state = graph.view.getState(edge)
+        if (!state || !state.absolutePoints || state.absolutePoints.length < 2) {
+            return
+        }
+        const pts = state.absolutePoints
+        const p0 = pts[0]
+        const p1 = pts[pts.length - 1]
+        const mx = (p0.x + p1.x) / 2
+        const my = (p0.y + p1.y) / 2
+        let lineAngle = mathutil.lineAngle(p0.x, p0.y, p1.x, p1.y)
+        if (lineAngle > 90) {
+            lineAngle -= 180
+        }
+        const gap = gapTxt != null ? gapTxt : 8
+        const rad = mathutil.angle2Radian(lineAngle + 90)
+        const ox = Math.cos(rad) * gap
+        const oy = Math.sin(rad) * gap
+        const model = graph.getModel()
+        const txtGeo = model.getGeometry(txtCell).clone()
+        txtGeo.x = mx - txtGeo.width / 2 + ox
+        txtGeo.y = my - txtGeo.height / 2 + oy
+        graph.setCellStyles('rotation', 0, [txtCell])
+        model.setGeometry(txtCell, txtGeo)
+    }
+
+    /**
+     * 编辑数据确认后同步名称标签：侧栏设备、母线、母线连接线（TXT-{id}，与 SVG 导入一致）。
+     */
+    syncDeviceNameLabel(cell) {
+        const graph = this.graph
+        if (!graph || cell == null) {
+            return
+        }
+        const model = graph.getModel()
+        if (model.isEdge(cell)) {
+            if (!this.isBusbarConnectorEdge(cell, graph)) {
+                return
+            }
+            const style = graph.getCurrentCellStyle(cell) || {}
+            const name = this.resolveCellDisplayName(cell, style)
+            const txtId = 'TXT-' + cell.id
+            graph.setCellStyles('txtid', txtId, [cell])
+            graph.setCellStyles('name', name, [cell])
+            let txtCell = model.getCell(txtId)
+            if (!name) {
+                if (txtCell) {
+                    graph.removeCells([txtCell])
+                }
+                return
+            }
+            const state = graph.view.getState(cell)
+            let anchorX = 0
+            let anchorY = 0
+            if (state && state.absolutePoints && state.absolutePoints.length >= 2) {
+                const pts = state.absolutePoints
+                const p0 = pts[0]
+                const p1 = pts[pts.length - 1]
+                anchorX = (p0.x + p1.x) / 2
+                anchorY = (p0.y + p1.y) / 2
+            } else {
+                const geo = model.getGeometry(cell)
+                if (!geo) {
+                    return
+                }
+                anchorX = geo.getCenterX()
+                anchorY = geo.getCenterY()
+            }
+            const fs = 10
+            model.beginUpdate()
+            try {
+                txtCell = this.insertOrUpdateNameTxtCell(
+                    graph,
+                    model,
+                    txtId,
+                    cell.id,
+                    name,
+                    fs,
+                    anchorX,
+                    anchorY
+                )
+                this.repositionBusbarConnectorNameLabel(graph, cell, txtCell, 8)
+            } finally {
+                model.endUpdate()
+            }
+            return
+        }
+
+        if (!model.isVertex(cell)) {
+            return
+        }
+        const style = graph.getCurrentCellStyle(cell) || {}
+        const isBusbar = this.isBusbarCell(cell, style)
+        if (!this.isLgSidebarVertexCell(cell, style) && !isBusbar) {
+            return
+        }
+
+        const name = this.resolveCellDisplayName(cell, style)
+        const txtId = 'TXT-' + cell.id
+        graph.setCellStyles('txtid', txtId, [cell])
+        graph.setCellStyles('name', name, [cell])
+
+        let txtCell = model.getCell(txtId)
+        if (!name) {
+            if (txtCell) {
+                graph.removeCells([txtCell])
+            }
+            return
+        }
+
+        const devGeo = model.getGeometry(cell)
+        if (!devGeo) {
+            return
+        }
+        const scale = this.getScale() || 1
+        const fs = isBusbar
+            ? Math.max(8, Math.min(12, Math.max(devGeo.width, devGeo.height) * 0.06 * scale))
+            : Math.max(6, Math.min(12, devGeo.height * 0.28 * scale))
+        const devCx = devGeo.getCenterX()
+        const devCy = devGeo.getCenterY()
+
+        model.beginUpdate()
+        try {
+            txtCell = this.insertOrUpdateNameTxtCell(
+                graph,
+                model,
+                txtId,
+                cell.id,
+                name,
+                fs,
+                devCx,
+                devCy + devGeo.height / 2
+            )
+            const gapTxt = isBusbar ? Math.max(6, devGeo.height + 4) : devGeo.height / 4
+            if (isBusbar) {
+                TextHandler.repositionText(graph, cell, { touchs: 2 }, txtCell, gapTxt)
+            } else {
+                const shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+                const shapeKey = this.matchSidebarShapeKey(shape) || shape.split('_')[0]
+                const symbolMap = this.getSymbolMap() || {}
+                const symbolObj = symbolMap[shapeKey] || symbolMap[shape] || { touchs: 2 }
+                TextHandler.repositionText(graph, cell, symbolObj, txtCell, gapTxt)
+            }
+        } finally {
+            model.endUpdate()
+        }
+    }
+
+    /** @deprecated 使用 syncDeviceNameLabel */
+    syncSidebarDeviceNameLabel(cell) {
+        this.syncDeviceNameLabel(cell)
     }
 
     // 解析svg数据

@@ -863,6 +863,40 @@ window.EditDataDialog = function(ui, cell)
                         graph.setCellStyles(names[xix], xsv, [cell])
                     }
                 }
+                if (isLgLoadDevice) {
+                    var loadStyleKeys = ['name', 'P', 'Q']
+                    for (var lix = 0; lix < names.length; lix++) {
+                        if (loadStyleKeys.indexOf(names[lix]) < 0) {
+                            continue
+                        }
+                        var lsv = texts[lix] != null ? texts[lix].value : ''
+                        graph.setCellStyles(names[lix], lsv, [cell])
+                    }
+                }
+                if (isBusbar) {
+                    var busName = ''
+                    for (var bni = 0; bni < names.length; bni++) {
+                        if (names[bni] === 'name' && texts[bni] != null) {
+                            busName = texts[bni].value
+                            break
+                        }
+                    }
+                    if (!busName) {
+                        busName = cell['name'] || cellStyle['name'] || ''
+                    }
+                    graph.setCellStyles('name', busName, [cell])
+                }
+                if (
+                    (isLgLoadDevice ||
+                        isLgGeneratingUnit ||
+                        isLgTransformer ||
+                        isBusbar ||
+                        isBusbarConnector) &&
+                    ui.svgParser != null &&
+                    typeof ui.svgParser.syncDeviceNameLabel === 'function'
+                ) {
+                    ui.svgParser.syncDeviceNameLabel(cell)
+                }
             }
             finally
             {
