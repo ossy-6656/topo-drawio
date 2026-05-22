@@ -8,8 +8,27 @@
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
-import { lgSidebarPaletteTitleForShape } from '@/view/graph/lg/Constants.js'
+import { isLgSwitchShapeOrPsr, lgSidebarPaletteTitleForShape } from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
+
+/** 站内断路器(0305) 须可旋转：侧栏拖入后仍保证旋转柄与格式面板角度可用 */
+if (typeof Graph !== 'undefined' && typeof mxGraph !== 'undefined') {
+    const mxIsCellRotatable = mxGraph.prototype.isCellRotatable
+    Graph.prototype.isCellRotatable = function (cell) {
+        if (cell != null) {
+            const st = this.getCurrentCellStyle(cell) || {}
+            const shape = st.shape || cell.symbol || ''
+            const psr = cell.psrtype != null && cell.psrtype !== '' ? cell.psrtype : st.psrtype
+            if (isLgSwitchShapeOrPsr(shape, psr)) {
+                return true
+            }
+        }
+        return mxIsCellRotatable.apply(this, arguments)
+    }
+}
+if (typeof mxVertexHandler !== 'undefined') {
+    mxVertexHandler.prototype.rotationEnabled = true
+}
 
 function lgStyleField(el, placeholder)
 {
@@ -119,6 +138,7 @@ window.EditDataDialog = function(ui, cell)
 
     var shapeLower = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
     var isLgLoadDevice = shapeLower === 'substation' || shapeLower === 'xb'
+    var isLgSwitchDevice = isLgSwitchShapeOrPsr(shapeLower, psrtype)
     var isLgGeneratingUnit = shapeLower === 'generatingunit'
     var isLgTransformer =
         shapeLower === 'potentialtransformer2w' ||
@@ -345,7 +365,7 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
-    // 力光侧栏「负荷」：配电站(zf06)、箱式变(zf08) — 仅编辑设备名称、有功功率、无功功率
+    // 力光侧栏「负荷」：设备名称、有功功率、无功功率
     if (isLgLoadDevice) {
         var loadKeys = ['name', 'P', 'Q']
         var loadVals = {}
@@ -369,6 +389,37 @@ window.EditDataDialog = function(ui, cell)
                 for (var ti = 0; ti < temp.length; ti++) {
                     if (temp[ti].name === kn && (!temp[ti].value || temp[ti].value === '')) {
                         temp[ti].value = loadVals[kn]
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    // 力光侧栏「开关」(0305)：仅设备名称，不展示有功/无功功率
+    if (isLgSwitchDevice) {
+        var switchKeys = ['name']
+        var switchVals = {}
+        for (var si = 0; si < switchKeys.length; si++) {
+            var sk = switchKeys[si]
+            var svRaw = cell[sk] != null && cell[sk] !== '' ? cell[sk] : cellStyle[sk]
+            switchVals[sk] = svRaw != null && svRaw !== '' ? String(svRaw) : ''
+        }
+        temp = temp.filter(function (item) {
+            var n = item.name
+            return n === 'id' || n === 'shape' || switchKeys.indexOf(n) >= 0
+        })
+        for (var sj = 0; sj < switchKeys.length; sj++) {
+            var skn = switchKeys[sj]
+            var sExists = temp.some(function (item) {
+                return item.name === skn
+            })
+            if (!sExists) {
+                temp.push({ name: skn, value: switchVals[skn] })
+            } else {
+                for (var sti = 0; sti < temp.length; sti++) {
+                    if (temp[sti].name === skn && (!temp[sti].value || temp[sti].value === '')) {
+                        temp[sti].value = switchVals[skn]
                         break
                     }
                 }
@@ -628,6 +679,22 @@ window.EditDataDialog = function(ui, cell)
             }
             return 0;
         });
+    } else if (isLgSwitchDevice) {
+        var switchOrderPref = { name: 0, id: 98, shape: 99 };
+        temp.sort(function (a, b) {
+            var oa = Object.prototype.hasOwnProperty.call(switchOrderPref, a.name) ? switchOrderPref[a.name] : 50;
+            var ob = Object.prototype.hasOwnProperty.call(switchOrderPref, b.name) ? switchOrderPref[b.name] : 50;
+            if (oa !== ob) {
+                return oa - ob;
+            }
+            if (a.name < b.name) {
+                return -1;
+            }
+            if (a.name > b.name) {
+                return 1;
+            }
+            return 0;
+        });
     } else {
         temp.sort(function(a, b)
         {
@@ -873,6 +940,15 @@ window.EditDataDialog = function(ui, cell)
                         graph.setCellStyles(names[lix], lsv, [cell])
                     }
                 }
+                if (isLgSwitchDevice) {
+                    for (var six = 0; six < names.length; six++) {
+                        if (names[six] !== 'name') {
+                            continue
+                        }
+                        var ssv = texts[six] != null ? texts[six].value : ''
+                        graph.setCellStyles('name', ssv, [cell])
+                    }
+                }
                 if (isBusbar) {
                     var busName = ''
                     for (var bni = 0; bni < names.length; bni++) {
@@ -888,6 +964,7 @@ window.EditDataDialog = function(ui, cell)
                 }
                 if (
                     (isLgLoadDevice ||
+                        isLgSwitchDevice ||
                         isLgGeneratingUnit ||
                         isLgTransformer ||
                         isBusbar ||

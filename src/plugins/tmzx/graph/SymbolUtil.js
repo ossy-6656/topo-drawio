@@ -194,7 +194,36 @@ let SymbolUtil = {
         obj.d = { x, y, flag: 'edge' }
       }
     }
+    // 竖向双端子（上 c / 下 d）时连线逻辑仍读 a、b
+    if (!obj.a && obj.c) {
+      obj.a = obj.c
+    }
+    if (!obj.b && obj.d) {
+      obj.b = obj.d
+    }
     return obj
+  },
+
+  /** 双连接点图元：解析 a/b，兼容仅存在 c/d 的竖向设备 */
+  getTouchPair(item) {
+    if (!item) {
+      return { a: null, b: null }
+    }
+    let a = item.a || item.c
+    let b = item.b || item.d
+    if (a && b) {
+      return { a, b }
+    }
+    const pts = [item.a, item.b, item.c, item.d, item.o].filter(
+      (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)
+    )
+    if (pts.length >= 2) {
+      return { a: pts[0], b: pts[1] }
+    }
+    if (pts.length === 1) {
+      return { a: pts[0], b: pts[0] }
+    }
+    return { a: null, b: null }
   },
     // 连接点坐标
     touchCor(dom) {

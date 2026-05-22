@@ -49,19 +49,13 @@ let StencilParse = {
 
         if (stroke && stroke != 'none') {
             sb.push('<strokecolor color="' + stroke + '" />')
+        } else {
+            sb.push('<strokecolor color="none" />')
         }
 
         if (fill && fill != 'none') {
             sb.push('<fillcolor color="' + fill + '" />')
         }
-
-        // if (stroke == 'none') {
-        //     sb.push('<strokecolor color="none" />')
-        // }
-        //
-        // if (fill == 'none') {
-        //     sb.push('<fillcolor color="none" />')
-        // }
 
         sb.push('<strokewidth fixed="1" width="' + strokeWidth + '" />')
         sb.push('<rect ')
@@ -71,10 +65,12 @@ let StencilParse = {
         sb.push('h="' + curH + '" ')
         sb.push('/>')
 
-        if (stroke && fill && fill != 'none') {
+        if (stroke && stroke != 'none' && fill && fill != 'none') {
             sb.push('<fillstroke/>')
-        } else if (stroke) {
+        } else if (stroke && stroke != 'none') {
             sb.push('<stroke/>')
+        } else if (fill && fill != 'none') {
+            sb.push('<fill/>')
         }
         return sb.join('')
     },
@@ -641,7 +637,9 @@ let StencilParse = {
 
         let leftRate = null,
             midRate = null,
-            rightRate = null
+            rightRate = null,
+            topRate = null,
+            bottomRate = null
 
         let rslist = []
         for (let usedom of usedomList) {
@@ -650,7 +648,11 @@ let StencilParse = {
 
             // 连接点坐标相对图元左上角比例
             let relpos = SymbolUtil.useRelativePostion(pos, dimension)
-            if (SymbolUtil.isLeftTouch(relpos.x, relpos.y)) {
+            if (SymbolUtil.isTopTouch(relpos.x, relpos.y)) {
+                topRate = relpos
+            } else if (SymbolUtil.isBottomTouch(relpos.x, relpos.y)) {
+                bottomRate = relpos
+            } else if (SymbolUtil.isLeftTouch(relpos.x, relpos.y)) {
                 leftRate = relpos
             } else if (SymbolUtil.isRightTouch(relpos.x, relpos.y)) {
                 rightRate = relpos
@@ -660,12 +662,20 @@ let StencilParse = {
             // rslist.push(relpos)
         }
 
+        if (topRate) {
+            rslist.push(topRate)
+        }
+
         if (leftRate) {
             rslist.push(leftRate)
         }
 
         if (rightRate) {
             rslist.push(rightRate)
+        }
+
+        if (bottomRate) {
+            rslist.push(bottomRate)
         }
 
         if (midRate) {
@@ -811,15 +821,21 @@ let StencilParse = {
 
             yratio = item.y // 目前遇到的单连接点图元，中心
         } else {
-            let item1 = touchList[0]
-            let item2 = touchList[1]
+            const pts = touchList.filter(
+                (t) => t && Number.isFinite(t.x) && Number.isFinite(t.y)
+            )
+            if (pts.length < 2) {
+                const one = pts[0] || { x: 0.5, y: 0.5 }
+                xratio = one.x
+                yratio = one.y
+            } else {
+                let v1 = new Vector2(pts[0].x, pts[0].y)
+                let v2 = new Vector2(pts[1].x, pts[1].y)
 
-            let v1 = new Vector2(item1.x, item1.y)
-            let v2 = new Vector2(item2.x, item2.y)
-
-            let vm = mathutil.midPoint(v1, v2)
-            xratio = vm.x
-            yratio = vm.y
+                let vm = mathutil.midPoint(v1, v2)
+                xratio = vm.x
+                yratio = vm.y
+            }
         }
 
         symbolProp[symbolId] = {

@@ -128,6 +128,8 @@ import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 
 import {
     LG_SIDEBAR_DEVICE_ENTRIES,
     LG_SIDEBAR_DRAG_SYMBOL_BLEND,
+    LG_SIDEBAR_SWITCH_ENTRIES,
+    LG_SIDEBAR_SWITCH_GRID_WH,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
 } from '@/view/graph/lg/Constants.js' // 力光侧栏图元与 lgdata / symbol.js 对齐
@@ -413,6 +415,21 @@ let initEditFun = (svgstr, lgsvgParser) => {
                         try {
                             // 调用 Sidebar 的 init() 方法
                             ui.sidebar.init()
+                            // 注册 symbol→stencil（含 cbreaker），避免仅侧栏模板未加载导致 shape 无效、旋转失效
+                            if (
+                                lgsvgParser.stencilDoc &&
+                                typeof ui.sidebar.addStencilShape === 'function'
+                            ) {
+                                ui.sidebar.addStencilShape(
+                                    'lg',
+                                    '',
+                                    lgsvgParser.stencilDoc,
+                                    ';',
+                                    null,
+                                    null,
+                                    1
+                                )
+                            }
 
                             if (selectedData.value === 'zjtSvg' || selectedData.value === 'dkxSvg') {
                                 cachedLgSidebarScale = lgsvgParser.getScale() || 1
@@ -422,6 +439,12 @@ let initEditFun = (svgstr, lgsvgParser) => {
 
                             const useLgRefSidebar =
                                 selectedData.value === 'svg1' || selectedData.value === 'svg2'
+                            if (useLgRefSidebar) {
+                                const srcSvg = dataSources[selectedData.value]
+                                if (srcSvg) {
+                                    cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(srcSvg)
+                                }
+                            }
                             // 侧栏初始宽高：svg1/svg2 与 lgdata 一致；lgdata/上传仍跟当前解析结果
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
                             const gScale = useLgRefSidebar
@@ -504,7 +527,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 return nodes
                             }
 
-                            // ── 母线 / 连接线模板（与下方 add 顺序一致：母线→连接线→变压器→机组→负荷）──
+                            // ── 母线 / 连接线模板（与下方 add 顺序一致：母线→连接线→变压器→机组→开关→负荷）──
                             const lgBusbarFns = [
                                 // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar）
                                 ui.sidebar.createVertexTemplateEntry(
@@ -544,7 +567,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 ),
                             ]
 
-                            // 侧栏分类顺序：母线、连接线、变压器、机组、负荷（便笺本仍追加到「负荷」）
+                            // 侧栏分类顺序：母线、连接线、变压器、机组、开关、负荷（便笺本仍追加到「负荷」）
                             ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
                             ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
 
@@ -565,6 +588,29 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 gScale
                             )
                             ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
+
+                            // 站内-断路器(0305)：10×10 网格（× gScale），可旋转
+                            const switchGrid =
+                                Number(LG_SIDEBAR_SWITCH_GRID_WH) > 0
+                                    ? Number(LG_SIDEBAR_SWITCH_GRID_WH)
+                                    : 10
+                            const lgSwitchSizes = LG_SIDEBAR_SWITCH_ENTRIES.map((entry) => {
+                                const symbolId = entry[0]
+                                const label = entry[1]
+                                const styleExtra = entry.length > 4 && entry[4] ? String(entry[4]) : ''
+                                return {
+                                    symbolId,
+                                    label,
+                                    w: switchGrid * gScale,
+                                    h: switchGrid * gScale,
+                                    styleExtra,
+                                }
+                            })
+                            const lgSwitchFns = lgSwitchSizes.map(({ symbolId, label, w, h, styleExtra }) => {
+                                const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` + styleExtra
+                                return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
+                            })
+                            ui.sidebar.addPaletteFunctions('lg-switch', '开关', true, lgSwitchFns)
 
                             ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
 

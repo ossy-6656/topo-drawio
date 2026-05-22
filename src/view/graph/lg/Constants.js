@@ -4,6 +4,27 @@
  */
 export const LG_SIDEBAR_DRAG_SYMBOL_BLEND = 0.12
 
+/** 侧栏「站内-断路器(0305)」拖入画布网格边长（× getScale） */
+export const LG_SIDEBAR_SWITCH_GRID_WH = 10
+
+/** 左侧「开关」面板：站内断路器 0305，固定 10×10，可旋转 */
+export const LG_SIDEBAR_SWITCH_ENTRIES = [
+    [
+        'cbreaker',
+        '站内-断路器(0305)',
+        LG_SIDEBAR_SWITCH_GRID_WH,
+        LG_SIDEBAR_SWITCH_GRID_WH,
+        'psrtype=0305;strokeColor=none;rotation=0;rotatable=1;resizable=1;',
+    ],
+]
+
+/** 侧栏/画布站内断路器(0305)：shape 或 PSRType 判定 */
+export function isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) {
+    const sym = String(shapeOrSymbol || '').toLowerCase()
+    const psr = String(psrtype || '')
+    return sym === 'cbreaker' || sym.startsWith('breaker_30500000') || psr === '0305'
+}
+
 /** 左侧「负荷」面板：默认宽高与 lgdata.js 内嵌 symbol（3×3）一致，× getScale 后与解析图元一致 */
 export const LG_SIDEBAR_DEVICE_ENTRIES = [
     ['substation', '配电站(zf06)', 3, 3],
@@ -22,6 +43,7 @@ export const LG_SIDEBAR_UNIT_ENTRIES = [['generatingunit', '发电机组', 3, 3]
 /** 侧栏可拖拽顶点图元的 shape 简名（供 LGSvgParser.matchSidebarShapeKey / collectShapeDragDefaultsFromGraph） */
 const LG_SIDEBAR_ALL_VERTEX_ENTRY_LISTS = [
     LG_SIDEBAR_DEVICE_ENTRIES,
+    LG_SIDEBAR_SWITCH_ENTRIES,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
 ]
@@ -60,7 +82,6 @@ export const customShapeLs = [
     'mountain', 
     'lakes',
     'river',
-    'breaker0305',
     'lightningarrester',
     'substation_30000005_1030020',
     'LoadBreakSwitch_PMS25_a1fd8575-5bf1-47c6-950c-242129f7b2fe_4040011@0'

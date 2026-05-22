@@ -29,4 +29,13 @@ export default `
             <polygon fill="rgb(0,0,0)" points="0.025,0.025 0.025,3.025 3.025,3.025 3.025,0.025" stroke="rgb(185,72,66)" stroke-linecap="butt" stroke-linejoin="miter" stroke-width="0.15"/>
             <text dy=".3em" fill="rgb(185,72,66)" font-family="SimSun" font-size="2" stroke="none" style="text-anchor:middle" x="1.538" y="1.503">XB</text>
         </symbol>
+
+        <!-- 站内断路器(0305)：3×3 与配电站/箱变同量级；亮红竖矩形 + 上下引线 + 端点 -->
+        <symbol id="cbreaker" viewBox="0 0 3 3" width="3" height="3">
+            <line x1="1.5" y1="0.15" x2="1.5" y2="0.5" stroke="rgb(255,0,0)" stroke-width="0.12" stroke-linecap="round"/>
+            <rect x="1.12" y="0.5" width="0.76" height="2" fill="rgb(255,0,0)" stroke="none"/>
+            <line x1="1.5" y1="2.5" x2="1.5" y2="2.85" stroke="rgb(255,0,0)" stroke-width="0.12" stroke-linecap="round"/>
+            <use x="1.5" y="0.08" terminal-index="1" type="0" xlink:href="#terminal"/>
+            <use x="1.5" y="2.92" terminal-index="2" type="0" xlink:href="#terminal"/>
+        </symbol>
 `

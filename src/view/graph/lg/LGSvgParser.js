@@ -8,9 +8,10 @@ import GraphTool from '@/plugins/tmzx/graph/GraphTool.js'
 import GraphHandler from '@/plugins/tmzx/graph/GraphHandler.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
+import SymbolUtil from '@/plugins/tmzx/graph/SymbolUtil.js'
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
-import { customShapeLs, lgSidebarDeviceIdsByLengthDesc } from './Constants.js'
+import { customShapeLs, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc } from './Constants.js'
 import SvgBase from '../common/SvgBase.js'
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js'
 import Line2LineUtil  from '../common/Line2LineUtil.js'
@@ -101,6 +102,11 @@ function markAllLgDakuixianCells(graph) {
  * CIM-G / fac 的 parseDev 将中心位置写在 transform 的首个 translate 上，x/y 属性仅为 -w/2、-h/2；
  * 力光导出的图常在 x/y 上直接写中心坐标，translate 链中第一个 translate 一般与其一致。
  */
+/** 双连接点设备在 symbolMap 上的 a/b（竖向端子映射自 c/d） */
+function getLgSymbolTouchPair(item) {
+    return SymbolUtil.getTouchPair(item)
+}
+
 function readUseWorldXY(nodeUse, transformStr) {
     const xa = nodeUse.getAttribute('x')
     const ya = nodeUse.getAttribute('y')
@@ -603,12 +609,13 @@ export default class LGSvgParser extends SvgBase {
         // 监控cell改变大小后事件
         graph.addListener(mxEvent.RESIZE_CELLS, cellResizeEventHandlerCommon)
 
-        // 工具栏拖入站内母线（flag=busbar）：补全 cell.symbol，与 parseBusbar 导入一致（addEvent 当前未启用）
+        // 工具栏拖入：母线补 symbol；站内断路器(0305) 强制可旋转
         graph.addListener(mxEvent.CELLS_ADDED, function (sender, eo) {
             let list = eo.getProperty('cells')
             if (!list || list.length === 0) {
                 return
             }
+            const switchCells = []
             for (let cell of list) {
                 if (!model.isVertex(cell)) {
                     continue
@@ -616,7 +623,23 @@ export default class LGSvgParser extends SvgBase {
                 let obj = TextUtil.parseDrawioStyle(cell.style)
                 if (obj.flag === 'busbar') {
                     cell.symbol = 'busbar'
+                    continue
                 }
+                const shape = String(obj.shape || cell.symbol || '').toLowerCase()
+                const psr = obj.psrtype || cell.psrtype
+                if (isLgSwitchShapeOrPsr(shape, psr)) {
+                    if (!cell.symbol) {
+                        cell.symbol = shape === 'cbreaker' ? 'cbreaker' : shape
+                    }
+                    if (cell.psrtype == null || cell.psrtype === '') {
+                        cell.psrtype = '0305'
+                    }
+                    switchCells.push(cell)
+                }
+            }
+            if (switchCells.length > 0) {
+                graph.setCellStyles('rotatable', 1, switchCells)
+                graph.setCellStyles('resizable', 1, switchCells)
             }
         })
 
@@ -1024,7 +1047,7 @@ export default class LGSvgParser extends SvgBase {
 
                                     // let exitPerimeter = pos.flag == 'inner' ? 0 : 1;
                                     let exitPerimeter = 0
-                                    if (selfPos == '0') {
+                                    if (pos && selfPos == '0') {
                                         // 线的左侧
                                         sourceCell = relCell
                                         sb.push(
@@ -1032,7 +1055,7 @@ export default class LGSvgParser extends SvgBase {
                                         )
                                         param.exitX = pos.x
                                         param.exitY = pos.y
-                                    } else if (selfPos == '1') {
+                                    } else if (pos && selfPos == '1') {
                                         // 线的右侧
                                         targetCell = relCell
                                         sb.push(
@@ -1043,35 +1066,30 @@ export default class LGSvgParser extends SvgBase {
                                     }
                                 } // 目标有2个连接点
                                 else {
+                                    const { a: touchA, b: touchB } = getLgSymbolTouchPair(item)
                                     if (selfPos == '0') {
                                         // 线的左侧
                                         sourceCell = relCell
-                                        if (targetPos == '0') {
-                                            // 设备左侧
-                                            let a = item.a
-                                            sb.push(`exitX=${a.x};exitY=${a.y};exitPerimeter=0;`)
-                                            param.exitX = a.x
-                                            param.exitY = a.y
-                                        } else if (targetPos == '1') {
-                                            // 设备右侧
-                                            let b = item.b
-                                            sb.push(`exitX=${b.x};exitY=${b.y};exitPerimeter=0;`)
-                                            param.exitX = b.x
-                                            param.exitY = b.y
+                                        if (targetPos == '0' && touchA) {
+                                            sb.push(`exitX=${touchA.x};exitY=${touchA.y};exitPerimeter=0;`)
+                                            param.exitX = touchA.x
+                                            param.exitY = touchA.y
+                                        } else if (targetPos == '1' && touchB) {
+                                            sb.push(`exitX=${touchB.x};exitY=${touchB.y};exitPerimeter=0;`)
+                                            param.exitX = touchB.x
+                                            param.exitY = touchB.y
                                         }
                                     } else if (selfPos == '1') {
                                         // 线的右侧
                                         targetCell = relCell
-                                        if (targetPos == '0') {
-                                            let a = item.a
-                                            sb.push(`entryX=${a.x};entryY=${a.y};entryPerimeter=0;`)
-                                            param.entryX = a.x
-                                            param.entryY = a.y
-                                        } else if (targetPos == '1') {
-                                            let b = item.b
-                                            sb.push(`entryX=${b.x};entryY=${b.y};entryPerimeter=0;`)
-                                            param.entryX = b.x
-                                            param.entryY = b.y
+                                        if (targetPos == '0' && touchA) {
+                                            sb.push(`entryX=${touchA.x};entryY=${touchA.y};entryPerimeter=0;`)
+                                            param.entryX = touchA.x
+                                            param.entryY = touchA.y
+                                        } else if (targetPos == '1' && touchB) {
+                                            sb.push(`entryX=${touchB.x};entryY=${touchB.y};entryPerimeter=0;`)
+                                            param.entryX = touchB.x
+                                            param.entryY = touchB.y
                                         }
                                     }
                                 }
@@ -1335,7 +1353,7 @@ export default class LGSvgParser extends SvgBase {
 
                                     // let exitPerimeter = pos.flag == 'inner' ? 0 : 1;
                                     let exitPerimeter = 0
-                                    if (selfPos == '0') {
+                                    if (pos && selfPos == '0') {
                                         // 线的左侧
                                         sourceCell = relCell
                                         sb.push(
@@ -1343,7 +1361,7 @@ export default class LGSvgParser extends SvgBase {
                                         )
                                         param.exitX = pos.x
                                         param.exitY = pos.y
-                                    } else if (selfPos == '1') {
+                                    } else if (pos && selfPos == '1') {
                                         // 线的右侧
                                         targetCell = relCell
                                         sb.push(
@@ -1354,35 +1372,30 @@ export default class LGSvgParser extends SvgBase {
                                     }
                                 } // 目标有2个连接点
                                 else {
+                                    const { a: touchA, b: touchB } = getLgSymbolTouchPair(item)
                                     if (selfPos == '0') {
                                         // 线的左侧
                                         sourceCell = relCell
-                                        if (targetPos == '0') {
-                                            // 设备左侧
-                                            let a = item.a
-                                            sb.push(`exitX=${a.x};exitY=${a.y};exitPerimeter=0;`)
-                                            param.exitX = a.x
-                                            param.exitY = a.y
-                                        } else if (targetPos == '1') {
-                                            // 设备右侧
-                                            let b = item.b
-                                            sb.push(`exitX=${b.x};exitY=${b.y};exitPerimeter=0;`)
-                                            param.exitX = b.x
-                                            param.exitY = b.y
+                                        if (targetPos == '0' && touchA) {
+                                            sb.push(`exitX=${touchA.x};exitY=${touchA.y};exitPerimeter=0;`)
+                                            param.exitX = touchA.x
+                                            param.exitY = touchA.y
+                                        } else if (targetPos == '1' && touchB) {
+                                            sb.push(`exitX=${touchB.x};exitY=${touchB.y};exitPerimeter=0;`)
+                                            param.exitX = touchB.x
+                                            param.exitY = touchB.y
                                         }
                                     } else if (selfPos == '1') {
                                         // 线的右侧
                                         targetCell = relCell
-                                        if (targetPos == '0') {
-                                            let a = item.a
-                                            sb.push(`entryX=${a.x};entryY=${a.y};entryPerimeter=0;`)
-                                            param.entryX = a.x
-                                            param.entryY = a.y
-                                        } else if (targetPos == '1') {
-                                            let b = item.b
-                                            sb.push(`entryX=${b.x};entryY=${b.y};entryPerimeter=0;`)
-                                            param.entryX = b.x
-                                            param.entryY = b.y
+                                        if (targetPos == '0' && touchA) {
+                                            sb.push(`entryX=${touchA.x};entryY=${touchA.y};entryPerimeter=0;`)
+                                            param.entryX = touchA.x
+                                            param.entryY = touchA.y
+                                        } else if (targetPos == '1' && touchB) {
+                                            sb.push(`entryX=${touchB.x};entryY=${touchB.y};entryPerimeter=0;`)
+                                            param.entryX = touchB.x
+                                            param.entryY = touchB.y
                                         }
                                     }
                                 }
@@ -2390,6 +2403,7 @@ export default class LGSvgParser extends SvgBase {
         return (
             shape === 'substation' ||
             shape === 'xb' ||
+            shape === 'cbreaker' ||
             shape === 'generatingunit' ||
             shape === 'potentialtransformer2w' ||
             shape === 'potentialtransformer3w' ||
@@ -3079,6 +3093,10 @@ export default class LGSvgParser extends SvgBase {
             }
             if (shape === 'substation' || shape === 'xb') {
                 list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
+                continue
+            }
+            if (shape === 'cbreaker') {
+                list.push({ graphId: idStr, category: 'breaker', name, breakerid: String(cell.id) })
                 continue
             }
             if (
