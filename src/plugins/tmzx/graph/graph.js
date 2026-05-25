@@ -4,7 +4,7 @@ import StationHandler from './StationHandler.js'
 import DeviceCategoryUtil from './DeviceCategoryUtil.js'
 import TextUtil from './TextUtil.js'
 import mathutil from '@/plugins/tmzx/mathutil.js'
-import { isLgSwitchShapeOrPsr } from '@/view/graph/lg/Constants.js'
+import { isLgLoadShapeOrPsr, isLgSwitchShapeOrPsr } from '@/view/graph/lg/Constants.js'
 
 mxGraph.prototype.splitEnabled = false
 
@@ -256,7 +256,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
             // 判断是否为母线图元（与编辑框 override 一致：样式上的 psrtype / flag）
             let isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle.flag == 'busbar';
             let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
-            let isLgLoadDevice = shapeTip === 'substation' || shapeTip === 'xb'
+            let isLgLoadDevice = isLgLoadShapeOrPsr(shapeTip, psrtype)
             let isLgSwitchDevice = isLgSwitchShapeOrPsr(shapeTip, psrtype)
             let isLgGeneratingUnit = shapeTip === 'generatingunit'
             let isLgTransformer =

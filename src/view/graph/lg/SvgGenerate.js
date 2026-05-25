@@ -1886,7 +1886,7 @@ SvgGenerate.prototype.collectLoadSubmitPayload = function (pending) {
         let st = graph.view.getState(cell)
         let style = st ? st.style : {}
         let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
-        if (shape !== 'substation' && shape !== 'xb') {
+        if (shape !== 'substation' && shape !== 'xb' && shape !== 'ptuser') {
             continue
         }
         let lid = this.pickCellAttr(cell, 'loadid').replace(/-/g, '')

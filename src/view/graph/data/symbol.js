@@ -30,6 +30,16 @@ export default `
             <text dy=".3em" fill="rgb(185,72,66)" font-family="SimSun" font-size="2" stroke="none" style="text-anchor:middle" x="1.538" y="1.503">XB</text>
         </symbol>
 
+        <!-- 柱上-用户变压器(0110)：横向双圆+引线；Y 向居中使旋转中心与接线中点一致 -->
+        <symbol id="ptuser" viewBox="0 0 3 2.550548" width="3" height="2.550548">
+            <circle cx="1.175" cy="1.265274" r="0.6" fill="none" stroke="rgb(0,204,255)" stroke-width="0.1" stroke-linecap="butt" stroke-linejoin="miter"/>
+            <circle cx="1.975" cy="1.275274" r="0.6" fill="none" stroke="rgb(185,72,66)" stroke-width="0.1" stroke-linecap="butt" stroke-linejoin="miter"/>
+            <line x1="2.575" y1="1.275274" x2="3.075" y2="1.275274" fill="none" stroke="rgb(185,72,66)" stroke-width="0.1" stroke-linecap="butt" stroke-linejoin="miter"/>
+            <line x1="0.575" y1="1.285274" x2="0.075" y2="1.285274" fill="none" stroke="rgb(0,204,255)" stroke-width="0.1" stroke-linecap="butt" stroke-linejoin="miter"/>
+            <use x="3.075" y="1.275274" terminal-index="1" type="0" xlink:href="#terminal"/>
+            <use x="0.075" y="1.275274" terminal-index="2" type="0" xlink:href="#terminal"/>
+        </symbol>
+
         <!-- 站内断路器(0305)：3×3 与配电站/箱变同量级；亮红竖矩形 + 上下引线 + 端点 -->
         <symbol id="cbreaker" viewBox="0 0 3 3" width="3" height="3">
             <line x1="1.5" y1="0.15" x2="1.5" y2="0.5" stroke="rgb(255,0,0)" stroke-width="0.12" stroke-linecap="round"/>

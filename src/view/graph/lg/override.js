@@ -8,10 +8,15 @@
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import StationHandler from '@/plugins/tmzx/graph/StationHandler.js'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
-import { isLgSwitchShapeOrPsr, lgSidebarPaletteTitleForShape } from '@/view/graph/lg/Constants.js'
+import {
+    isLgLoadShapeOrPsr,
+    isLgSidebarRotatableShapeOrPsr,
+    isLgSwitchShapeOrPsr,
+    lgSidebarPaletteTitleForShape,
+} from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
 
-/** 站内断路器(0305) 须可旋转：侧栏拖入后仍保证旋转柄与格式面板角度可用 */
+/** 0305 断路器、0110 柱上用户变：侧栏拖入后保证旋转柄与格式面板角度可用 */
 if (typeof Graph !== 'undefined' && typeof mxGraph !== 'undefined') {
     const mxIsCellRotatable = mxGraph.prototype.isCellRotatable
     Graph.prototype.isCellRotatable = function (cell) {
@@ -19,7 +24,7 @@ if (typeof Graph !== 'undefined' && typeof mxGraph !== 'undefined') {
             const st = this.getCurrentCellStyle(cell) || {}
             const shape = st.shape || cell.symbol || ''
             const psr = cell.psrtype != null && cell.psrtype !== '' ? cell.psrtype : st.psrtype
-            if (isLgSwitchShapeOrPsr(shape, psr)) {
+            if (isLgSidebarRotatableShapeOrPsr(shape, psr)) {
                 return true
             }
         }
@@ -137,7 +142,7 @@ window.EditDataDialog = function(ui, cell)
     var isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle['flag'] == 'busbar';
 
     var shapeLower = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
-    var isLgLoadDevice = shapeLower === 'substation' || shapeLower === 'xb'
+    var isLgLoadDevice = isLgLoadShapeOrPsr(shapeLower, psrtype)
     var isLgSwitchDevice = isLgSwitchShapeOrPsr(shapeLower, psrtype)
     var isLgGeneratingUnit = shapeLower === 'generatingunit'
     var isLgTransformer =

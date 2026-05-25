@@ -454,7 +454,13 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 ? (cachedLgSidebarDragDef != null ? cachedLgSidebarDragDef : {})
                                 : (lgsvgParser.shapeDragDefaults || {})
                             // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
-                            const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map(([symbolId, label, fw, fh]) => {
+                            const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
+                                const symbolId = entry[0]
+                                const label = entry[1]
+                                const fw = entry[2]
+                                const fh = entry[3]
+                                const styleExtra =
+                                    entry.length > 4 && entry[4] ? String(entry[4]) : ''
                                 const key = String(symbolId).toLowerCase()
                                 const fromGraph = dragDef[key]
                                 const { w, h } = resolveLgSidebarDragWh(
@@ -465,7 +471,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     symbolMapForTpl,
                                     gScale
                                 )
-                                return { symbolId, label, key, w, h }
+                                return { symbolId, label, key, w, h, styleExtra }
                             })
                             const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
                             if (pdSize && pdSize.w > 0 && pdSize.h > 0) {
@@ -476,10 +482,23 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     }
                                 }
                             }
-                            const lgDeviceFns = lgDeviceSizes.map(({ symbolId, label, w, h }) => {
-                                const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;`
-                                return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
-                            })
+                            const lgDeviceFns = lgDeviceSizes.map(
+                                ({ symbolId, label, w, h, styleExtra }) => {
+                                    const style =
+                                        `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` +
+                                        styleExtra
+                                    return ui.sidebar.createVertexTemplateEntry(
+                                        style,
+                                        w,
+                                        h,
+                                        '',
+                                        label,
+                                        null,
+                                        null,
+                                        label
+                                    )
+                                }
+                            )
 
                             // ── 辅助：解析 mxlibrary XML，返回图元 DOM 节点数组（与 addLibraryEntries 逻辑一致）──
                             const parseScratchpadXml = (xml) => {

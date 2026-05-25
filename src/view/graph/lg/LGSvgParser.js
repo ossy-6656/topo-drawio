@@ -11,7 +11,14 @@ import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import SymbolUtil from '@/plugins/tmzx/graph/SymbolUtil.js'
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler'
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js'
-import { customShapeLs, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc } from './Constants.js'
+import {
+    customShapeLs,
+    isLgLoadShapeOrPsr,
+    isLgPtUserShapeOrPsr,
+    isLgSidebarRotatableShapeOrPsr,
+    isLgSwitchShapeOrPsr,
+    lgSidebarDeviceIdsByLengthDesc,
+} from './Constants.js'
 import SvgBase from '../common/SvgBase.js'
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js'
 import Line2LineUtil  from '../common/Line2LineUtil.js'
@@ -615,7 +622,7 @@ export default class LGSvgParser extends SvgBase {
             if (!list || list.length === 0) {
                 return
             }
-            const switchCells = []
+            const rotatableSidebarCells = []
             for (let cell of list) {
                 if (!model.isVertex(cell)) {
                     continue
@@ -627,6 +634,18 @@ export default class LGSvgParser extends SvgBase {
                 }
                 const shape = String(obj.shape || cell.symbol || '').toLowerCase()
                 const psr = obj.psrtype || cell.psrtype
+                if (isLgPtUserShapeOrPsr(shape, psr)) {
+                    if (!cell.symbol) {
+                        cell.symbol = 'ptuser'
+                    }
+                    if (cell.psrtype == null || cell.psrtype === '') {
+                        cell.psrtype = '0110'
+                    }
+                } else if (isLgLoadShapeOrPsr(shape, psr)) {
+                    if (!cell.symbol) {
+                        cell.symbol = shape
+                    }
+                }
                 if (isLgSwitchShapeOrPsr(shape, psr)) {
                     if (!cell.symbol) {
                         cell.symbol = shape === 'cbreaker' ? 'cbreaker' : shape
@@ -634,12 +653,14 @@ export default class LGSvgParser extends SvgBase {
                     if (cell.psrtype == null || cell.psrtype === '') {
                         cell.psrtype = '0305'
                     }
-                    switchCells.push(cell)
+                }
+                if (isLgSidebarRotatableShapeOrPsr(shape, psr)) {
+                    rotatableSidebarCells.push(cell)
                 }
             }
-            if (switchCells.length > 0) {
-                graph.setCellStyles('rotatable', 1, switchCells)
-                graph.setCellStyles('resizable', 1, switchCells)
+            if (rotatableSidebarCells.length > 0) {
+                graph.setCellStyles('rotatable', 1, rotatableSidebarCells)
+                graph.setCellStyles('resizable', 1, rotatableSidebarCells)
             }
         })
 
@@ -2327,6 +2348,17 @@ export default class LGSvgParser extends SvgBase {
         if (!symLower) {
             return null
         }
+        if (
+            symLower.startsWith('breaker_30500000')
+        ) {
+            return 'cbreaker'
+        }
+        if (
+            symLower.startsWith('powertransformer_11000001') ||
+            symLower.indexOf('powertransformer_30200002_4020110') === 0
+        ) {
+            return 'ptuser'
+        }
         const known = lgSidebarDeviceIdsByLengthDesc().map((id) => id.toLowerCase())
         for (const L of known) {
             if (symLower === L || symLower.startsWith(L + '_')) {
@@ -2364,11 +2396,15 @@ export default class LGSvgParser extends SvgBase {
                 if (st && st.flag === 'group') {
                     continue
                 }
-                const sym = cell.symbol
-                if (!sym) {
+                const symRaw = cell.symbol || (st && st.shape) || ''
+                if (!symRaw) {
                     continue
                 }
-                const sk = this.matchSidebarShapeKey(String(sym).toLowerCase())
+                const symLower = String(symRaw).toLowerCase()
+                let sk = this.matchSidebarShapeKey(symLower)
+                if (!sk && (st.psrtype === '0110' || cell.psrtype === '0110')) {
+                    sk = 'ptuser'
+                }
                 if (!sk) {
                     continue
                 }
@@ -2403,6 +2439,7 @@ export default class LGSvgParser extends SvgBase {
         return (
             shape === 'substation' ||
             shape === 'xb' ||
+            shape === 'ptuser' ||
             shape === 'cbreaker' ||
             shape === 'generatingunit' ||
             shape === 'potentialtransformer2w' ||
@@ -3091,7 +3128,7 @@ export default class LGSvgParser extends SvgBase {
                 list.push({ graphId: idStr, category: 'gen', name, unitid: String(cell.id) })
                 continue
             }
-            if (shape === 'substation' || shape === 'xb') {
+            if (shape === 'substation' || shape === 'xb' || shape === 'ptuser') {
                 list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
                 continue
             }

@@ -29,7 +29,36 @@ export function isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) {
 export const LG_SIDEBAR_DEVICE_ENTRIES = [
     ['substation', '配电站(zf06)', 3, 3],
     ['xb', '箱式变电站(zf08)', 3, 3],
+    [
+        'ptuser',
+        '柱上-用户变压器(0110)',
+        3,
+        2.550548,
+        'psrtype=0110;strokeColor=none;rotation=0;rotatable=1;resizable=1;',
+    ],
 ]
+
+/** 侧栏/画布柱上用户变压器(0110)：shape 或 PSRType 判定（旋转与 0305 断路器同策略） */
+export function isLgPtUserShapeOrPsr(shapeOrSymbol, psrtype) {
+    const sym = String(shapeOrSymbol || '').toLowerCase()
+    const psr = String(psrtype || '')
+    return sym === 'ptuser' || (psr === '0110' && sym.startsWith('powertransformer_'))
+}
+
+/** 侧栏拖入后须保证可旋转的图元（仅 0305 断路器、0110 柱上用户变，不影响配电站/箱变） */
+export function isLgSidebarRotatableShapeOrPsr(shapeOrSymbol, psrtype) {
+    return isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) || isLgPtUserShapeOrPsr(shapeOrSymbol, psrtype)
+}
+
+/** 侧栏/画布负荷图元：配电站、箱变、柱上用户变压器(0110) */
+export function isLgLoadShapeOrPsr(shapeOrSymbol, psrtype) {
+    const sym = String(shapeOrSymbol || '').toLowerCase()
+    const psr = String(psrtype || '')
+    if (sym === 'substation' || sym === 'xb' || sym === 'ptuser') {
+        return true
+    }
+    return isLgPtUserShapeOrPsr(sym, psr)
+}
 
 /** 左侧「变压器」面板：0314；先 resolve 再统一为双绕组尺寸（同箱式变对齐配电站） */
 export const LG_SIDEBAR_TRANSFORMER_ENTRIES = [
