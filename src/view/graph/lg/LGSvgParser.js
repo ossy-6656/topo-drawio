@@ -3124,11 +3124,17 @@ export default class LGSvgParser extends SvgBase {
             let st = graph.view.getState(cell)
             let style = st ? st.style : {}
             let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+            let psrtype =
+                cell.psrtype != null && cell.psrtype !== ''
+                    ? String(cell.psrtype)
+                    : style.psrtype != null && style.psrtype !== ''
+                      ? String(style.psrtype)
+                      : ''
             if (shape === 'generatingunit') {
                 list.push({ graphId: idStr, category: 'gen', name, unitid: String(cell.id) })
                 continue
             }
-            if (shape === 'substation' || shape === 'xb' || shape === 'ptuser') {
+            if (isLgLoadShapeOrPsr(shape, psrtype)) {
                 list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
                 continue
             }

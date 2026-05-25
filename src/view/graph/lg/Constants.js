@@ -50,11 +50,18 @@ export function isLgSidebarRotatableShapeOrPsr(shapeOrSymbol, psrtype) {
     return isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) || isLgPtUserShapeOrPsr(shapeOrSymbol, psrtype)
 }
 
-/** 侧栏/画布负荷图元：配电站、箱变、柱上用户变压器(0110) */
+/** 侧栏/画布负荷图元：配电站(zf06)、箱变(zf08)、柱上用户变压器(0110) */
 export function isLgLoadShapeOrPsr(shapeOrSymbol, psrtype) {
     const sym = String(shapeOrSymbol || '').toLowerCase()
     const psr = String(psrtype || '')
     if (sym === 'substation' || sym === 'xb' || sym === 'ptuser') {
+        return true
+    }
+    // 导入 SVG：配电站/箱变共用 Substation_* symbol，shape 为 substation_* 前缀
+    if (sym.startsWith('substation_') || sym.startsWith('xb_')) {
+        return true
+    }
+    if (psr === 'zf06' || psr === 'zf08') {
         return true
     }
     return isLgPtUserShapeOrPsr(sym, psr)

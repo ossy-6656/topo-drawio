@@ -3,6 +3,7 @@ import SymbolUtil from "@/plugins/tmzx/graph/SymbolUtil.js";
 import Mathutil from '@/plugins/tmzx/mathutil.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
+import { isLgLoadShapeOrPsr } from './Constants.js'
 
 
 export default function SvgGenerate(ui, svgTxtObj, svgParser) {
@@ -1886,7 +1887,13 @@ SvgGenerate.prototype.collectLoadSubmitPayload = function (pending) {
         let st = graph.view.getState(cell)
         let style = st ? st.style : {}
         let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
-        if (shape !== 'substation' && shape !== 'xb' && shape !== 'ptuser') {
+        let psrtype =
+            cell.psrtype != null && cell.psrtype !== ''
+                ? String(cell.psrtype)
+                : style.psrtype != null && style.psrtype !== ''
+                  ? String(style.psrtype)
+                  : ''
+        if (!isLgLoadShapeOrPsr(shape, psrtype)) {
             continue
         }
         let lid = this.pickCellAttr(cell, 'loadid').replace(/-/g, '')
