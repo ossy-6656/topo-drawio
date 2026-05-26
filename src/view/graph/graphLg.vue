@@ -563,6 +563,8 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             // 连接线：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段
                             const lgStraightVerticalLineStyle =
                                 'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;strokeWidth=0.4;strokeColor=rgb(185,72,66);'
+                            const lgDashedVerticalLineStyle =
+                                lgStraightVerticalLineStyle + 'dashed=1;dashPattern=2 1;'
                             const lgLineFns = [
                                 ui.sidebar.createEdgeTemplateEntry(
                                     lgStraightVerticalLineStyle,
@@ -572,7 +574,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     '母线连接线',
                                     null,
                                     null,
-                                    '母线连接线 母线-母线'
+                                    '母线连接线 母线-母线 实线'
                                 ),
                                 ui.sidebar.createEdgeTemplateEntry(
                                     lgStraightVerticalLineStyle,
@@ -582,7 +584,27 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     '连接线',
                                     null,
                                     null,
-                                    '连接线 普通 设备'
+                                    '连接线 普通 设备 实线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    lgDashedVerticalLineStyle,
+                                    50,
+                                    50,
+                                    '',
+                                    '虚线母线连接线',
+                                    null,
+                                    null,
+                                    '虚线母线连接线 母线-母线'
+                                ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    lgDashedVerticalLineStyle,
+                                    50,
+                                    50,
+                                    '',
+                                    '虚线连接线',
+                                    null,
+                                    null,
+                                    '虚线连接线 普通 设备'
                                 ),
                             ]
 
