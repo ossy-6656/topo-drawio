@@ -154,8 +154,35 @@ export default class LGSvgParser extends SvgBase {
     initEvt() {
         const parser = this
         let graph = this.graph
+        if (graph._lgEvtInited) {
+            return
+        }
+        graph._lgEvtInited = true
         let view = graph.view
         let model = graph.getModel()
+
+        // 删除设备时与设备名称标签（TXT-{id}）同一事务移除
+        if (!graph._lgRemoveCellsWrapped) {
+            graph._lgRemoveCellsWrapped = true
+            const origRemoveCells = graph.removeCells.bind(graph)
+            graph.removeCells = function (cells, includeEdges) {
+                if (cells != null && cells.length > 0) {
+                    const extra = parser.collectDeviceNameLabelsForRemoval(cells)
+                    if (extra.length > 0) {
+                        const merged = cells.slice()
+                        const seen = new Set(cells)
+                        for (const c of extra) {
+                            if (!seen.has(c)) {
+                                seen.add(c)
+                                merged.push(c)
+                            }
+                        }
+                        cells = merged
+                    }
+                }
+                return origRemoveCells(cells, includeEdges)
+            }
+        }
 
         // 说明：目前只处理移动
         // --------------------------------------------拖动处理--------------------------------------------
@@ -672,6 +699,7 @@ export default class LGSvgParser extends SvgBase {
                 mxEvent.consume(event)
             }
         })
+
     }
 
     initValidateEvt() {
@@ -2480,6 +2508,70 @@ export default class LGSvgParser extends SvgBase {
             return this.isBusbarCell(v, st)
         }
         return isEndBusbar(sv) && isEndBusbar(tv)
+    }
+
+    /**
+     * 删除图元时收集需一并移除的设备名称标签（TXT-{id}，与 syncDeviceNameLabel 一致）。
+     * @param {mxCell[]} removedCells
+     * @returns {mxCell[]}
+     */
+    collectDeviceNameLabelsForRemoval(removedCells) {
+        const graph = this.graph
+        const model = graph.getModel()
+        const txtCells = []
+        const txtSeen = new Set()
+        const removedSet = new Set(removedCells)
+
+        const pushTxt = (devId) => {
+            if (!devId) {
+                return
+            }
+            const txtId = 'TXT-' + devId
+            const txtCell = model.getCell(txtId)
+            if (txtCell && !txtSeen.has(txtCell) && !removedSet.has(txtCell)) {
+                txtSeen.add(txtCell)
+                txtCells.push(txtCell)
+            }
+        }
+
+        const visit = (cell) => {
+            if (!cell || DeviceCategoryUtil.isTextCell(cell)) {
+                return
+            }
+            const styleStr = cell.style || ''
+            if (styleStr.indexOf('group') !== -1) {
+                const children = model.getChildVertices(cell) || []
+                for (const child of children) {
+                    visit(child)
+                }
+            }
+            pushTxt(cell.id)
+            if (model.isEdge(cell)) {
+                const st = graph.getCurrentCellStyle(cell) || {}
+                if (st.txtid) {
+                    const linked = model.getCell(st.txtid)
+                    if (
+                        linked &&
+                        !txtSeen.has(linked) &&
+                        !removedSet.has(linked)
+                    ) {
+                        txtSeen.add(linked)
+                        txtCells.push(linked)
+                    }
+                }
+            } else {
+                const st = graph.getCurrentCellStyle(cell) || {}
+                if (st.txtid) {
+                    const raw = String(st.txtid)
+                    pushTxt(raw.indexOf('TXT-') === 0 ? raw.slice(4) : raw)
+                }
+            }
+        }
+
+        for (const cell of removedCells) {
+            visit(cell)
+        }
+        return txtCells
     }
 
     resolveCellDisplayName(cell, style) {
