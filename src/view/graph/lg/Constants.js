@@ -30,7 +30,7 @@ export function isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) {
     )
 }
 
-/** 0305 开关状态存为字符串 true/false：true 闭合，false 打开 */
+/** 0305 开关状态存为字符串 true/false：true 闭合，false 断开 */
 export function normalizeLgSwitchStatus(raw) {
     if (raw === true || raw === 1 || raw === '1') {
         return 'true'
@@ -44,14 +44,14 @@ export function normalizeLgSwitchStatus(raw) {
     if (s === 'true' || s === '闭合' || s === 'close' || s === 'closed' || s === '合') {
         return 'true'
     }
-    if (s === 'false' || s === '打开' || s === 'open' || s === 'opened' || s === '分') {
+    if (s === 'false' || s === '断开' || s === '打开' || s === 'open' || s === 'opened' || s === '分') {
         return 'false'
     }
     return 'true'
 }
 
 export function lgSwitchStatusLabel(statusVal) {
-    return normalizeLgSwitchStatus(statusVal) === 'false' ? '打开' : '闭合'
+    return normalizeLgSwitchStatus(statusVal) === 'false' ? '断开' : '闭合'
 }
 
 /** lgdata 导入断路器：闭合(@1 实心) ↔ 断开(@0 空心) */

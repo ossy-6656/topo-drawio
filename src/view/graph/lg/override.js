@@ -245,7 +245,7 @@ window.EditDataDialog = function(ui, cell)
             lgStyleField(statusSel, '请选择');
             var statusNorm = normalizeLgSwitchStatus(strValue);
             form.addOption(statusSel, '闭合', 'true', statusNorm === 'true');
-            form.addOption(statusSel, '打开', 'false', statusNorm === 'false');
+            form.addOption(statusSel, '断开', 'false', statusNorm === 'false');
             texts[index] = statusSel;
         } else if (isLgGeneratingUnit && name === 'type') {
             var sel = form.addCombo(displayName, false);
@@ -415,7 +415,7 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
-    // 力光侧栏「开关」(0305)：开关名称、开关状态（true 闭合 / false 打开）
+    // 力光侧栏「开关」(0305)：开关名称、开关状态（true 闭合 / false 断开）
     if (isLgSwitchDevice) {
         var switchKeys = ['name', 'status']
         var switchVals = {}
