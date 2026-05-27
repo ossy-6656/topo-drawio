@@ -4,7 +4,11 @@ import StationHandler from './StationHandler.js'
 import DeviceCategoryUtil from './DeviceCategoryUtil.js'
 import TextUtil from './TextUtil.js'
 import mathutil from '@/plugins/tmzx/mathutil.js'
-import { isLgLoadShapeOrPsr, isLgSwitchShapeOrPsr } from '@/view/graph/lg/Constants.js'
+import {
+    isLgLoadShapeOrPsr,
+    isLgSwitchShapeOrPsr,
+    lgSwitchStatusLabel,
+} from '@/view/graph/lg/Constants.js'
 
 mxGraph.prototype.splitEnabled = false
 
@@ -218,6 +222,7 @@ var tooltipAttrNameMap = {
     'Q_max': '最大无功功率',
     'Q_min': '最小无功功率',
     'P_meas': '目标出力',
+    'status': '开关状态',
     'I_Vol': '高压侧额定电压',
     'K_Vol': '中压侧额定电压',
     'J_Vol': '低压侧额定电压',
@@ -316,7 +321,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     : isLgLoadDevice
                       ? ['name', 'P', 'Q']
                       : isLgSwitchDevice
-                        ? ['name']
+                        ? ['name', 'status']
                         : isBusbarConnectorEdge
                         ? ['name', 'model', 'model_paras', 'Ih', 'length']
                         : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
@@ -363,9 +368,19 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
                     return
                 }
-                if (isLgSwitchDevice && attrName === 'name') {
-                    attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                if (
+                    isLgSwitchDevice &&
+                    (attrName === 'name' || attrName === 'status')
+                ) {
+                    if (attrName === 'status') {
+                        attrValue = lgSwitchStatusLabel(attrValue)
+                    } else {
+                        attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
+                    }
                     let dn = tooltipAttrNameMap[attrName] || attrName
+                    if (attrName === 'name') {
+                        dn = '开关名称'
+                    }
                     sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
                     return
                 }
@@ -445,7 +460,8 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     var shouldShow = !isBusbar &&
                         !isLgGeneratingUnit &&
                         !isLgTransformer &&
-                        !(isLgSwitchDevice && (attrName === 'P' || attrName === 'Q')) &&
+                        !(isLgSwitchDevice &&
+                            (attrName === 'P' || attrName === 'Q' || attrName === 'status')) &&
                         fixedAttrs.indexOf(attrName) == -1 &&
                         attrName != 'label' && attrName != 'placeholders' &&
                         attrName != 'psrtype' && attrName != 'id';

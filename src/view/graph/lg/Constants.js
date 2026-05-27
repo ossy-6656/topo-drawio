@@ -14,7 +14,7 @@ export const LG_SIDEBAR_SWITCH_ENTRIES = [
         '站内-断路器(0305)',
         LG_SIDEBAR_SWITCH_GRID_WH,
         LG_SIDEBAR_SWITCH_GRID_WH,
-        'psrtype=0305;strokeColor=none;rotation=0;rotatable=1;resizable=1;',
+        'psrtype=0305;strokeColor=none;rotation=0;rotatable=1;resizable=1;status=true;',
     ],
 ]
 
@@ -22,7 +22,143 @@ export const LG_SIDEBAR_SWITCH_ENTRIES = [
 export function isLgSwitchShapeOrPsr(shapeOrSymbol, psrtype) {
     const sym = String(shapeOrSymbol || '').toLowerCase()
     const psr = String(psrtype || '')
-    return sym === 'cbreaker' || sym.startsWith('breaker_30500000') || psr === '0305'
+    return (
+        sym === 'cbreaker' ||
+        sym === 'cbreaker_open' ||
+        sym.startsWith('breaker_30500000') ||
+        psr === '0305'
+    )
+}
+
+/** 0305 开关状态存为字符串 true/false：true 闭合，false 打开 */
+export function normalizeLgSwitchStatus(raw) {
+    if (raw === true || raw === 1 || raw === '1') {
+        return 'true'
+    }
+    if (raw === false || raw === 0 || raw === '0') {
+        return 'false'
+    }
+    const s = String(raw == null ? '' : raw)
+        .trim()
+        .toLowerCase()
+    if (s === 'true' || s === '闭合' || s === 'close' || s === 'closed' || s === '合') {
+        return 'true'
+    }
+    if (s === 'false' || s === '打开' || s === 'open' || s === 'opened' || s === '分') {
+        return 'false'
+    }
+    return 'true'
+}
+
+export function lgSwitchStatusLabel(statusVal) {
+    return normalizeLgSwitchStatus(statusVal) === 'false' ? '打开' : '闭合'
+}
+
+/** lgdata 导入断路器：闭合(@1 实心) ↔ 断开(@0 空心) */
+const LG_IMPORTED_BREAKER_CLOSED_TO_OPEN = {
+    'breaker_30500000_4030010@1': 'breaker_30500000_4030011@0',
+    'breaker_30500000_4030020@1': 'breaker_30500000_4030021@0',
+    'breaker_30500000_4100010@1': 'breaker_30500000_4100011@0',
+}
+
+/** 按 status 返回应对外展示的 mxGraph shape（null 表示无需切换） */
+export function lgSwitchBreakerShapeForStatus(currentShape, status) {
+    const sym = String(currentShape || '').toLowerCase()
+    const closed = normalizeLgSwitchStatus(status) !== 'false'
+    if (sym === 'cbreaker' || sym === 'cbreaker_open') {
+        return closed ? 'cbreaker' : 'cbreaker_open'
+    }
+    const openShape = LG_IMPORTED_BREAKER_CLOSED_TO_OPEN[sym]
+    if (openShape) {
+        return closed ? sym : openShape
+    }
+    for (const closedShape of Object.keys(LG_IMPORTED_BREAKER_CLOSED_TO_OPEN)) {
+        if (sym === LG_IMPORTED_BREAKER_CLOSED_TO_OPEN[closedShape]) {
+            return closed ? closedShape : sym
+        }
+    }
+    return null
+}
+
+/** 根据 status 刷新 0305 断路器实心/空心图元 */
+export function applyLgSwitchBreakerVisual(graph, cells) {
+    if (graph == null || cells == null) {
+        return
+    }
+    const list = Array.isArray(cells) ? cells : [cells]
+    const model = graph.getModel()
+    const toRefresh = []
+    for (let i = 0; i < list.length; i++) {
+        const cell = list[i]
+        if (cell == null || !model.isVertex(cell)) {
+            continue
+        }
+        const st = graph.getCellStyle(cell) || {}
+        const psr =
+            cell.psrtype != null && cell.psrtype !== ''
+                ? String(cell.psrtype)
+                : st.psrtype != null
+                  ? String(st.psrtype)
+                  : ''
+        const curShape = (st.shape || cell.symbol || '').toString().toLowerCase()
+        if (!isLgSwitchShapeOrPsr(curShape, psr)) {
+            continue
+        }
+        const statusRaw =
+            cell.status != null && cell.status !== ''
+                ? cell.status
+                : st.status
+        const nextShape = lgSwitchBreakerShapeForStatus(curShape, statusRaw)
+        if (nextShape && nextShape !== curShape) {
+            graph.setCellStyles('shape', nextShape, [cell])
+            if (nextShape === 'cbreaker' || nextShape === 'cbreaker_open') {
+                cell.symbol = 'cbreaker'
+            } else {
+                cell.symbol = nextShape
+            }
+            const val = model.getValue(cell)
+            if (mxUtils.isNode(val) && val.nodeName === 'attr') {
+                val.setAttribute('shape', nextShape)
+            }
+            toRefresh.push(cell)
+        }
+    }
+    for (let ri = 0; ri < toRefresh.length; ri++) {
+        graph.view.invalidate(toRefresh[ri])
+    }
+}
+
+/** 全图刷新 0305 断路器实心/空心（导入完成后、批量改 status 后） */
+export function refreshAllLgSwitchBreakerVisuals(graph) {
+    if (graph == null) {
+        return
+    }
+    const model = graph.getModel()
+    const cells = []
+    const walk = (parent) => {
+        const n = model.getChildCount(parent)
+        for (let i = 0; i < n; i++) {
+            const cell = model.getChildAt(parent, i)
+            if (model.isVertex(cell)) {
+                const st = graph.getCellStyle(cell) || {}
+                const shape = (st.shape || cell.symbol || '').toString().toLowerCase()
+                const psr =
+                    cell.psrtype != null && cell.psrtype !== ''
+                        ? String(cell.psrtype)
+                        : st.psrtype != null
+                          ? String(st.psrtype)
+                          : ''
+                if (isLgSwitchShapeOrPsr(shape, psr)) {
+                    cells.push(cell)
+                }
+            }
+            if (model.isVertex(cell) && model.getChildCount(cell) > 0) {
+                walk(cell)
+            }
+        }
+    }
+    walk(graph.getDefaultParent())
+    applyLgSwitchBreakerVisual(graph, cells)
 }
 
 /** 左侧「负荷」面板：默认宽高与 lgdata.js 内嵌 symbol（3×3）一致，× getScale 后与解析图元一致 */

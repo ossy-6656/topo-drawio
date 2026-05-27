@@ -17,7 +17,9 @@ import {
     isLgPtUserShapeOrPsr,
     isLgSidebarRotatableShapeOrPsr,
     isLgSwitchShapeOrPsr,
+    applyLgSwitchBreakerVisual,
     lgSidebarDeviceIdsByLengthDesc,
+    refreshAllLgSwitchBreakerVisuals,
 } from './Constants.js'
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js'
 import SvgBase from '../common/SvgBase.js'
@@ -681,6 +683,15 @@ export default class LGSvgParser extends SvgBase {
                     if (cell.psrtype == null || cell.psrtype === '') {
                         cell.psrtype = '0305'
                     }
+                    const st = graph.getCellStyle(cell)
+                    if (
+                        (cell.status == null || cell.status === '') &&
+                        (!st || st.status == null || st.status === '')
+                    ) {
+                        graph.setCellStyles('status', 'true', [cell])
+                        cell.status = 'true'
+                    }
+                    applyLgSwitchBreakerVisual(graph, [cell])
                 }
                 if (isLgSidebarRotatableShapeOrPsr(shape, psr)) {
                     rotatableSidebarCells.push(cell)
@@ -2401,7 +2412,8 @@ export default class LGSvgParser extends SvgBase {
             return null
         }
         if (
-            symLower.startsWith('breaker_30500000')
+            symLower.startsWith('breaker_30500000') ||
+            symLower === 'cbreaker_open'
         ) {
             return 'cbreaker'
         }
@@ -2493,6 +2505,7 @@ export default class LGSvgParser extends SvgBase {
             shape === 'xb' ||
             shape === 'ptuser' ||
             shape === 'cbreaker' ||
+            shape === 'cbreaker_open' ||
             shape === 'generatingunit' ||
             shape === 'potentialtransformer2w' ||
             shape === 'potentialtransformer3w' ||
@@ -3177,6 +3190,8 @@ export default class LGSvgParser extends SvgBase {
 
         markAllLgDakuixianCells(graph)
 
+        refreshAllLgSwitchBreakerVisuals(graph)
+
         this.captureImportedDeviceSnapshot()
 
         this.initValidateEvt()
@@ -3255,7 +3270,7 @@ export default class LGSvgParser extends SvgBase {
                 list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
                 continue
             }
-            if (shape === 'cbreaker') {
+            if (shape === 'cbreaker' || shape === 'cbreaker_open') {
                 list.push({ graphId: idStr, category: 'breaker', name, breakerid: String(cell.id) })
                 continue
             }

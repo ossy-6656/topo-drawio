@@ -13,6 +13,9 @@ import {
     isLgSidebarRotatableShapeOrPsr,
     isLgSwitchShapeOrPsr,
     lgSidebarPaletteTitleForShape,
+    applyLgSwitchBreakerVisual,
+    lgSwitchStatusLabel,
+    normalizeLgSwitchStatus,
 } from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
 
@@ -182,6 +185,7 @@ window.EditDataDialog = function(ui, cell)
     // 属性名称中英文映射
     var attrNameMap = {
         'name': '设备名称',
+        'status': '开关状态',
         'switchrolename': '开关作用',
         'pubprivflag': '营配标识',
         'psrtype': 'PSR类型',
@@ -233,7 +237,17 @@ window.EditDataDialog = function(ui, cell)
         if (isLgTransformer && name === 'model') {
             displayName = '变压器型号';
         }
-        if (isLgGeneratingUnit && name === 'type') {
+        if (isLgSwitchDevice && name === 'name') {
+            displayName = '开关名称';
+        }
+        if (isLgSwitchDevice && name === 'status') {
+            var statusSel = form.addCombo('开关状态', false);
+            lgStyleField(statusSel, '请选择');
+            var statusNorm = normalizeLgSwitchStatus(strValue);
+            form.addOption(statusSel, '闭合', 'true', statusNorm === 'true');
+            form.addOption(statusSel, '打开', 'false', statusNorm === 'false');
+            texts[index] = statusSel;
+        } else if (isLgGeneratingUnit && name === 'type') {
             var sel = form.addCombo(displayName, false);
             lgStyleField(sel, '请选择');
             var typeOpts = [
@@ -401,14 +415,19 @@ window.EditDataDialog = function(ui, cell)
         }
     }
 
-    // 力光侧栏「开关」(0305)：仅设备名称，不展示有功/无功功率
+    // 力光侧栏「开关」(0305)：开关名称、开关状态（true 闭合 / false 打开）
     if (isLgSwitchDevice) {
-        var switchKeys = ['name']
+        var switchKeys = ['name', 'status']
         var switchVals = {}
         for (var si = 0; si < switchKeys.length; si++) {
             var sk = switchKeys[si]
             var svRaw = cell[sk] != null && cell[sk] !== '' ? cell[sk] : cellStyle[sk]
-            switchVals[sk] = svRaw != null && svRaw !== '' ? String(svRaw) : ''
+            if (sk === 'status') {
+                switchVals[sk] = normalizeLgSwitchStatus(svRaw)
+            } else {
+                switchVals[sk] =
+                    svRaw != null && svRaw !== '' ? String(svRaw) : ''
+            }
         }
         temp = temp.filter(function (item) {
             var n = item.name
@@ -685,7 +704,7 @@ window.EditDataDialog = function(ui, cell)
             return 0;
         });
     } else if (isLgSwitchDevice) {
-        var switchOrderPref = { name: 0, id: 98, shape: 99 };
+        var switchOrderPref = { name: 0, status: 1, id: 98, shape: 99 };
         temp.sort(function (a, b) {
             var oa = Object.prototype.hasOwnProperty.call(switchOrderPref, a.name) ? switchOrderPref[a.name] : 50;
             var ob = Object.prototype.hasOwnProperty.call(switchOrderPref, b.name) ? switchOrderPref[b.name] : 50;
@@ -946,13 +965,19 @@ window.EditDataDialog = function(ui, cell)
                     }
                 }
                 if (isLgSwitchDevice) {
+                    var switchStyleKeys = ['name', 'status']
                     for (var six = 0; six < names.length; six++) {
-                        if (names[six] !== 'name') {
+                        if (switchStyleKeys.indexOf(names[six]) < 0) {
                             continue
                         }
                         var ssv = texts[six] != null ? texts[six].value : ''
-                        graph.setCellStyles('name', ssv, [cell])
+                        if (names[six] === 'status') {
+                            ssv = normalizeLgSwitchStatus(ssv)
+                        }
+                        graph.setCellStyles(names[six], ssv, [cell])
+                        cell[names[six]] = ssv
                     }
+                    applyLgSwitchBreakerVisual(graph, [cell])
                 }
                 if (isBusbar) {
                     var busName = ''

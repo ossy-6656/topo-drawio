@@ -4,7 +4,7 @@
 import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import mathutil from '@/plugins/tmzx/mathutil.js'
-import { isLgSwitchShapeOrPsr } from './Constants.js'
+import { applyLgSwitchBreakerVisual, isLgSwitchShapeOrPsr } from './Constants.js'
 
 /** 拖放到虚线时的命中容差（屏幕像素） */
 const LG_BREAKER_DASHED_LINE_HIT_PX = 28
@@ -341,6 +341,15 @@ export function alignBreakerAfterSplitEdge(graph, breaker, edgeKept, edgeNew) {
 
         breaker.symbol = 'cbreaker'
         breaker.psrtype = '0305'
+        const brStyle = graph.getCellStyle(breaker)
+        if (
+            (breaker.status == null || breaker.status === '') &&
+            (!brStyle || brStyle.status == null || brStyle.status === '')
+        ) {
+            graph.setCellStyles('status', 'true', [breaker])
+            breaker.status = 'true'
+        }
+        applyLgSwitchBreakerVisual(graph, [breaker])
 
         assignLgBreakerObjectId(model, breaker)
 
