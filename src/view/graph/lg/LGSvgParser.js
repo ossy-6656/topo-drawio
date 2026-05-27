@@ -19,6 +19,7 @@ import {
     isLgSwitchShapeOrPsr,
     lgSidebarDeviceIdsByLengthDesc,
 } from './Constants.js'
+import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js'
 import SvgBase from '../common/SvgBase.js'
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js'
 import Line2LineUtil  from '../common/Line2LineUtil.js'
@@ -691,6 +692,8 @@ export default class LGSvgParser extends SvgBase {
             }
         })
 
+        installLgBreakerEdgeDrop(graph)
+
         // 禁用双击编辑
         graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
             let event = evt.getProperty('event')
@@ -715,13 +718,30 @@ export default class LGSvgParser extends SvgBase {
                 return
             }
 
+            const isLgBreakerCell = (cell) => {
+                if (cell == null || !model.isVertex(cell)) {
+                    return false
+                }
+                const st = graph.getCurrentCellStyle(cell) || {}
+                const shape = st.shape || cell.symbol || ''
+                const psr =
+                    cell.psrtype != null && cell.psrtype !== ''
+                        ? cell.psrtype
+                        : st.psrtype
+                return isLgSwitchShapeOrPsr(shape, psr)
+            }
+
             model.beginUpdate()
             try {
                 if (edge.id_sc) {
                     let id_sc = edge.id_sc
                     let sc_cell = model.getCell(id_sc)
 
-                    if (edge.source != sc_cell) {
+                    if (
+                        edge.source != sc_cell &&
+                        sc_cell != null &&
+                        !isLgBreakerCell(edge.source)
+                    ) {
                         graph.setCellStyles('exitX', edge.exitX_sc, [edge])
                         graph.setCellStyles('exitY', edge.exitY_sc, [edge])
                         graph.setCellStyles('exitPerimeter', 0, [edge])
@@ -733,7 +753,11 @@ export default class LGSvgParser extends SvgBase {
                     let id_tc = edge.id_tc
                     let tc_cell = model.getCell(id_tc)
 
-                    if (edge.target != tc_cell) {
+                    if (
+                        edge.target != tc_cell &&
+                        tc_cell != null &&
+                        !isLgBreakerCell(edge.target)
+                    ) {
                         graph.setCellStyles('entryX', edge.entryX_tc, [edge])
                         graph.setCellStyles('entryY', edge.entryY_tc, [edge])
                         graph.setCellStyles('entryPerimeter', 0, [edge])
@@ -2789,7 +2813,8 @@ export default class LGSvgParser extends SvgBase {
         // graph.gridEnabled = false;
         // graph.setGridEnabled(false);
 
-        graph.setDropEnabled(false)
+        // 须开启 drop，侧栏断路器拖放到连接线/虚线上才能识别 target 并 splitEdge
+        graph.setDropEnabled(true)
         graph.graphHandler.setRemoveCellsFromParent(false)
         graph.graphHandler.setCloneEnabled(false)
         graph.connectionHandler.setEnabled(false)
