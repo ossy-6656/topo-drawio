@@ -5846,14 +5846,14 @@ App.prototype.saveFile = function (forceDialog, success)
                 svg: codedSvg,
                 svg_file: svg_file || svg,
                 cime_file: cime_file || '',
-                add: add || { bus: [], line: [], transformer: [], gen: [], load: [] },
-                delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                add: add || { bus: [], line: [], transformer: [], gen: [], load: [], switch: [] },
+                delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [], switch: [] },
                 deviceSubmit:
                     deviceSubmit || {
                         svg_file: '',
                         cime_file: '',
-                        add: add || { bus: [], line: [], transformer: [], gen: [], load: [] },
-                        delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [] },
+                        add: add || { bus: [], line: [], transformer: [], gen: [], load: [], switch: [] },
+                        delete: delPayload || { bus: [], line: [], transformer: [], gen: [], load: [], switch: [] },
                     },
             }
 

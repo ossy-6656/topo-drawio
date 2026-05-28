@@ -3270,8 +3270,27 @@ export default class LGSvgParser extends SvgBase {
                 list.push({ graphId: idStr, category: 'load', name, loadid: String(cell.id) })
                 continue
             }
-            if (shape === 'cbreaker' || shape === 'cbreaker_open') {
-                list.push({ graphId: idStr, category: 'breaker', name, breakerid: String(cell.id) })
+            if (isLgSwitchShapeOrPsr(shape, psrtype)) {
+                let switchid = ''
+                let val = model.getValue(cell)
+                if (mxUtils.isNode(val) && val.getAttribute('switchid')) {
+                    switchid = String(val.getAttribute('switchid')).replace(/-/g, '')
+                }
+                if (!switchid && cell.switchid != null && cell.switchid !== '') {
+                    switchid = String(cell.switchid).replace(/-/g, '')
+                }
+                if (!switchid) {
+                    let pm = this.attrMap.get(idStr)
+                    let psr = pm && pm['cge:PSR_Ref']
+                    if (psr && psr.GlobeID) {
+                        switchid = String(psr.GlobeID).replace(/-/g, '')
+                    }
+                }
+                if (!switchid) {
+                    let m = String(cell.id || '').match(/^PD_0305_(.+)$/i)
+                    switchid = m ? m[1].replace(/-/g, '') : String(cell.id).replace(/-/g, '')
+                }
+                list.push({ graphId: idStr, category: 'switch', name, switchid })
                 continue
             }
             if (

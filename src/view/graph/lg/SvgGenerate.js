@@ -3,7 +3,7 @@ import SymbolUtil from "@/plugins/tmzx/graph/SymbolUtil.js";
 import Mathutil from '@/plugins/tmzx/mathutil.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
-import { isLgLoadShapeOrPsr } from './Constants.js'
+import { isLgLoadShapeOrPsr, isLgSwitchShapeOrPsr, normalizeLgSwitchStatus } from './Constants.js'
 
 
 export default function SvgGenerate(ui, svgTxtObj, svgParser) {
@@ -1563,6 +1563,154 @@ SvgGenerate.prototype.getBusEndpointPairForSubmit = function (busCell) {
     return [bid, this.getBusNameForSubmit(busCell)]
 }
 
+/** 从 pending 回写列表读取已生成的提交 ID */
+SvgGenerate.prototype.getPendingAttr = function (cell, pending, key) {
+    if (!pending || !cell) {
+        return ''
+    }
+    for (let i = 0; i < pending.length; i++) {
+        let item = pending[i]
+        if (!item || item.cell !== cell) {
+            continue
+        }
+        if (item[key] != null && item[key] !== '') {
+            return String(item[key]).replace(/-/g, '')
+        }
+        if (item.attrs && item.attrs[key] != null && item.attrs[key] !== '') {
+            return String(item.attrs[key]).replace(/-/g, '')
+        }
+    }
+    return ''
+}
+
+/**
+ * 提交用连接节点 [id, name]（母线、负荷、机组、变压器、开关等，不限于母线）
+ */
+SvgGenerate.prototype.getEndpointPairForSubmit = function (nodeCell, pending) {
+    if (!nodeCell) {
+        return ['', '']
+    }
+    if (DeviceCategoryUtil.isBusCell(nodeCell)) {
+        let pair = this.getBusEndpointPairForSubmit(nodeCell)
+        let pid = this.getPendingAttr(nodeCell, pending, 'busid')
+        if (pid) {
+            pair[0] = pid
+        }
+        return [pair[0], String(pair[1])]
+    }
+    let graph = this.graph
+    let st = graph.view.getState(nodeCell)
+    let style = st ? st.style : {}
+    let shape = ((style.shape || nodeCell.symbol || '') + '').toLowerCase()
+    let psrtype =
+        nodeCell.psrtype != null && nodeCell.psrtype !== ''
+            ? String(nodeCell.psrtype)
+            : style.psrtype != null && style.psrtype !== ''
+              ? String(style.psrtype)
+              : ''
+    let id = ''
+    if (isLgSwitchShapeOrPsr(shape, psrtype)) {
+        id = this.pickCellAttr(nodeCell, 'switchid').replace(/-/g, '')
+        if (!id) {
+            id = this.getPendingAttr(nodeCell, pending, 'switchid')
+        }
+        if (!id) {
+            let m = String(nodeCell.id || '').match(/^PD_0305_(.+)$/i)
+            id = m ? m[1].replace(/-/g, '') : String(nodeCell.id || '').replace(/-/g, '')
+        }
+    } else if (shape === 'generatingunit') {
+        id = this.pickCellAttr(nodeCell, 'unitid').replace(/-/g, '')
+        if (!id) {
+            id = this.getPendingAttr(nodeCell, pending, 'unitid')
+        }
+    } else if (isLgLoadShapeOrPsr(shape, psrtype)) {
+        id = this.pickCellAttr(nodeCell, 'loadid').replace(/-/g, '')
+        if (!id) {
+            id = this.getPendingAttr(nodeCell, pending, 'loadid')
+        }
+    } else if (
+        shape === 'potentialtransformer2w' ||
+        shape === 'potentialtransformer3w' ||
+        shape.indexOf('potentialtransformer2w_') === 0 ||
+        shape.indexOf('potentialtransformer3w_') === 0
+    ) {
+        id = this.pickCellAttr(nodeCell, 'transformerid').replace(/-/g, '')
+        if (!id) {
+            id = this.getPendingAttr(nodeCell, pending, 'transformerid')
+        }
+    } else {
+        id = this.pickCellAttr(nodeCell, 'busid').replace(/-/g, '')
+        if (!id) {
+            let propMap = this.attrMap && this.attrMap.get(nodeCell.id)
+            let psr = propMap && propMap['cge:PSR_Ref']
+            if (psr && psr.GlobeID) {
+                id = String(psr.GlobeID).replace(/-/g, '')
+            }
+        }
+        if (!id) {
+            id = String(nodeCell.id || '').replace(/-/g, '')
+        }
+    }
+    let name =
+        this.pickCellAttr(nodeCell, 'name') ||
+        (nodeCell.name != null && nodeCell.name !== '' ? String(nodeCell.name) : '')
+    if (!name) {
+        name = this.getBusNameForSubmit(nodeCell)
+    }
+    return [id, String(name)]
+}
+
+/** 开关两端连接节点（去重后按 id 排序，取前两个） */
+SvgGenerate.prototype.getSwitchEndpointPairsForSubmit = function (switchCell, pending) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let edges = model.getEdges(switchCell) || []
+    let pairs = []
+    let seen = new Set()
+    for (let ei = 0; ei < edges.length; ei++) {
+        let edge = edges[ei]
+        let s = model.getTerminal(edge, true)
+        let t = model.getTerminal(edge, false)
+        let o = s === switchCell ? t : t === switchCell ? s : null
+        if (!o) {
+            continue
+        }
+        let oid = String(o.id || '')
+        if (seen.has(oid)) {
+            continue
+        }
+        seen.add(oid)
+        pairs.push(this.getEndpointPairForSubmit(o, pending))
+    }
+    pairs.sort(function (a, b) {
+        return String(a[0]).localeCompare(String(b[0]))
+    })
+    return pairs
+}
+
+/** 提交用站内断路器(0305)唯一 ID（无横线 UUID） */
+SvgGenerate.prototype.resolveSwitchSubmitId = function (cell, pending) {
+    let fromAttr = this.pickCellAttr(cell, 'switchid').replace(/-/g, '')
+    if (fromAttr) {
+        return fromAttr
+    }
+    let propMap = this.attrMap && this.attrMap.get(cell.id)
+    let psr = propMap && propMap['cge:PSR_Ref']
+    if (psr && psr.GlobeID) {
+        return String(psr.GlobeID).replace(/-/g, '')
+    }
+    let cid = String(cell.id || '')
+    let m = cid.match(/^PD_0305_(.+)$/i)
+    if (m) {
+        return m[1].replace(/-/g, '')
+    }
+    let newId = this.generateUuid().replace(/-/g, '')
+    if (pending) {
+        pending.push({ cell: cell, attrs: { switchid: newId } })
+    }
+    return newId
+}
+
 /**
  * 保存接口 add.bus：仅「新增」母线（侧栏拖入等），不含 SVG 导入时已存在的母线。
  * 判定：导入解析时写入 svgParser.attrMap 的为旧数据；无 attrMap 记录的为新数据。
@@ -1631,8 +1779,17 @@ SvgGenerate.prototype.collectBusSubmitPayload = function () {
     let transformer = this.collectTransformerSubmitPayload(pending)
     let gen = this.collectGenSubmitPayload(pending)
     let load = this.collectLoadSubmitPayload(pending)
+    let switchList = this.collectSwitchSubmitPayload(pending)
 
-    return { bus: bus, line: line, transformer: transformer, gen: gen, load: load, pending: pending }
+    return {
+        bus: bus,
+        line: line,
+        transformer: transformer,
+        gen: gen,
+        load: load,
+        switch: switchList,
+        pending: pending,
+    }
 }
 
 /**
@@ -2017,6 +2174,79 @@ SvgGenerate.prototype.collectTransformerSubmitPayload = function (pending) {
 }
 
 /**
+ * 新增：站内断路器(0305)（侧栏拖入或分割连接线生成，attrMap 中无记录）
+ */
+SvgGenerate.prototype.collectSwitchSubmitPayload = function (pending) {
+    let graph = this.graph
+    let model = graph.getModel()
+    let list = graph.getVerticesAndEdges()
+    let attrMap = this.attrMap
+    let out = []
+    for (let i = 0; i < list.length; i++) {
+        let cell = list[i]
+        if (!model.isVertex(cell)) {
+            continue
+        }
+        if (attrMap && attrMap.has(cell.id)) {
+            continue
+        }
+        if (
+            cell.flag == 'range' ||
+            cell.flag == 'pointline' ||
+            cell.flag == 'virtualCell' ||
+            cell.flag == 'virtualLine'
+        ) {
+            continue
+        }
+        let st = graph.view.getState(cell)
+        let style = st ? st.style : {}
+        let shape = ((style.shape || cell.symbol || '') + '').toLowerCase()
+        let psrtype =
+            cell.psrtype != null && cell.psrtype !== ''
+                ? String(cell.psrtype)
+                : style.psrtype != null && style.psrtype !== ''
+                  ? String(style.psrtype)
+                  : ''
+        if (!isLgSwitchShapeOrPsr(shape, psrtype)) {
+            continue
+        }
+        let switchid = this.resolveSwitchSubmitId(cell, pending)
+        let statusRaw = this.pickCellAttr(cell, 'status')
+        if (!statusRaw && cell.status != null && cell.status !== '') {
+            statusRaw = String(cell.status)
+        }
+        let statusClosed = normalizeLgSwitchStatus(statusRaw) !== 'false'
+        let endpoints = this.getSwitchEndpointPairsForSubmit(cell, pending)
+        let fromPair = endpoints[0] || ['', '']
+        let toPair = endpoints[1] || ['', '']
+        out.push({
+            name:
+                this.pickCellAttr(cell, 'name') ||
+                (cell.name != null && cell.name !== '' ? String(cell.name) : ''),
+            status: statusClosed,
+            switchid: switchid,
+            from_bus: [fromPair[0], String(fromPair[1])],
+            to_bus: [toPair[0], String(toPair[1])],
+        })
+    }
+    return out
+}
+
+/** 删除提交用站内断路器 switchid（无横线） */
+SvgGenerate.prototype.resolveSwitchDeleteId = function (rec) {
+    if (!rec) {
+        return ''
+    }
+    let sid = rec.switchid || rec.breakerid || rec.graphId || ''
+    sid = String(sid).replace(/-/g, '')
+    if (!sid) {
+        return ''
+    }
+    let m = sid.match(/^PD_0305_(.+)$/i)
+    return m ? m[1].replace(/-/g, '') : sid
+}
+
+/**
  * 删除：相对 parseSvg 完成时的导入快照，图中已不存在的图元。
  */
 SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
@@ -2026,6 +2256,7 @@ SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
         transformer: [],
         gen: [],
         load: [],
+        switch: [],
     }
     let snap = this.svgParser && this.svgParser.importedDeviceSnapshot
     if (!snap || snap.length === 0) {
@@ -2044,6 +2275,7 @@ SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
         transformer: [],
         gen: [],
         load: [],
+        switch: [],
     }
     for (let si = 0; si < snap.length; si++) {
         let rec = snap[si]
@@ -2060,6 +2292,11 @@ SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
             del.gen.push({ name: rec.name || '', unitid: rec.unitid || '' })
         } else if (rec.category === 'load') {
             del.load.push({ name: rec.name || '', loadid: rec.loadid || '' })
+        } else if (rec.category === 'switch' || rec.category === 'breaker') {
+            del.switch.push({
+                name: rec.name || '',
+                switchid: this.resolveSwitchDeleteId(rec),
+            })
         }
     }
     return del
@@ -2321,6 +2558,7 @@ SvgGenerate.prototype.parseGraph = function ()
         transformer: busPayload.transformer || [],
         gen: busPayload.gen || [],
         load: busPayload.load || [],
+        switch: busPayload.switch || [],
     }
 
     return {
