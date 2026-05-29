@@ -565,7 +565,13 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;strokeWidth=0.4;strokeColor=rgb(185,72,66);'
                             const lgDashedVerticalLineStyle =
                                 lgStraightVerticalLineStyle + 'dashed=1;dashPattern=2 1;'
-                            const lgLineFns = [
+                            const createLgPaletteLineBreak = () =>
+                                function () {
+                                    const br = document.createElement('div')
+                                    br.className = 'lgSidebarPaletteLineBreak'
+                                    return br
+                                }
+                            const lgBusLineFns = [
                                 ui.sidebar.createEdgeTemplateEntry(
                                     lgStraightVerticalLineStyle,
                                     50,
@@ -576,6 +582,18 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     null,
                                     '母线连接线 母线-母线 实线'
                                 ),
+                                ui.sidebar.createEdgeTemplateEntry(
+                                    lgDashedVerticalLineStyle,
+                                    50,
+                                    50,
+                                    '',
+                                    '虚线母线连接线',
+                                    null,
+                                    null,
+                                    '虚线母线连接线 母线-母线'
+                                ),
+                            ]
+                            const lgNormalLineFns = [
                                 ui.sidebar.createEdgeTemplateEntry(
                                     lgStraightVerticalLineStyle,
                                     50,
@@ -591,21 +609,16 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     50,
                                     50,
                                     '',
-                                    '虚线母线连接线',
-                                    null,
-                                    null,
-                                    '虚线母线连接线 母线-母线'
-                                ),
-                                ui.sidebar.createEdgeTemplateEntry(
-                                    lgDashedVerticalLineStyle,
-                                    50,
-                                    50,
-                                    '',
                                     '虚线连接线',
                                     null,
                                     null,
                                     '虚线连接线 普通 设备'
                                 ),
+                            ]
+                            const lgLineFns = [
+                                ...lgBusLineFns,
+                                createLgPaletteLineBreak(),
+                                ...lgNormalLineFns,
                             ]
 
                             // 侧栏分类顺序：母线、连接线、变压器、机组、开关、负荷（便笺本仍追加到「负荷」）
@@ -842,6 +855,14 @@ onActivated(() => {
     display: block !important;
     visibility: visible !important;
     text-align: left !important;
+}
+
+/* 连接线面板：母线连接线与普通连接线分行展示 */
+::v-deep .geSidebar .lgSidebarPaletteLineBreak {
+    display: block;
+    width: 100%;
+    height: 0;
+    clear: both;
 }
 
 ::v-deep .geHsplit {
