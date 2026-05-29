@@ -17,6 +17,7 @@ import {
     isLgPtUserShapeOrPsr,
     isLgSidebarRotatableShapeOrPsr,
     isLgSwitchShapeOrPsr,
+    normalizeLgSwitchStatus,
     applyLgSwitchBreakerVisual,
     lgSidebarDeviceIdsByLengthDesc,
     refreshAllLgSwitchBreakerVisuals,
@@ -3290,7 +3291,25 @@ export default class LGSvgParser extends SvgBase {
                     let m = String(cell.id || '').match(/^PD_0305_(.+)$/i)
                     switchid = m ? m[1].replace(/-/g, '') : String(cell.id).replace(/-/g, '')
                 }
-                list.push({ graphId: idStr, category: 'switch', name, switchid })
+                let statusRaw = ''
+                if (cell.status != null && cell.status !== '') {
+                    statusRaw = String(cell.status)
+                } else if (style.status != null && style.status !== '') {
+                    statusRaw = String(style.status)
+                } else {
+                    let val = model.getValue(cell)
+                    if (mxUtils.isNode(val) && val.getAttribute('status')) {
+                        statusRaw = String(val.getAttribute('status'))
+                    }
+                }
+                let statusClosed = normalizeLgSwitchStatus(statusRaw) !== 'false'
+                list.push({
+                    graphId: idStr,
+                    category: 'switch',
+                    name,
+                    switchid,
+                    status: statusClosed,
+                })
                 continue
             }
             if (

@@ -2302,6 +2302,49 @@ SvgGenerate.prototype.collectDeleteSubmitPayload = function () {
     return del
 }
 
+/**
+ * 修改：相对 parseSvg 完成时的导入快照，仍在图中且开关状态已变更的图元。
+ */
+SvgGenerate.prototype.collectModifySubmitPayload = function () {
+    let empty = { switch: [] }
+    let snap = this.svgParser && this.svgParser.importedDeviceSnapshot
+    if (!snap || snap.length === 0) {
+        return empty
+    }
+    let graph = this.graph
+    let model = graph.getModel()
+    let out = []
+    for (let si = 0; si < snap.length; si++) {
+        let rec = snap[si]
+        if (rec.category !== 'switch' && rec.category !== 'breaker') {
+            continue
+        }
+        if (rec.status === undefined) {
+            continue
+        }
+        let cell = model.getCell(rec.graphId)
+        if (!cell) {
+            continue
+        }
+        let statusRaw = this.pickCellAttr(cell, 'status')
+        if (!statusRaw && cell.status != null && cell.status !== '') {
+            statusRaw = String(cell.status)
+        }
+        let statusClosed = normalizeLgSwitchStatus(statusRaw) !== 'false'
+        if (statusClosed === rec.status) {
+            continue
+        }
+        out.push({
+            name:
+                this.pickCellAttr(cell, 'name') ||
+                (rec.name != null && rec.name !== '' ? String(rec.name) : ''),
+            switchid: this.resolveSwitchDeleteId(rec),
+            status: statusClosed,
+        })
+    }
+    return { switch: out }
+}
+
 SvgGenerate.prototype.applyPendingBusIds = function (pending) {
     if (!pending || pending.length === 0) {
         return
@@ -2549,6 +2592,7 @@ SvgGenerate.prototype.parseGraph = function ()
     let svgStr = buffer.join('')
     let busPayload = this.collectBusSubmitPayload()
     let deletePayload = this.collectDeleteSubmitPayload()
+    let modifyPayload = this.collectModifySubmitPayload()
     this.applyPendingBusIds(busPayload.pending)
     this.applyPendingSubmitAttrs(busPayload.pending)
 
@@ -2569,11 +2613,13 @@ SvgGenerate.prototype.parseGraph = function ()
         cime_file: '',
         add: addPayload,
         delete: deletePayload,
+        modify: modifyPayload,
         deviceSubmit: {
             svg_file: '',
             cime_file: '',
             add: addPayload,
             delete: deletePayload,
+            modify: modifyPayload,
         },
     }
 }
