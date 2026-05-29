@@ -299,6 +299,52 @@ function reconnectSplitEdges(graph, breaker, edgeKept, edgeNew, termKept, termNe
     updateLgEdgeLockFromTerminals(graph, edgeNew)
 }
 
+/** 分割后两段虚线线宽、stroke 与导入线一致（新线段无 attrMap 时从原线复制） */
+function syncLgDashedEdgeStrokeAfterSplit(graph, edgeKept, edgeNew) {
+    const list = [edgeKept, edgeNew].filter((e) => e && isLgDashedConnLine(graph, e))
+    if (list.length < 2) {
+        return
+    }
+    let strokeW = 0.4
+    for (let i = 0; i < list.length; i++) {
+        const obj = TextUtil.parseDrawioStyle(list[i].style || '')
+        const sw = parseFloat(obj.strokeWidth)
+        if (!isNaN(sw) && sw > 0) {
+            strokeW = sw
+            break
+        }
+    }
+    graph.setCellStyles('strokeWidth', strokeW, list)
+
+    const parser = graph.lgSvgParser
+    if (!parser || !parser.attrMap) {
+        return
+    }
+    const pmA = edgeKept && parser.attrMap.get(edgeKept.id)
+    const pmB = edgeNew && parser.attrMap.get(edgeNew.id)
+    let srcPm = null
+    let targetEdge = null
+    if (pmA && !pmB) {
+        srcPm = pmA
+        targetEdge = edgeNew
+    } else if (pmB && !pmA) {
+        srcPm = pmB
+        targetEdge = edgeKept
+    }
+    if (!srcPm || !targetEdge) {
+        return
+    }
+    const copy = { ...(parser.attrMap.get(targetEdge.id) || {}) }
+    const keys = ['cls', 'stroke', 'strokeWidth', 'strokeDasharray']
+    for (let ki = 0; ki < keys.length; ki++) {
+        const k = keys[ki]
+        if (srcPm[k] != null && srcPm[k] !== '') {
+            copy[k] = srcPm[k]
+        }
+    }
+    parser.attrMap.set(targetEdge.id, copy)
+}
+
 export function alignBreakerAfterSplitEdge(graph, breaker, edgeKept, edgeNew) {
     if (graph == null || breaker == null || edgeKept == null || edgeNew == null) {
         return
@@ -363,10 +409,17 @@ export function alignBreakerAfterSplitEdge(graph, breaker, edgeKept, edgeNew) {
 
         reconnectSplitEdges(graph, breaker, edgeKept, edgeNew, termKept, termNew)
 
+        syncLgDashedEdgeStrokeAfterSplit(graph, edgeKept, edgeNew)
+
         graph.view.invalidate(breaker)
         graph.view.invalidate(edgeKept)
         graph.view.invalidate(edgeNew)
         graph.refresh()
+
+        const parser = graph.lgSvgParser
+        if (parser && typeof parser.applyLgSwitchDragSizeToCell === 'function') {
+            parser.applyLgSwitchDragSizeToCell(graph, breaker)
+        }
     } finally {
         model.endUpdate()
     }
@@ -570,11 +623,14 @@ function tryConnectBreakerToNearbyLine(graph, breaker) {
 
 let splitTargetPatched = false
 
-export function installLgBreakerEdgeDrop(graph) {
+export function installLgBreakerEdgeDrop(graph, svgParser) {
     if (graph == null || graph._lgBreakerEdgeDropInstalled) {
         return
     }
     graph._lgBreakerEdgeDropInstalled = true
+    if (svgParser) {
+        graph.lgSvgParser = svgParser
+    }
     graph.splitEnabled = true
     graph.setDropEnabled(true)
 

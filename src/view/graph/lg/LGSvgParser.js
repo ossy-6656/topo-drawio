@@ -21,6 +21,8 @@ import {
     applyLgSwitchBreakerVisual,
     lgSidebarDeviceIdsByLengthDesc,
     refreshAllLgSwitchBreakerVisuals,
+    LG_LGDATA_BREAKER_TYPICAL_USE_SCALE,
+    LG_SIDEBAR_SWITCH_GRID_WH,
 } from './Constants.js'
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js'
 import SvgBase from '../common/SvgBase.js'
@@ -693,6 +695,7 @@ export default class LGSvgParser extends SvgBase {
                         cell.status = 'true'
                     }
                     applyLgSwitchBreakerVisual(graph, [cell])
+                    parser.applyLgSwitchDragSizeToCell(graph, cell)
                 }
                 if (isLgSidebarRotatableShapeOrPsr(shape, psr)) {
                     rotatableSidebarCells.push(cell)
@@ -704,7 +707,8 @@ export default class LGSvgParser extends SvgBase {
             }
         })
 
-        installLgBreakerEdgeDrop(graph)
+        graph.lgSvgParser = this
+        installLgBreakerEdgeDrop(graph, this)
 
         // 禁用双击编辑
         graph.addListener(mxEvent.DOUBLE_CLICK, function (sender, evt) {
@@ -2433,6 +2437,93 @@ export default class LGSvgParser extends SvgBase {
         return null
     }
 
+    /**
+     * 侧栏/拖入 cbreaker 目标尺寸：与 lgdata Breaker_30500000 一致（方形取原图元较长边）。
+     */
+    computeLgSwitchDragSizeFromReference() {
+        const s = this.getScale() || 1
+        const map = this.getSymbolMap() || {}
+        let bestW = 0
+        let bestH = 0
+        for (const k of Object.keys(map)) {
+            if (!k.startsWith('breaker_30500000')) {
+                continue
+            }
+            const e = map[k]
+            const iw = Number(e.initWidth)
+            const ih = Number(e.initHeight)
+            if (!(iw > 0) || !(ih > 0)) {
+                continue
+            }
+            const w = iw * LG_LGDATA_BREAKER_TYPICAL_USE_SCALE * s
+            const h = ih * LG_LGDATA_BREAKER_TYPICAL_USE_SCALE * s
+            if (w > bestW) {
+                bestW = w
+            }
+            if (h > bestH) {
+                bestH = h
+            }
+        }
+        if (bestW > 0 && bestH > 0) {
+            const side = Math.max(bestW, bestH)
+            return { w: side, h: side }
+        }
+        const grid = Number(LG_SIDEBAR_SWITCH_GRID_WH) > 0 ? Number(LG_SIDEBAR_SWITCH_GRID_WH) : 10
+        const side = grid * s * (LG_LGDATA_BREAKER_TYPICAL_USE_SCALE / 3)
+        return { w: side, h: side }
+    }
+
+    getLgSwitchDragSize() {
+        const d = this.shapeDragDefaults && this.shapeDragDefaults.cbreaker
+        if (d && d.w > 0 && d.h > 0) {
+            const side = Math.max(d.w, d.h)
+            return { w: side, h: side }
+        }
+        return this.computeLgSwitchDragSizeFromReference()
+    }
+
+    seedLgSwitchShapeDragDefaults(out) {
+        const ref = this.computeLgSwitchDragSizeFromReference()
+        if (!out.cbreaker || out.cbreaker.w < ref.w * 0.85) {
+            out.cbreaker = ref
+        }
+    }
+
+    applyLgSwitchDragSizeToCell(graph, cell) {
+        if (graph == null || cell == null) {
+            return
+        }
+        if (this.attrMap && this.attrMap.has(cell.id)) {
+            return
+        }
+        const model = graph.getModel()
+        if (!model.isVertex(cell)) {
+            return
+        }
+        const st = graph.getCurrentCellStyle(cell) || {}
+        const shape = String((st.shape || cell.symbol || '') + '').toLowerCase()
+        const psr =
+            cell.psrtype != null && cell.psrtype !== ''
+                ? String(cell.psrtype)
+                : st.psrtype != null
+                  ? String(st.psrtype)
+                  : ''
+        if (!isLgSwitchShapeOrPsr(shape, psr)) {
+            return
+        }
+        const { w, h } = this.getLgSwitchDragSize()
+        const g = model.getGeometry(cell)
+        if (!g || !(w > 0) || !(h > 0)) {
+            return
+        }
+        const ng = g.clone()
+        ng.width = w
+        ng.height = h
+        ng.x = g.x + (g.width - w) / 2
+        ng.y = g.y + (g.height - h) / 2
+        model.setGeometry(cell, ng)
+    }
+
     collectShapeDragDefaultsFromGraph() {
         const graph = this.graph
         if (!graph) {
@@ -2492,6 +2583,7 @@ export default class LGSvgParser extends SvgBase {
             const mid = Math.floor(ws.length / 2)
             out[k] = { w: ws[mid], h: hs[mid] }
         }
+        this.seedLgSwitchShapeDragDefaults(out)
         this.shapeDragDefaults = out
     }
 
@@ -3188,6 +3280,10 @@ export default class LGSvgParser extends SvgBase {
         }
 
         this.collectShapeDragDefaultsFromGraph()
+
+        if (this.ui && typeof this.ui.refreshLgSwitchSidebarPalette === 'function') {
+            this.ui.refreshLgSwitchSidebarPalette()
+        }
 
         markAllLgDakuixianCells(graph)
 

@@ -129,7 +129,6 @@ import {
     LG_SIDEBAR_DEVICE_ENTRIES,
     LG_SIDEBAR_DRAG_SYMBOL_BLEND,
     LG_SIDEBAR_SWITCH_ENTRIES,
-    LG_SIDEBAR_SWITCH_GRID_WH,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
 } from '@/view/graph/lg/Constants.js' // 力光侧栏图元与 lgdata / symbol.js 对齐
@@ -643,28 +642,53 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             )
                             ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
 
-                            // 站内-断路器(0305)：10×10 网格（× gScale），可旋转
-                            const switchGrid =
-                                Number(LG_SIDEBAR_SWITCH_GRID_WH) > 0
-                                    ? Number(LG_SIDEBAR_SWITCH_GRID_WH)
-                                    : 10
-                            const lgSwitchSizes = LG_SIDEBAR_SWITCH_ENTRIES.map((entry) => {
-                                const symbolId = entry[0]
-                                const label = entry[1]
-                                const styleExtra = entry.length > 4 && entry[4] ? String(entry[4]) : ''
-                                return {
-                                    symbolId,
-                                    label,
-                                    w: switchGrid * gScale,
-                                    h: switchGrid * gScale,
-                                    styleExtra,
+                            const buildLgSwitchPaletteFns = () => {
+                                const size = lgsvgParser.getLgSwitchDragSize()
+                                return LG_SIDEBAR_SWITCH_ENTRIES.map((entry) => {
+                                    const symbolId = entry[0]
+                                    const label = entry[1]
+                                    const styleExtra =
+                                        entry.length > 4 && entry[4] ? String(entry[4]) : ''
+                                    const style =
+                                        `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` +
+                                        styleExtra
+                                    return ui.sidebar.createVertexTemplateEntry(
+                                        style,
+                                        size.w,
+                                        size.h,
+                                        '',
+                                        label,
+                                        null,
+                                        null,
+                                        label
+                                    )
+                                })
+                            }
+                            ui.refreshLgSwitchSidebarPalette = () => {
+                                try {
+                                    const palette = ui.sidebar && ui.sidebar.palettes['lg-switch']
+                                    const contentDiv =
+                                        palette && palette[1] && palette[1].firstChild
+                                    if (!contentDiv) {
+                                        return
+                                    }
+                                    while (contentDiv.firstChild) {
+                                        contentDiv.removeChild(contentDiv.firstChild)
+                                    }
+                                    buildLgSwitchPaletteFns().forEach((fn) =>
+                                        contentDiv.appendChild(fn(contentDiv))
+                                    )
+                                } catch (e) {
+                                    console.warn('[正交图] 刷新开关侧栏失败', e)
                                 }
-                            })
-                            const lgSwitchFns = lgSwitchSizes.map(({ symbolId, label, w, h, styleExtra }) => {
-                                const style = `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` + styleExtra
-                                return ui.sidebar.createVertexTemplateEntry(style, w, h, '', label, null, null, label)
-                            })
-                            ui.sidebar.addPaletteFunctions('lg-switch', '开关', true, lgSwitchFns)
+                            }
+                            // 站内-断路器(0305)：与 lgdata Breaker_30500000 尺寸一致，可旋转
+                            ui.sidebar.addPaletteFunctions(
+                                'lg-switch',
+                                '开关',
+                                true,
+                                buildLgSwitchPaletteFns()
+                            )
 
                             ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
 

@@ -4,6 +4,7 @@ import Mathutil from '@/plugins/tmzx/mathutil.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
 import { isLgLoadShapeOrPsr, isLgSwitchShapeOrPsr, normalizeLgSwitchStatus } from './Constants.js'
+import { isLgDashedConnLine } from './lgBreakerOnEdge.js'
 
 
 export default function SvgGenerate(ui, svgTxtObj, svgParser) {
@@ -533,6 +534,13 @@ SvgGenerate.prototype.getExportSymbolScaleBaseDim = function (symEntry, cellId, 
     if (hasMeta) {
         return bbox
     }
+    const symId = String(symEntry.symbolId || symEntry.hrefId || '').toLowerCase()
+    if (symId === 'cbreaker' || symId === 'cbreaker_open') {
+        if (!isNaN(attr) && attr > 0) {
+            return attr
+        }
+        return bbox
+    }
     if (!isNaN(attr) && attr > 0) {
         if (attr < bbox * 0.22) {
             return bbox
@@ -540,6 +548,25 @@ SvgGenerate.prototype.getExportSymbolScaleBaseDim = function (symEntry, cellId, 
         return Math.min(attr, bbox)
     }
     return bbox
+}
+
+/** 侧栏新增 0305（cbreaker）：按 symbol 声明 3×3 均匀缩放导出，避免 stencil 窄 bbox 导致 SVG 纵向拉伸 */
+SvgGenerate.prototype.isNewLgCbreakerForExport = function (cell, styleObj, symEntry) {
+    if (this.attrMap && this.attrMap.has && this.attrMap.has(cell.id)) {
+        return false
+    }
+    const symId = String(symEntry.symbolId || symEntry.hrefId || '').toLowerCase()
+    if (symId !== 'cbreaker' && symId !== 'cbreaker_open') {
+        return false
+    }
+    const psr =
+        cell.psrtype != null && cell.psrtype !== ''
+            ? String(cell.psrtype)
+            : styleObj && styleObj.psrtype != null
+              ? String(styleObj.psrtype)
+              : ''
+    const shape = String((styleObj && styleObj.shape) || cell.symbol || '').toLowerCase()
+    return isLgSwitchShapeOrPsr(shape, psr)
 }
 
 /**
@@ -663,7 +690,16 @@ SvgGenerate.prototype.parseCell = function (cell, tranx, trany) {
             let stepy
             let useW
             let useH
-            if (hasDeviceMeta || !(xb > 0) || !(yb > 0)) {
+            if (this.isNewLgCbreakerForExport(cell, styleObj, symEntry)) {
+                const declW = parseFloat(symEntry.w) > 0 ? parseFloat(symEntry.w) : 3
+                const declH = parseFloat(symEntry.h) > 0 ? parseFloat(symEntry.h) : declW
+                const side = Math.min(width, height)
+                scale = side / declW
+                useW = declW
+                useH = declH
+                stepx = cx + declW * 0.5
+                stepy = cy + declH * 0.5
+            } else if (hasDeviceMeta || !(xb > 0) || !(yb > 0)) {
                 stepx = cx + xmin + xb * xratio
                 stepy = cy + ymin + yb * yratio
                 useW = xb
@@ -1099,6 +1135,56 @@ SvgGenerate.prototype.getEdgePoints = function (edge, tranx, trany)
  * 解析线 edge
  * @param edge
  */
+SvgGenerate.prototype.resolveEdgeStrokeDasharray = function (edge, propMap) {
+    if (propMap && propMap.strokeDasharray) {
+        return propMap.strokeDasharray
+    }
+    if (!isLgDashedConnLine(this.graph, edge)) {
+        return null
+    }
+    const cellStyle = this.graph.getCurrentCellStyle(edge) || {}
+    let pattern = cellStyle.dashPattern
+    if (!pattern && edge.style) {
+        const m = String(edge.style).match(/dashPattern=([^;]+)/)
+        if (m) {
+            pattern = m[1].trim()
+        }
+    }
+    if (!pattern) {
+        pattern = '2 1'
+    }
+    const parts = String(pattern)
+        .trim()
+        .split(/\s+/)
+        .map(Number)
+        .filter((n) => !isNaN(n) && n > 0)
+    if (parts.length < 2) {
+        return '2.000000 1.000000'
+    }
+    return parts.map((n) => n.toFixed(6)).join(' ')
+}
+
+/** 导出线宽：优先 style 字符串，与分割后上下两段保持一致 */
+SvgGenerate.prototype.resolveEdgeStrokeWidth = function (edge, propMap) {
+    const styleStr = String(edge.style || '')
+    const m = styleStr.match(/(?:^|;)strokeWidth=([^;]+)/)
+    if (m) {
+        const v = parseFloat(m[1])
+        if (!isNaN(v) && v > 0) {
+            return String(v)
+        }
+    }
+    if (propMap && propMap.strokeWidth != null && propMap.strokeWidth !== '') {
+        return String(propMap.strokeWidth)
+    }
+    const cellStyle = this.graph.getCurrentCellStyle(edge) || {}
+    const nw = mxUtils.getNumber(cellStyle, mxConstants.STYLE_STROKEWIDTH, NaN)
+    if (!isNaN(nw) && nw > 0) {
+        return String(nw)
+    }
+    return '0.4'
+}
+
 SvgGenerate.prototype.parseEdge = function (edge, tranx, trany) {
     let layer2ListMap = this.layer2ListMap
     let svgParser = this.svgParser
@@ -1123,16 +1209,10 @@ SvgGenerate.prototype.parseEdge = function (edge, tranx, trany) {
     }
 
     let cls = propMap['cls']
-    let strokeDasharray = propMap['strokeDasharray']
-    let strokeWidth = propMap['strokeWidth']
+    let strokeDasharray = this.resolveEdgeStrokeDasharray(edge, propMap)
+    let strokeWidth = this.resolveEdgeStrokeWidth(edge, propMap)
     let stroke = propMap['stroke']
     let cellStyle = graph.getCurrentCellStyle(edge)
-    if (strokeWidth == null || strokeWidth === '') {
-        let nw = mxUtils.getNumber(cellStyle, mxConstants.STYLE_STROKEWIDTH, NaN)
-        if (!isNaN(nw)) {
-            strokeWidth = String(nw)
-        }
-    }
     if (stroke == null || stroke === '') {
         let sc = mxUtils.getValue(cellStyle, mxConstants.STYLE_STROKECOLOR, null)
         if (sc != null && sc !== '') {
@@ -1191,8 +1271,8 @@ SvgGenerate.prototype.parseEdges = function (intersectMap) {
         let propMap = (attrMap && attrMap.get(edge.id)) || {}
 
         let cls = propMap['cls']
-        let strokeDasharray = propMap['strokeDasharray']
-        let strokeWidth = propMap['strokeWidth']
+        let strokeDasharray = this.resolveEdgeStrokeDasharray(edge, propMap)
+        let strokeWidth = this.resolveEdgeStrokeWidth(edge, propMap)
         let stroke = propMap['stroke']
         let sb = []
 

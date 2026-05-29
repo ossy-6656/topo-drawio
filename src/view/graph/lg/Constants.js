@@ -4,10 +4,13 @@
  */
 export const LG_SIDEBAR_DRAG_SYMBOL_BLEND = 0.12
 
-/** 侧栏「站内-断路器(0305)」拖入画布网格边长（× getScale） */
+/** 侧栏「站内-断路器(0305)」无图中参考时的网格边长（× getScale）；有 lgdata 时以 shapeDragDefaults 为准 */
 export const LG_SIDEBAR_SWITCH_GRID_WH = 10
 
-/** 左侧「开关」面板：站内断路器 0305，固定 10×10，可旋转 */
+/** lgdata 中 Breaker_30500000 use 元素 transform scale 典型值（与导入断路器视觉一致） */
+export const LG_LGDATA_BREAKER_TYPICAL_USE_SCALE = 10.857673
+
+/** 左侧「开关」面板：站内断路器 0305，与 lgdata 导入尺寸一致，可旋转 */
 export const LG_SIDEBAR_SWITCH_ENTRIES = [
     [
         'cbreaker',
