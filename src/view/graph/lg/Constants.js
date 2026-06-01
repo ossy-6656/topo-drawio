@@ -247,6 +247,127 @@ export function lgSidebarPaletteTitleForShape(shapeOrSymbol) {
 }
 
 // 自定义的symbol id
+/**
+ * 力光设备属性中文标签（编辑弹窗、tooltip 共用；电压 kV，容量 MW，有功 MW，无功 Mvar）
+ */
+/** 编辑弹窗左侧标签（不含单位，单位在输入框右侧 append 展示） */
+export const LG_DEVICE_ATTR_LABELS = {
+    P: '有功功率',
+    Q: '无功功率',
+    V_Rate: '额定电压',
+    P_Rate: '额定有功功率',
+    P_max: '最大有功功率',
+    P_min: '最小有功功率',
+    Q_max: '最大无功功率',
+    Q_min: '最小无功功率',
+    P_meas: '目标出力',
+    I_Vol: '高压侧额定电压',
+    K_Vol: '中压侧额定电压',
+    J_Vol: '低压侧额定电压',
+    I_S: '高压侧容量',
+    K_S: '中压侧容量',
+    J_S: '低压侧容量',
+    dydj: '电压等级',
+    volt: '电压',
+    Ih: '额定载流量',
+    length: '线路长度',
+}
+
+/** 编辑弹窗输入框右侧单位块文案 */
+export const LG_DEVICE_ATTR_UNIT_SUFFIX = {
+    P: 'MW',
+    Q: 'Mvar',
+    V_Rate: 'kV',
+    P_Rate: 'MW',
+    P_max: 'MW',
+    P_min: 'MW',
+    Q_max: 'Mvar',
+    Q_min: 'Mvar',
+    P_meas: 'MW',
+    I_Vol: 'kV',
+    K_Vol: 'kV',
+    J_Vol: 'kV',
+    I_S: 'MW',
+    K_S: 'MW',
+    J_S: 'MW',
+    dydj: 'kV',
+    volt: 'kV',
+    Ih: 'kA',
+    length: 'km',
+}
+
+export function lgDeviceAttrLabel(name, fallback) {
+    if (name != null && Object.prototype.hasOwnProperty.call(LG_DEVICE_ATTR_LABELS, name)) {
+        return LG_DEVICE_ATTR_LABELS[name]
+    }
+    return fallback != null ? fallback : name
+}
+
+/** tooltip 等场景：标签后附带单位 */
+export function lgDeviceAttrLabelWithUnit(name, fallback) {
+    const label = lgDeviceAttrLabel(name, fallback)
+    const unit = lgDeviceAttrUnitSuffix(name)
+    return unit ? label + '(' + unit + ')' : label
+}
+
+export function lgDeviceAttrUnitSuffix(name) {
+    if (name != null && Object.prototype.hasOwnProperty.call(LG_DEVICE_ATTR_UNIT_SUFFIX, name)) {
+        return LG_DEVICE_ATTR_UNIT_SUFFIX[name]
+    }
+    return ''
+}
+
+export function lgDeviceAttrPlaceholder(name) {
+    return lgDeviceAttrUnitSuffix(name) ? '请输入内容' : '请输入'
+}
+
+/** 力光设备编辑框中应按 number 存储的标量属性（非数组、非枚举字符串） */
+export const LG_SCALAR_NUMERIC_ATTRS = new Set([
+    'P',
+    'Q',
+    'V_Rate',
+    'P_Rate',
+    'P_max',
+    'P_min',
+    'Q_max',
+    'Q_min',
+    'P_meas',
+    'I_Vol',
+    'K_Vol',
+    'J_Vol',
+    'I_S',
+    'K_S',
+    'J_S',
+    'Ih',
+    'length',
+])
+
+export function isLgScalarNumericAttr(name) {
+    return LG_SCALAR_NUMERIC_ATTRS.has(name)
+}
+
+/** 编辑保存 / 提交：可解析为有限数字时返回 number，否则保留原值 */
+export function coerceLgScalarNumericAttr(name, raw) {
+    if (!isLgScalarNumericAttr(name)) {
+        return raw
+    }
+    if (raw == null || raw === '') {
+        return ''
+    }
+    if (typeof raw === 'number' && !isNaN(raw) && isFinite(raw)) {
+        return raw
+    }
+    const s = String(raw).trim()
+    if (s === '') {
+        return ''
+    }
+    const n = parseFloat(s)
+    if (!isNaN(n) && isFinite(n)) {
+        return n
+    }
+    return raw
+}
+
 // 注意：列入此表的图元在 StencilParse.symbol2shape 中不会生成 <shape> 模板，侧栏/缩略图将无法绘制
 //（仅写入 symbolProp）。箱式变(zf08) 等须与 substation 一样走 parseSymbol，故不放此表。
 export const customShapeLs = [

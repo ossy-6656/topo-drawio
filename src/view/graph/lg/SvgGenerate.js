@@ -3,7 +3,12 @@ import SymbolUtil from "@/plugins/tmzx/graph/SymbolUtil.js";
 import Mathutil from '@/plugins/tmzx/mathutil.js'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
 import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
-import { isLgLoadShapeOrPsr, isLgSwitchShapeOrPsr, normalizeLgSwitchStatus } from './Constants.js'
+import {
+    isLgLoadShapeOrPsr,
+    isLgSwitchShapeOrPsr,
+    normalizeLgSwitchStatus,
+    coerceLgScalarNumericAttr,
+} from './Constants.js'
 import { isLgDashedConnLine } from './lgBreakerOnEdge.js'
 
 
@@ -27,17 +32,17 @@ SvgGenerate.prototype.init = function () {
     // buffer.push(svgTxtObj['bgColor']);
 }
 
-/** 读取图元属性：cell → 样式 → XML value */
-SvgGenerate.prototype.pickCellAttr = function (cell, key) {
+/** 读取图元属性原始值：cell → 样式 → XML value */
+SvgGenerate.prototype.getCellAttrRaw = function (cell, key) {
     let graph = this.graph
     let model = graph.getModel()
     let v = cell[key]
     if (v != null && v !== '') {
-        return String(v)
+        return v
     }
     let cellStyle = graph.getCurrentCellStyle(cell) || {}
     if (cellStyle[key] != null && cellStyle[key] !== '') {
-        return String(cellStyle[key])
+        return cellStyle[key]
     }
     let valueNode = model.getValue(cell)
     if (mxUtils.isNode(valueNode)) {
@@ -47,6 +52,20 @@ SvgGenerate.prototype.pickCellAttr = function (cell, key) {
         }
     }
     return ''
+}
+
+/** 读取图元属性：cell → 样式 → XML value（字符串） */
+SvgGenerate.prototype.pickCellAttr = function (cell, key) {
+    let v = this.getCellAttrRaw(cell, key)
+    if (v === '' || v == null) {
+        return ''
+    }
+    return String(v)
+}
+
+/** 读取标量数值属性：已是 number 则保持，否则按数字解析 */
+SvgGenerate.prototype.pickCellNumberAttr = function (cell, key) {
+    return coerceLgScalarNumericAttr(key, this.getCellAttrRaw(cell, key))
 }
 
 /** 将「1,2,3,4」或 JSON 数组字符串解析为数字数组；失败返回 [] */
@@ -1983,7 +2002,7 @@ SvgGenerate.prototype.collectBusConnectorSubmitPayload = function (pending) {
         if (isNaN(lenNum)) {
             lenNum = 100
         }
-        let length = [String(lenNum), 'km']
+        let length = [lenNum, 'km']
 
         line.push({
             name: String(name),
@@ -1993,7 +2012,7 @@ SvgGenerate.prototype.collectBusConnectorSubmitPayload = function (pending) {
             to_bus: [toPair[0], String(toPair[1])],
             model: String(modelValue),
             model_paras: model_paras,
-            Ih: String(IhNum),
+            Ih: IhNum,
             length: length
         })
     }
@@ -2083,14 +2102,14 @@ SvgGenerate.prototype.collectGenSubmitPayload = function (pending) {
                 (cell.name != null && cell.name !== '' ? String(cell.name) : ''),
             unitid: uid,
             type: this.pickCellAttr(cell, 'type'),
-            V_Rate: this.pickCellAttr(cell, 'V_Rate'),
+            V_Rate: this.pickCellNumberAttr(cell, 'V_Rate'),
             bus: [busPair[0], busPair[1]],
-            P_Rate: this.pickCellAttr(cell, 'P_Rate'),
-            P_max: this.pickCellAttr(cell, 'P_max'),
-            P_min: this.pickCellAttr(cell, 'P_min'),
-            Q_max: this.pickCellAttr(cell, 'Q_max'),
-            Q_min: this.pickCellAttr(cell, 'Q_min'),
-            P_meas: this.pickCellAttr(cell, 'P_meas'),
+            P_Rate: this.pickCellNumberAttr(cell, 'P_Rate'),
+            P_max: this.pickCellNumberAttr(cell, 'P_max'),
+            P_min: this.pickCellNumberAttr(cell, 'P_min'),
+            Q_max: this.pickCellNumberAttr(cell, 'Q_max'),
+            Q_min: this.pickCellNumberAttr(cell, 'Q_min'),
+            P_meas: this.pickCellNumberAttr(cell, 'P_meas'),
         })
     }
     return out
@@ -2164,8 +2183,8 @@ SvgGenerate.prototype.collectLoadSubmitPayload = function (pending) {
             loadid: lid,
             volt: volt,
             bus: [busPair[0], busPair[1]],
-            P: this.pickCellAttr(cell, 'P'),
-            Q: this.pickCellAttr(cell, 'Q'),
+            P: this.pickCellNumberAttr(cell, 'P'),
+            Q: this.pickCellNumberAttr(cell, 'Q'),
         })
     }
     return out
@@ -2238,16 +2257,16 @@ SvgGenerate.prototype.collectTransformerSubmitPayload = function (pending) {
             hv_bus: [hv[0], String(hv[1])],
             mv_bus: [mv[0], String(mv[1])],
             lv_bus: [lv[0], String(lv[1])],
-            I_Vol: this.pickCellAttr(cell, 'I_Vol'),
-            K_Vol: is2w ? '0' : this.pickCellAttr(cell, 'K_Vol'),
-            J_Vol: this.pickCellAttr(cell, 'J_Vol'),
+            I_Vol: this.pickCellNumberAttr(cell, 'I_Vol'),
+            K_Vol: is2w ? 0 : this.pickCellNumberAttr(cell, 'K_Vol'),
+            J_Vol: this.pickCellNumberAttr(cell, 'J_Vol'),
             model: this.pickCellAttr(cell, 'model'),
             hv_paras: hvP,
             mv_paras: mvP,
             lv_paras: lvP,
-            I_S: this.pickCellAttr(cell, 'I_S'),
-            K_S: is2w ? '' : this.pickCellAttr(cell, 'K_S'),
-            J_S: this.pickCellAttr(cell, 'J_S'),
+            I_S: this.pickCellNumberAttr(cell, 'I_S'),
+            K_S: is2w ? '' : this.pickCellNumberAttr(cell, 'K_S'),
+            J_S: this.pickCellNumberAttr(cell, 'J_S'),
         })
     }
     return out

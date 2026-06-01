@@ -164,6 +164,62 @@
   cursor: not-allowed;
 }
 
+/* 输入框 + 右侧单位块（参考设计稿 append） */
+.lg-edit-input-unit-wrap {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  max-width: 100%;
+}
+
+.lg-edit-field-with-unit {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  border-radius: 4px 0 0 4px;
+  border-right-width: 0;
+}
+
+.lg-edit-input-unit-append {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 52px;
+  padding: 0 12px;
+  border: 1px solid #dcdfe6;
+  border-left: 0;
+  border-radius: 0 4px 4px 0;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.lg-edit-input-unit-wrap:hover:not(.is-disabled) .lg-edit-field-with-unit:not(:disabled) {
+  border-color: #c0c4cc;
+}
+
+.lg-edit-input-unit-wrap:hover:not(.is-disabled) .lg-edit-input-unit-append {
+  border-color: #c0c4cc;
+}
+
+.lg-edit-input-unit-wrap:focus-within:not(.is-disabled) .lg-edit-field-with-unit {
+  border-color: #409eff;
+}
+
+.lg-edit-input-unit-wrap:focus-within:not(.is-disabled) .lg-edit-input-unit-append {
+  border-color: #409eff;
+}
+
+.lg-edit-input-unit-wrap.is-disabled .lg-edit-input-unit-append {
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
 .lg-edit-dialog-form select {
   appearance: none;
   padding-right: 28px;

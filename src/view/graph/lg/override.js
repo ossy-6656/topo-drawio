@@ -16,6 +16,11 @@ import {
     applyLgSwitchBreakerVisual,
     lgSwitchStatusLabel,
     normalizeLgSwitchStatus,
+    coerceLgScalarNumericAttr,
+    LG_DEVICE_ATTR_LABELS,
+    lgDeviceAttrLabel,
+    lgDeviceAttrPlaceholder,
+    lgDeviceAttrUnitSuffix,
 } from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
 
@@ -50,6 +55,51 @@ function lgStyleField(el, placeholder)
     if (el.tagName === 'TEXTAREA') {
         el.style.resize = 'none';
     }
+}
+
+/** 带右侧单位块的单行输入（参考 Element append 样式） */
+function lgFormAddUnitInput(form, label, value, unit)
+{
+    var tr = document.createElement('tr');
+    var labelTd = document.createElement('td');
+    mxUtils.write(labelTd, label);
+    tr.appendChild(labelTd);
+
+    var valueTd = document.createElement('td');
+    var wrap = document.createElement('div');
+    wrap.className = 'lg-edit-input-unit-wrap';
+
+    var input = document.createElement('input');
+    input.setAttribute('type', 'text');
+    input.className = 'lg-edit-field lg-edit-field-with-unit';
+    input.value = value != null ? String(value) : '';
+    lgStyleField(input, '请输入内容');
+
+    var append = document.createElement('span');
+    append.className = 'lg-edit-input-unit-append';
+    append.appendChild(document.createTextNode(unit));
+
+    wrap.appendChild(input);
+    wrap.appendChild(append);
+    valueTd.appendChild(wrap);
+    tr.appendChild(valueTd);
+    form.body.appendChild(tr);
+
+    return input;
+}
+
+/** 编辑框确认：写入 cell / XML / 样式前的属性值 */
+function resolveLgEditFieldValue(name, raw) {
+    if (name === 'pubprivflag') {
+        if (raw == null || raw === '') {
+            return '';
+        }
+        return raw === '运检' ? 0 : 1;
+    }
+    if (name === 'status') {
+        return normalizeLgSwitchStatus(raw);
+    }
+    return coerceLgScalarNumericAttr(name, raw);
 }
 
 let preAddPopupMenuItems = Menus.prototype.addPopupMenuItems;
@@ -199,35 +249,23 @@ window.EditDataDialog = function(ui, cell)
         // 母线连接线属性
         'model': '线路型号',
         'model_paras': '线路型号参数',
-        'Ih': '额定载流量(kA)',
-        'length': '线路长度(km)',
-        'P': '有功功率',
-        'Q': '无功功率',
         'type': '机组类型',
-        'V_Rate': '额定电压',
-        'P_Rate': '额定有功功率',
-        'P_max': '最大有功功率',
-        'P_min': '最小有功功率',
-        'Q_max': '最大无功功率',
-        'Q_min': '最小无功功率',
-        'P_meas': '目标出力',
-        'I_Vol': '高压侧额定电压',
-        'K_Vol': '中压侧额定电压',
-        'J_Vol': '低压侧额定电压',
         'hv_paras': '高-中压侧参数',
         'mv_paras': '中-低压侧参数',
         'lv_paras': '高-低压侧参数',
-        'I_S': '高压侧容量',
-        'K_S': '中压侧容量',
-        'J_S': '低压侧容量',
     };
+    for (var labelKey in LG_DEVICE_ATTR_LABELS) {
+        if (Object.prototype.hasOwnProperty.call(LG_DEVICE_ATTR_LABELS, labelKey)) {
+            attrNameMap[labelKey] = LG_DEVICE_ATTR_LABELS[labelKey];
+        }
+    }
 
     var addTextArea = function(index, name, value)
     {
         names[index] = name;
         // 使用中文属性名称显示（cell / 样式上可能为数字等非字符串）
         var strValue = (value == null || value === undefined) ? '' : String(value);
-        var displayName = attrNameMap[name] || name;
+        var displayName = lgDeviceAttrLabel(name, attrNameMap[name] || name);
         if (isBusbarConnector && name == 'name') {
             displayName = '线路名称';
         }
@@ -273,15 +311,20 @@ window.EditDataDialog = function(ui, cell)
             }
             texts[index] = sel;
         } else {
-            texts[index] = form.addTextarea(displayName, strValue, 2);
-            lgStyleField(texts[index], '请输入');
-            if (strValue.indexOf('\n') > 0)
-            {
-                texts[index].setAttribute('rows', '2');
-            }
-            else
-            {
-                texts[index].setAttribute('rows', '1');
+            var unitSuffix = lgDeviceAttrUnitSuffix(name);
+            if (unitSuffix) {
+                texts[index] = lgFormAddUnitInput(form, displayName, strValue, unitSuffix);
+            } else {
+                texts[index] = form.addTextarea(displayName, strValue, 2);
+                lgStyleField(texts[index], lgDeviceAttrPlaceholder(name));
+                if (strValue.indexOf('\n') > 0)
+                {
+                    texts[index].setAttribute('rows', '2');
+                }
+                else
+                {
+                    texts[index].setAttribute('rows', '1');
+                }
             }
         }
 
@@ -290,6 +333,10 @@ window.EditDataDialog = function(ui, cell)
             (meta[name] != null && meta[name].editable == false))
         {
             texts[index].setAttribute('disabled', 'disabled');
+            var unitWrap = texts[index].parentNode;
+            if (unitWrap && unitWrap.classList && unitWrap.classList.contains('lg-edit-input-unit-wrap')) {
+                unitWrap.classList.add('is-disabled');
+            }
         }
     };
 
@@ -870,18 +917,11 @@ window.EditDataDialog = function(ui, cell)
                             continue;
                         }
 
-                        value.setAttribute(names[i], texts[i].value);
-                        
-                        // 同步更新 cell 对象上的所有属性（用于 tooltip 显示）
-                        // 营配标识需要转换回数字
-                        if (names[i] == 'pubprivflag')
-                        {
-                            cell[names[i]] = texts[i].value == '运检' ? 0 : 1;
-                        }
-                        else
-                        {
-                            cell[names[i]] = texts[i].value;
-                        }
+                        var fieldVal = resolveLgEditFieldValue(names[i], texts[i].value);
+                        value.setAttribute(names[i], fieldVal === '' ? '' : String(fieldVal));
+
+                        // 同步更新 cell 对象（数值字段存 number，与提交 JSON 一致）
+                        cell[names[i]] = fieldVal;
                         
                         removeLabel = removeLabel || (names[i] == 'placeholder' &&
                             value.getAttribute('placeholders') == '1');
@@ -908,8 +948,9 @@ window.EditDataDialog = function(ui, cell)
                         if (connectorStyleKeys.indexOf(names[si]) < 0) {
                             continue;
                         }
-                        var sv = texts[si] != null ? texts[si].value : '';
-                        graph.setCellStyles(names[si], sv, [cell]);
+                        var sv = texts[si] != null ? resolveLgEditFieldValue(names[si], texts[si].value) : '';
+                        graph.setCellStyles(names[si], sv === '' ? '' : String(sv), [cell]);
+                        cell[names[si]] = sv;
                     }
                 }
                 if (isLgGeneratingUnit) {
@@ -928,8 +969,9 @@ window.EditDataDialog = function(ui, cell)
                         if (unitStyleKeys.indexOf(names[uix]) < 0) {
                             continue
                         }
-                        var usv = texts[uix] != null ? texts[uix].value : ''
-                        graph.setCellStyles(names[uix], usv, [cell])
+                        var usv = texts[uix] != null ? resolveLgEditFieldValue(names[uix], texts[uix].value) : ''
+                        graph.setCellStyles(names[uix], usv === '' ? '' : String(usv), [cell])
+                        cell[names[uix]] = usv
                     }
                 }
                 if (isLgTransformer) {
@@ -950,8 +992,9 @@ window.EditDataDialog = function(ui, cell)
                         if (xfStyleKeys.indexOf(names[xix]) < 0) {
                             continue
                         }
-                        var xsv = texts[xix] != null ? texts[xix].value : ''
-                        graph.setCellStyles(names[xix], xsv, [cell])
+                        var xsv = texts[xix] != null ? resolveLgEditFieldValue(names[xix], texts[xix].value) : ''
+                        graph.setCellStyles(names[xix], xsv === '' ? '' : String(xsv), [cell])
+                        cell[names[xix]] = xsv
                     }
                 }
                 if (isLgLoadDevice) {
@@ -960,8 +1003,9 @@ window.EditDataDialog = function(ui, cell)
                         if (loadStyleKeys.indexOf(names[lix]) < 0) {
                             continue
                         }
-                        var lsv = texts[lix] != null ? texts[lix].value : ''
-                        graph.setCellStyles(names[lix], lsv, [cell])
+                        var lsv = texts[lix] != null ? resolveLgEditFieldValue(names[lix], texts[lix].value) : ''
+                        graph.setCellStyles(names[lix], lsv === '' ? '' : String(lsv), [cell])
+                        cell[names[lix]] = lsv
                     }
                 }
                 if (isLgSwitchDevice) {
@@ -970,11 +1014,8 @@ window.EditDataDialog = function(ui, cell)
                         if (switchStyleKeys.indexOf(names[six]) < 0) {
                             continue
                         }
-                        var ssv = texts[six] != null ? texts[six].value : ''
-                        if (names[six] === 'status') {
-                            ssv = normalizeLgSwitchStatus(ssv)
-                        }
-                        graph.setCellStyles(names[six], ssv, [cell])
+                        var ssv = texts[six] != null ? resolveLgEditFieldValue(names[six], texts[six].value) : ''
+                        graph.setCellStyles(names[six], ssv === '' ? '' : String(ssv), [cell])
                         cell[names[six]] = ssv
                     }
                     applyLgSwitchBreakerVisual(graph, [cell])

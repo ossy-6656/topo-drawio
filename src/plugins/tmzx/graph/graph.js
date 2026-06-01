@@ -8,6 +8,8 @@ import {
     isLgLoadShapeOrPsr,
     isLgSwitchShapeOrPsr,
     lgSwitchStatusLabel,
+    LG_DEVICE_ATTR_LABELS,
+    lgDeviceAttrLabelWithUnit,
 } from '@/view/graph/lg/Constants.js'
 
 mxGraph.prototype.splitEnabled = false
@@ -207,32 +209,19 @@ var tooltipAttrNameMap = {
     'shape': '图形',
     'lineType': '线型',
     'label': '标签',
-    'dydj': '电压等级',
-    'P': '有功功率',
-    'Q': '无功功率',
     'model': '线路型号',
     'model_paras': '线路型号参数',
     'Ih': '额定载流量(kA)',
     'length': '线路长度(km)',
     'type': '机组类型',
-    'V_Rate': '额定电压',
-    'P_Rate': '额定有功功率',
-    'P_max': '最大有功功率',
-    'P_min': '最小有功功率',
-    'Q_max': '最大无功功率',
-    'Q_min': '最小无功功率',
-    'P_meas': '目标出力',
     'status': '开关状态',
-    'I_Vol': '高压侧额定电压',
-    'K_Vol': '中压侧额定电压',
-    'J_Vol': '低压侧额定电压',
     'hv_paras': '高-中压侧参数',
     'mv_paras': '中-低压侧参数',
     'lv_paras': '高-低压侧参数',
-    'I_S': '高压侧容量',
-    'K_S': '中压侧容量',
-    'J_S': '低压侧容量',
 };
+for (const labelKey of Object.keys(LG_DEVICE_ATTR_LABELS)) {
+    tooltipAttrNameMap[labelKey] = lgDeviceAttrLabelWithUnit(labelKey);
+}
 
 // 这个处理tooltip
 var graphGetTooltipForCell = Graph.prototype.getTooltipForCell
