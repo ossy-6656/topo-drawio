@@ -120,6 +120,28 @@ function getLgSymbolTouchPair(item) {
     return SymbolUtil.getTouchPair(item)
 }
 
+function lgDefaultTouchRatioVec() {
+    return { x: 0.5, y: 0.5, flag: 'inner' }
+}
+
+/** 解析 polyline points 为缩放后的 mxPoint 列表 */
+function lgParsePolylinePointsAttr(pointsAttr, scale) {
+    const corList = []
+    if (pointsAttr == null || String(pointsAttr).trim() === '') {
+        return corList
+    }
+    const list = String(pointsAttr).trim().split(/\s+/).filter(Boolean)
+    for (let i = 0; i < list.length; i++) {
+        const parts = list[i].split(',')
+        const x = (+parts[0]) * scale
+        const y = (+parts[1]) * scale
+        if (!isNaN(x) && !isNaN(y)) {
+            corList.push(new mxPoint(x, y))
+        }
+    }
+    return corList
+}
+
 function readUseWorldXY(nodeUse, transformStr) {
     const xa = nodeUse.getAttribute('x')
     const ya = nodeUse.getAttribute('y')
@@ -900,10 +922,20 @@ export default class LGSvgParser extends SvgBase {
 	        let num1 = +strArr[0]
 	        let num2 = +strArr[1]
 
-	        if (firstChar == 'M') {
-		        pointLs.push([num1, num2])
-	        } else if (firstChar == 'L') {
-		        pointLs.push([num1, num2])
+	        if (firstChar == 'M' || firstChar == 'L') {
+		        if (!isNaN(num1) && !isNaN(num2)) {
+			        pointLs.push([num1, num2])
+		        }
+	        } else if (firstChar == 'H') {
+		        const last = pointLs.length ? pointLs[pointLs.length - 1] : [0, 0]
+		        if (!isNaN(num1)) {
+			        pointLs.push([num1, last[1]])
+		        }
+	        } else if (firstChar == 'V') {
+		        const last = pointLs.length ? pointLs[pointLs.length - 1] : [0, 0]
+		        if (!isNaN(num1)) {
+			        pointLs.push([last[0], num1])
+		        }
 	        }
         }
 
@@ -945,8 +977,16 @@ export default class LGSvgParser extends SvgBase {
         cellLinkMap.set(ObjectID, LinkedList)
 
         let lineNode = $node.find('polyline')
+        if (!lineNode.length) {
+            return null
+        }
 
-        let cors = lineNode.attr('points').trim()
+        let corsRaw = lineNode.attr('points')
+        if (corsRaw == null || String(corsRaw).trim() === '') {
+            console.warn('[LGSvgParser] parsePolyline: 缺少 points', ObjectID)
+            return null
+        }
+        let cors = String(corsRaw).trim()
         let stroke = lineNode.attr('stroke')
         let strokeDasharray = lineNode.attr('stroke-dasharray')
         let strokeWidth = lineNode.attr('stroke-width')
@@ -966,16 +1006,10 @@ export default class LGSvgParser extends SvgBase {
             propMap['strokeWidth'] = strokeWidth
         }
 
-        let corList = []
-        let list = cors.split(' ')
-
-        if (list) {
-            for (let i = 0; i < list.length; i++) {
-                let _scor = list[i].split(',')
-                let x = +_scor[0] * this.getScale()
-                let y = +_scor[1] * this.getScale()
-                corList.push(new mxPoint(x, y))
-            }
+        let corList = lgParsePolylinePointsAttr(cors, this.getScale())
+        if (corList.length < 2) {
+            console.warn('[LGSvgParser] parsePolyline: 有效点数不足', ObjectID)
+            return null
         }
 
         // 线的起点与终点
@@ -1127,63 +1161,72 @@ export default class LGSvgParser extends SvgBase {
                             }
                         } // 处理普通设备
                         else {
-                            let item = symbolMap[symbol]
-                            let touchLen = item['touchs'] // 目标设备连接点个数
-                            if (touchLen && touchLen > 0) {
-                                if (touchLen == 1) {
-                                    // 目标有1个连接点
-                                    let pos = item.o || item.a || item.b || item.c || item.d
-
-                                    // let exitPerimeter = pos.flag == 'inner' ? 0 : 1;
-                                    let exitPerimeter = 0
-                                    if (pos && selfPos == '0') {
-                                        // 线的左侧
-                                        sourceCell = relCell
-                                        sb.push(
-                                            `exitX=${pos.x};exitY=${pos.y};exitPerimeter=${exitPerimeter};`
-                                        )
-                                        param.exitX = pos.x
-                                        param.exitY = pos.y
-                                    } else if (pos && selfPos == '1') {
-                                        // 线的右侧
-                                        targetCell = relCell
-                                        sb.push(
-                                            `entryX=${pos.x};entryY=${pos.y};entryPerimeter=${exitPerimeter};`
-                                        )
-                                        param.entryX = pos.x
-                                        param.entryY = pos.y
-                                    }
-                                } // 目标有2个连接点
-                                else {
-                                    const { a: touchA, b: touchB } = getLgSymbolTouchPair(item)
-                                    if (selfPos == '0') {
-                                        // 线的左侧
-                                        sourceCell = relCell
-                                        if (targetPos == '0' && touchA) {
-                                            sb.push(`exitX=${touchA.x};exitY=${touchA.y};exitPerimeter=0;`)
-                                            param.exitX = touchA.x
-                                            param.exitY = touchA.y
-                                        } else if (targetPos == '1' && touchB) {
-                                            sb.push(`exitX=${touchB.x};exitY=${touchB.y};exitPerimeter=0;`)
-                                            param.exitX = touchB.x
-                                            param.exitY = touchB.y
-                                        }
-                                    } else if (selfPos == '1') {
-                                        // 线的右侧
-                                        targetCell = relCell
-                                        if (targetPos == '0' && touchA) {
-                                            sb.push(`entryX=${touchA.x};entryY=${touchA.y};entryPerimeter=0;`)
-                                            param.entryX = touchA.x
-                                            param.entryY = touchA.y
-                                        } else if (targetPos == '1' && touchB) {
-                                            sb.push(`entryX=${touchB.x};entryY=${touchB.y};entryPerimeter=0;`)
-                                            param.entryX = touchB.x
-                                            param.entryY = touchB.y
-                                        }
-                                    }
-                                }
+                            let symItem = symbolMap[symbol]
+                            if (!symItem) {
+                                console.warn(
+                                    '[LGSvgParser] parsePolyline: 未注册图元 symbol=',
+                                    symbol,
+                                    'line=',
+                                    ObjectID
+                                )
                             } else {
-                                console.log(`未找到设备${id}，无法确定连接关系!`)
+                                let touchLen = symItem['touchs'] // 目标设备连接点个数
+                                if (touchLen && touchLen > 0) {
+                                    if (touchLen == 1) {
+                                        // 目标有1个连接点
+                                        let pos = symItem.o || symItem.a || symItem.b || symItem.c || symItem.d
+
+                                        // let exitPerimeter = pos.flag == 'inner' ? 0 : 1;
+                                        let exitPerimeter = 0
+                                        if (pos && selfPos == '0') {
+                                            // 线的左侧
+                                            sourceCell = relCell
+                                            sb.push(
+                                                `exitX=${pos.x};exitY=${pos.y};exitPerimeter=${exitPerimeter};`
+                                            )
+                                            param.exitX = pos.x
+                                            param.exitY = pos.y
+                                        } else if (pos && selfPos == '1') {
+                                            // 线的右侧
+                                            targetCell = relCell
+                                            sb.push(
+                                                `entryX=${pos.x};entryY=${pos.y};entryPerimeter=${exitPerimeter};`
+                                            )
+                                            param.entryX = pos.x
+                                            param.entryY = pos.y
+                                        }
+                                    } // 目标有2个连接点
+                                    else {
+                                        const { a: touchA, b: touchB } = getLgSymbolTouchPair(symItem)
+                                        if (selfPos == '0') {
+                                            // 线的左侧
+                                            sourceCell = relCell
+                                            if (targetPos == '0' && touchA) {
+                                                sb.push(`exitX=${touchA.x};exitY=${touchA.y};exitPerimeter=0;`)
+                                                param.exitX = touchA.x
+                                                param.exitY = touchA.y
+                                            } else if (targetPos == '1' && touchB) {
+                                                sb.push(`exitX=${touchB.x};exitY=${touchB.y};exitPerimeter=0;`)
+                                                param.exitX = touchB.x
+                                                param.exitY = touchB.y
+                                            }
+                                        } else if (selfPos == '1') {
+                                            // 线的右侧
+                                            targetCell = relCell
+                                            if (targetPos == '0' && touchA) {
+                                                sb.push(`entryX=${touchA.x};entryY=${touchA.y};entryPerimeter=0;`)
+                                                param.entryX = touchA.x
+                                                param.entryY = touchA.y
+                                            } else if (targetPos == '1' && touchB) {
+                                                sb.push(`entryX=${touchB.x};entryY=${touchB.y};entryPerimeter=0;`)
+                                                param.entryX = touchB.x
+                                                param.entryY = touchB.y
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    console.log(`未找到设备${id}，无法确定连接关系!`)
+                                }
                             }
                         }
                     }
@@ -1258,8 +1301,16 @@ export default class LGSvgParser extends SvgBase {
         cellLinkMap.set(ObjectID, LinkedList)
 
         let lineNode = $node.find('path')
+        if (!lineNode.length) {
+            return null
+        }
 
-        let cors = lineNode.attr('d').trim()
+        let corsRaw = lineNode.attr('d')
+        if (corsRaw == null || String(corsRaw).trim() === '') {
+            console.warn('[LGSvgParser] parsePath: 缺少 path d', ObjectID)
+            return null
+        }
+        let cors = String(corsRaw).trim()
         let stroke = lineNode.attr('stroke')
         let strokeDasharray = lineNode.attr('stroke-dasharray')
         let strokeWidth = lineNode.attr('stroke-width')
@@ -1286,8 +1337,14 @@ export default class LGSvgParser extends SvgBase {
                 let arr = list[i]
                 let x = arr[0] * this.getScale()
                 let y = arr[1] * this.getScale()
-                corList.push(new mxPoint(x, y))
+                if (!isNaN(x) && !isNaN(y)) {
+                    corList.push(new mxPoint(x, y))
+                }
             }
+        }
+        if (corList.length < 2) {
+            console.warn('[LGSvgParser] parsePath: 有效点数不足', ObjectID, cors.slice(0, 80))
+            return null
         }
 
         // 线的起点与终点
@@ -1433,12 +1490,20 @@ export default class LGSvgParser extends SvgBase {
                             }
                         } // 处理普通设备
                         else {
-                            let item = symbolMap[symbol]
-                            let touchLen = item['touchs'] // 目标设备连接点个数
+                            let symItem = symbolMap[symbol]
+                            if (!symItem) {
+                                console.warn(
+                                    '[LGSvgParser] parsePath: 未注册图元 symbol=',
+                                    symbol,
+                                    'line=',
+                                    ObjectID
+                                )
+                            } else {
+                            let touchLen = symItem['touchs'] // 目标设备连接点个数
                             if (touchLen && touchLen > 0) {
                                 if (touchLen == 1) {
                                     // 目标有1个连接点
-                                    let pos = item.o || item.a || item.b || item.c || item.d
+                                    let pos = symItem.o || symItem.a || symItem.b || symItem.c || symItem.d
 
                                     // let exitPerimeter = pos.flag == 'inner' ? 0 : 1;
                                     let exitPerimeter = 0
@@ -1461,7 +1526,7 @@ export default class LGSvgParser extends SvgBase {
                                     }
                                 } // 目标有2个连接点
                                 else {
-                                    const { a: touchA, b: touchB } = getLgSymbolTouchPair(item)
+                                    const { a: touchA, b: touchB } = getLgSymbolTouchPair(symItem)
                                     if (selfPos == '0') {
                                         // 线的左侧
                                         sourceCell = relCell
@@ -1490,6 +1555,7 @@ export default class LGSvgParser extends SvgBase {
                                 }
                             } else {
                                 console.log(`未找到设备${id}，无法确定连接关系!`)
+                            }
                             }
                         }
                     }
@@ -1683,17 +1749,33 @@ export default class LGSvgParser extends SvgBase {
         let props = $node.find('metadata')
 
         let propMap = this.getPropMap(props)
-        let { ObjectID, ObjectName, PSRType } = propMap['cge:PSR_Ref']
+        let psrRef = propMap['cge:PSR_Ref']
+        if (!psrRef) {
+            console.warn('[LGSvgParser] parseBusbar: 缺少 PSR_Ref', $node.attr('id'))
+            return null
+        }
+        let { ObjectID, ObjectName, PSRType } = psrRef
 
         metaMap.set(ObjectID, props.html())
         // 此处不再处理连接关系，在drawio下只有线才有
         // let LinkedList = propMap['cge:GLink_Ref'];
 
         let $lineNode = $node.find('polyline')
+        if (!$lineNode.length) {
+            return null
+        }
 
         // 坐标需要转换
         let points = $lineNode.attr('points')
-        let parr = points.split(' ')
+        if (points == null || String(points).trim() === '') {
+            console.warn('[LGSvgParser] parseBusbar: 缺少 points', ObjectID)
+            return null
+        }
+        let parr = String(points).trim().split(/\s+/).filter(Boolean)
+        if (parr.length < 2) {
+            console.warn('[LGSvgParser] parseBusbar: 有效点数不足', ObjectID)
+            return null
+        }
         let strp1 = parr[0].split(',')
         let strp2 = parr[1].split(',')
 
@@ -1705,12 +1787,19 @@ export default class LGSvgParser extends SvgBase {
             parseFloat(strp2[0]) * this.getScale(),
             parseFloat(strp2[1]) * this.getScale()
         )
+        if ([p1.x, p1.y, p2.x, p2.y].some((n) => isNaN(n))) {
+            console.warn('[LGSvgParser] parseBusbar: 坐标无效', ObjectID)
+            return null
+        }
 
         let vecBus = p2.clone().sub(p1)
         let radian = vecBus.angle()
         let angle = mathutil.radian2Angle(radian)
 
         let width = vecBus.length()
+        if (!(width > 0)) {
+            return null
+        }
 
         let co = mathutil.midPoint(p1, p2)
 
@@ -2308,6 +2397,9 @@ export default class LGSvgParser extends SvgBase {
                         relCell,
                         this.getSymbolMap()
                     )
+                    if (!cell1RatioVec || !cell2RatioVec) {
+                        continue
+                    }
 
                     let ObjectID = 'virtual-' + key1
                     let sb = []
@@ -3106,6 +3198,9 @@ export default class LGSvgParser extends SvgBase {
                 let id = cell.id
                 let sbid = id.substring(6)
                 let sssb = widgetMap.get(sbid)
+                if (!sssb) {
+                    continue
+                }
                 if (!cell.flag) {
                     cell.flag = true
 
@@ -3280,10 +3375,6 @@ export default class LGSvgParser extends SvgBase {
         }
 
         this.collectShapeDragDefaultsFromGraph()
-
-        if (this.ui && typeof this.ui.refreshLgSwitchSidebarPalette === 'function') {
-            this.ui.refreshLgSwitchSidebarPalette()
-        }
 
         markAllLgDakuixianCells(graph)
 

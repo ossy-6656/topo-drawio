@@ -220,9 +220,29 @@ function computeLgSidebarScaleFromSvgString(svgStr) {
     }
 }
 
-/** 以 lgdata 为基准的侧栏缩放与图中位尺寸（切换 svg1/svg2 时沿用，与 lgdata 视觉一致） */
+/** 以 lgdata 为基准的侧栏缩放与拖入尺寸；切换数据源时沿用，避免侧栏图元顺序/布局变化 */
 let cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(zjtSvg)
-let cachedLgSidebarDragDef = null
+let cachedLgSidebarDragDef = {}
+
+/** 打开 lgdata 时刷新侧栏基准；其余数据源只换画布，侧栏仍用缓存 */
+function cacheLgSidebarRefFromParser(parser, dataKey) {
+    if (dataKey !== 'zjtSvg' || !parser) {
+        return
+    }
+    cachedLgSidebarScale = parser.getScale() || 1
+    cachedLgSidebarDragDef = { ...(parser.shapeDragDefaults || {}) }
+}
+
+function resolveCachedLgSwitchDragSize(parser) {
+    const d = cachedLgSidebarDragDef && cachedLgSidebarDragDef.cbreaker
+    if (d && d.w > 0 && d.h > 0) {
+        const side = Math.max(d.w, d.h)
+        return { w: side, h: side }
+    }
+    return parser && typeof parser.getLgSwitchDragSize === 'function'
+        ? parser.getLgSwitchDragSize()
+        : { w: 10, h: 10 }
+}
 
 /** 替换 draw.io 默认「保存」图（易与下载混淆），与 .geStatusAlert 文字同色 #b62623（grapheditor.css） */
 function applyDrawioSaveStatusIcon() {
@@ -407,8 +427,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                     // 初始化 Sidebar，只加载「负荷」面板
                     if (ui.sidebar) {
                         try {
-                            // 调用 Sidebar 的 init() 方法
-                            ui.sidebar.init()
+                            // Sidebar 构造时已 init；勿重复 init，避免默认面板重复插入导致顺序漂移
                             // 注册 symbol→stencil（含 cbreaker），避免仅侧栏模板未加载导致 shape 无效、旋转失效
                             if (
                                 lgsvgParser.stencilDoc &&
@@ -425,27 +444,14 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 )
                             }
 
-                            if (selectedData.value === 'zjtSvg') {
-                                cachedLgSidebarScale = lgsvgParser.getScale() || 1
-                                const d = lgsvgParser.shapeDragDefaults || {}
-                                cachedLgSidebarDragDef = { ...d }
-                            }
-
-                            const useLgRefSidebar = selectedData.value === 'svg2'
-                            if (useLgRefSidebar) {
-                                const srcSvg = dataSources[selectedData.value]
-                                if (srcSvg) {
-                                    cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(srcSvg)
-                                }
-                            }
-                            // 侧栏初始宽高：svg1/svg2 与 lgdata 一致；lgdata/上传仍跟当前解析结果
+                            cacheLgSidebarRefFromParser(lgsvgParser, selectedData.value)
+                            // 侧栏宽高始终跟 lgdata 基准缓存，不随当前站所/上传图解析结果变化
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
-                            const gScale = useLgRefSidebar
-                                ? (cachedLgSidebarScale != null ? cachedLgSidebarScale : (lgsvgParser.getScale() || 1))
-                                : (lgsvgParser.getScale() || 1)
-                            const dragDef = useLgRefSidebar
-                                ? (cachedLgSidebarDragDef != null ? cachedLgSidebarDragDef : {})
-                                : (lgsvgParser.shapeDragDefaults || {})
+                            const gScale =
+                                cachedLgSidebarScale != null
+                                    ? cachedLgSidebarScale
+                                    : lgsvgParser.getScale() || 1
+                            const dragDef = cachedLgSidebarDragDef
                             // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
                             const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
                                 const symbolId = entry[0]
@@ -637,7 +643,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
 
                             const buildLgSwitchPaletteFns = () => {
-                                const size = lgsvgParser.getLgSwitchDragSize()
+                                const size = resolveCachedLgSwitchDragSize(lgsvgParser)
                                 return LG_SIDEBAR_SWITCH_ENTRIES.map((entry) => {
                                     const symbolId = entry[0]
                                     const label = entry[1]
@@ -657,24 +663,6 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                         label
                                     )
                                 })
-                            }
-                            ui.refreshLgSwitchSidebarPalette = () => {
-                                try {
-                                    const palette = ui.sidebar && ui.sidebar.palettes['lg-switch']
-                                    const contentDiv =
-                                        palette && palette[1] && palette[1].firstChild
-                                    if (!contentDiv) {
-                                        return
-                                    }
-                                    while (contentDiv.firstChild) {
-                                        contentDiv.removeChild(contentDiv.firstChild)
-                                    }
-                                    buildLgSwitchPaletteFns().forEach((fn) =>
-                                        contentDiv.appendChild(fn(contentDiv))
-                                    )
-                                } catch (e) {
-                                    console.warn('[正交图] 刷新开关侧栏失败', e)
-                                }
                             }
                             // 站内-断路器(0305)：与 lgdata Breaker_30500000 尺寸一致，可旋转
                             ui.sidebar.addPaletteFunctions(

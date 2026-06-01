@@ -1648,10 +1648,14 @@ let GraphTool = {
      * @returns {{cell1RatioVec, cell2RatioVec}}
      */
     getCell2CellLinkRelation(graph, cell1, cell2, symbolProp) {
+        const fallback = { x: 0.5, y: 0.5, flag: 'inner' }
         let touchList = ['a', 'b', 'c', 'd', 'o']
 
-        let symbol1Attr = symbolProp[cell1.symbol]
-        let symbol2Attr = symbolProp[cell2.symbol]
+        let symbol1Attr = symbolProp && cell1 && cell1.symbol ? symbolProp[cell1.symbol] : null
+        let symbol2Attr = symbolProp && cell2 && cell2.symbol ? symbolProp[cell2.symbol] : null
+        if (!symbol1Attr || !symbol2Attr) {
+            return { cell1RatioVec: fallback, cell2RatioVec: fallback }
+        }
 
         // 计算设备cell1上的连接点
         let touchCell1List = []
@@ -1695,12 +1699,28 @@ let GraphTool = {
             }
         }
 
+        if (!vec1 || vec1.x == null || vec1.y == null) {
+            vec1 = fallback
+        }
+        if (!vec2 || vec2.x == null || vec2.y == null) {
+            vec2 = fallback
+        }
         return { cell1RatioVec: vec1, cell2RatioVec: vec2 }
     },
     // 计算线连接线的情况
     getLine2LineRelation(graph, edge1, edge2) {
         let geo1 = edge1.geometry
         let geo2 = edge2.geometry
+        if (
+            !geo1 ||
+            !geo2 ||
+            !geo1.sourcePoint ||
+            !geo1.targetPoint ||
+            !geo2.sourcePoint ||
+            !geo2.targetPoint
+        ) {
+            return { selfTouch: '0', targetTouch: '0' }
+        }
 
         let p1_edge1 = new Vector2(geo1.sourcePoint.x, geo1.sourcePoint.y)
         let p2_edge1 = new Vector2(geo1.targetPoint.x, geo1.targetPoint.y)

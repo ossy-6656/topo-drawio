@@ -4,6 +4,47 @@ import mathutil from '@/plugins/tmzx/mathutil.js'
 let regScale = /scale\([^)]+\)/gi
 let regRotate = /rotate\([^)]+\)/gi
 
+/** 读取边几何上的采样点（sourcePoint / 折点 / targetPoint；不足时回退到端点图元中心） */
+function getEdgeSamplePoints(graph, line) {
+    const model = graph.getModel()
+    const geoLine = model.getGeometry(line)
+    const points = []
+    if (!geoLine) {
+        return points
+    }
+    if (geoLine.sourcePoint) {
+        points.push(geoLine.sourcePoint)
+    }
+    if (geoLine.points && geoLine.points.length > 0) {
+        points.push(...geoLine.points)
+    }
+    if (geoLine.targetPoint) {
+        points.push(geoLine.targetPoint)
+    }
+    if (points.length >= 2) {
+        return points
+    }
+    const src = model.getTerminal(line, true)
+    const tgt = model.getTerminal(line, false)
+    if (src) {
+        const g = model.getGeometry(src)
+        if (g) {
+            points.unshift(new mxPoint(g.getCenterX(), g.getCenterY()))
+        }
+    }
+    if (tgt) {
+        const g = model.getGeometry(tgt)
+        if (g) {
+            points.push(new mxPoint(g.getCenterX(), g.getCenterY()))
+        }
+    }
+    return points
+}
+
+function hasValidPointCoord(p) {
+    return p != null && p.x != null && p.y != null && !isNaN(p.x) && !isNaN(p.y)
+}
+
 export default class SvgBase {
 
     setGraph(graph) {
@@ -195,8 +236,13 @@ export default class SvgBase {
         let symbolMap = this.getSymbolMap();
 
         let vertex = widgetMap.get(id);
+        if (!vertex) {
+            console.warn('[SvgBase] getLinkRel: 未找到设备', id)
+            return '0_0'
+        }
 
         let symbol = vertex.symbol;
+        const defaultRel = '0_0'
 
         let lineFlag, vertexFlag;
         if (symbol === 'busbar')
@@ -215,6 +261,9 @@ export default class SvgBase {
         else if (symbol === 'station') {
             vertexFlag = '0';
             let geo = model.getGeometry(vertex);
+            if (!geo) {
+                return defaultRel
+            }
             let cx = geo.getCenterX();
             let cy = geo.getCenterY();
 
@@ -228,10 +277,17 @@ export default class SvgBase {
         else
         {
             let symbolAttr = symbolMap[symbol];
+            if (!symbolAttr) {
+                console.warn('[SvgBase] getLinkRel: 未注册 symbol', symbol, 'device=', id)
+                return defaultRel
+            }
             let {initWidth, initHeight, touchs, xratio, yratio} = symbolAttr;
 
             if (touchs == 1) {
-                let touchO = symbolAttr.o || symbolAttr.b || symbolAttr.a;
+                let touchO = symbolAttr.o || symbolAttr.b || symbolAttr.a || symbolAttr.c || symbolAttr.d;
+                if (!touchO || touchO.x == null || touchO.y == null) {
+                    return defaultRel
+                }
                 let p = GraphTool.getTouchPoint(graph, vertex, touchO.x, touchO.y);
                 let lenStart = startPoint.clone().sub(p).length();
                 let lenEnd = endPoint.clone().sub(p).length();
@@ -241,6 +297,9 @@ export default class SvgBase {
             } else if (touchs == 2) {
                 let touchA = symbolAttr.a;
                 let touchB = symbolAttr.b;
+                if (!touchA || !touchB || touchA.x == null || touchB.x == null) {
+                    return defaultRel
+                }
 
                 let pa = GraphTool.getTouchPoint(graph, vertex, touchA.x, touchA.y);
                 let pb = GraphTool.getTouchPoint(graph, vertex, touchB.x, touchB.y);
@@ -277,6 +336,9 @@ export default class SvgBase {
             } else if (touchs == 3) {
                 let touchA = symbolAttr.a
                 let touchB = symbolAttr.b
+                if (!touchA || !touchB || touchA.x == null || touchB.x == null) {
+                    return defaultRel
+                }
 
                 let pa = GraphTool.getTouchPoint(graph, vertex, touchA.x, touchA.y)
                 let pb = GraphTool.getTouchPoint(graph, vertex, touchB.x, touchB.y)
@@ -312,9 +374,14 @@ export default class SvgBase {
                     lineFlag = '1'
                     vertexFlag = '1'
                 }
+            } else {
+                return defaultRel
             }
         }
 
+        if (lineFlag == null || vertexFlag == null) {
+            return defaultRel
+        }
         return lineFlag + '_' + vertexFlag;
     }
 
@@ -325,6 +392,9 @@ export default class SvgBase {
 
         let geoOuter = model.getGeometry(outerDev)
         let geoInner = model.getGeometry(innerDev)
+        if (!geoOuter || !geoInner) {
+            return false
+        }
 
         let cx = geoInner.getCenterX()
         let cy = geoInner.getCenterY()
@@ -348,24 +418,27 @@ export default class SvgBase {
         let graph = this.graph
         let model = graph.getModel()
         let geoOuter = model.getGeometry(outerDev)
+        if (!geoOuter) {
+            return false
+        }
 
         let xmin = geoOuter.x
         let ymin = geoOuter.y
         let xmax = geoOuter.x + geoOuter.width
         let ymax = geoOuter.y + geoOuter.height
 
-        let geoLine = model.getGeometry(line)
-
-        let pointLs = []
-        pointLs.push(geoLine.sourcePoint)
-        if (geoLine.points && geoLine.points.length > 0) {
-            pointLs.push(...geoLine.points)
+        let pointLs = getEdgeSamplePoints(graph, line)
+        if (pointLs.length === 0) {
+            return false
         }
-        pointLs.push(geoLine.targetPoint)
 
         let isPass = true
 
         for (let p of pointLs) {
+            if (!hasValidPointCoord(p)) {
+                isPass = false
+                break
+            }
             let b1 = p.x > xmin && p.x < xmax
             let b2 = p.y > ymin && p.y < ymax
 

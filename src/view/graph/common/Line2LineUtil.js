@@ -15,6 +15,16 @@ let Line2LineUtil = {
 
         let geo1 = model.getGeometry(edge1)
         let geo2 = model.getGeometry(edge2)
+        if (
+            !geo1 ||
+            !geo2 ||
+            !geo1.sourcePoint ||
+            !geo1.targetPoint ||
+            !geo2.sourcePoint ||
+            !geo2.targetPoint
+        ) {
+            return { selfTouch: '0', targetTouch: '0', p: null }
+        }
 
         // 注意sourcePoint、targetPoint在初始化时为真实坐标，如果移动后就可以不再是真实点
         let p1_edge1 = new Vector2(geo1.sourcePoint.x, geo1.sourcePoint.y)
@@ -80,6 +90,9 @@ let Line2LineUtil = {
         let targetCell_edge2 = model.getTerminal(edge2, false)
 
         let { selfTouch, targetTouch, p } = this.getConnectionInfo(graph, cellLinkMap, edge1, edge2)
+        if (!p || p.x == null || p.y == null) {
+            return null
+        }
 
 
         let sb = []
