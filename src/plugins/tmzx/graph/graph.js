@@ -108,7 +108,7 @@ function isPeiXianLinkCell(cell, graph) {
     return false
 }
 
-/** 点击配线：打印方法名；站房图热点可跳转 dkxdata */
+/** 点击配线：打印方法名（配线数据源 dkxdata 已移除，不再自动切换） */
 function handlePeiXianCellClick(cell, graph) {
     if (!isPeiXianLinkCell(cell, graph)) {
         return false
@@ -123,12 +123,6 @@ function handlePeiXianCellClick(cell, graph) {
         psrtype: cell.psrtype,
         lgPeiXian: cell.lgPeiXian,
     })
-    const style = graph.getCurrentCellStyle(cell) || {}
-    const fromHotLayer = graph.getModel().isVertex(cell) && style.layer === 'Hot_Layer'
-    const hasFeederLink = !!(cell.superlinkname || cell.href || cell.superlinkpsrid)
-    if ((fromHotLayer || hasFeederLink) && typeof window.switchToDkxData === 'function') {
-        window.switchToDkxData()
-    }
     return true
 }
 

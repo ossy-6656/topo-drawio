@@ -27,9 +27,12 @@
         <span style="font-size: 14px; font-weight: 500; color: #333;">选择数据源：</span>
         <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
             <option value="zjtSvg">lgdata (示例数据)</option>
-            <option value="dkxSvg">dkxdata (配线)</option>
-            <option value="svg1">svg1</option>
             <option value="svg2">svg2</option>
+            <option
+                v-for="opt in stationDataOptions"
+                :key="opt.value"
+                :value="opt.value"
+            >{{ opt.label }}</option>
             <option value="uploaded" :disabled="!uploadedSvg">本地上传的 G 图</option>
         </select>
         <label class="gUploadLabel" style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 14px; color: #409eff;">
@@ -113,9 +116,11 @@ import App from '@/view/graph/lg/App'
 // 导入 API 接口（已注释，使用测试数据）
 // import { getZjtSvg } from '@/api/tmzx/svg/index.ts'
 import { zjtSvg } from '@/view/graph/data/lgdata.js'                    // 测试用的正交图 SVG 数据
-import { dkxSvg } from '@/view/graph/data/dkxdata.js'                  // 配线单线图 SVG 数据
-import { svg1 } from '@/view/graph/data/svg1.js'                        // SVG 数据 1
 import { svg2 } from '@/view/graph/data/svg2.js'                        // SVG 数据 2
+import {
+    STATION_DATA_OPTIONS,
+    STATION_DATA_MAP,
+} from '@/view/graph/data/stationDatasets.js'                          // data/*.svg 转 lgdata 格式
 
 // 导入 G 文件转换工具
 import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G 文件转 SVG
@@ -280,13 +285,14 @@ let uploadedSvg = ref('')           // 存储上传 G 文件转换后的 SVG 数
 let uploadingG = ref(false)         // 上传状态标志
 let gFileInputRef = ref()           // 文件输入框的引用
 
+const stationDataOptions = STATION_DATA_OPTIONS
+
 // 数据源映射
 const dataSources = {
     zjtSvg: zjtSvg,
-    dkxSvg: dkxSvg,
-    svg1: svg1,
     svg2: svg2,
-    uploaded: null  // 动态获取
+    ...STATION_DATA_MAP,
+    uploaded: null, // 动态获取
 }
 
 // G 文件选择处理函数
@@ -341,17 +347,6 @@ const handleDataChange = () => {
     }
     load(selectedSvg, undefined)
 }
-
-/** 切换为配线数据（dkxdata.js），供图中「配线」热点点击调用 */
-function switchToDkxData() {
-    if (selectedData.value === 'dkxSvg') {
-        return
-    }
-    selectedData.value = 'dkxSvg'
-    handleDataChange()
-    ElMessage.success('已切换至配线数据')
-}
-window.switchToDkxData = switchToDkxData
 
 /** 切换为 svg2.js 数据，供「站外-大馈线」点击调用 */
 function switchToSvg2() {
@@ -430,14 +425,13 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 )
                             }
 
-                            if (selectedData.value === 'zjtSvg' || selectedData.value === 'dkxSvg') {
+                            if (selectedData.value === 'zjtSvg') {
                                 cachedLgSidebarScale = lgsvgParser.getScale() || 1
                                 const d = lgsvgParser.shapeDragDefaults || {}
                                 cachedLgSidebarDragDef = { ...d }
                             }
 
-                            const useLgRefSidebar =
-                                selectedData.value === 'svg1' || selectedData.value === 'svg2'
+                            const useLgRefSidebar = selectedData.value === 'svg2'
                             if (useLgRefSidebar) {
                                 const srcSvg = dataSources[selectedData.value]
                                 if (srcSvg) {
