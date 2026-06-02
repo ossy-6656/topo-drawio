@@ -204,9 +204,6 @@ window.EditDataDialog = function(ui, cell)
         shapeLower.indexOf('potentialtransformer2w_') === 0 ||
         shapeLower.indexOf('potentialtransformer3w_') === 0
 
-    var id = (EditDataDialog.getDisplayIdForCell != null) ?
-        EditDataDialog.getDisplayIdForCell(ui, cell) : null;
-
     // 判断是否为母线连接线（连接两条母线的线）
     var isBusbarConnector = false;
     if (graph.getModel().isEdge(cell)) {
@@ -442,7 +439,7 @@ window.EditDataDialog = function(ui, cell)
         }
         temp = temp.filter(function (item) {
             var n = item.name
-            return n === 'id' || n === 'shape' || loadKeys.indexOf(n) >= 0
+            return loadKeys.indexOf(n) >= 0
         })
         for (var lj = 0; lj < loadKeys.length; lj++) {
             var kn = loadKeys[lj]
@@ -478,7 +475,7 @@ window.EditDataDialog = function(ui, cell)
         }
         temp = temp.filter(function (item) {
             var n = item.name
-            return n === 'id' || n === 'shape' || switchKeys.indexOf(n) >= 0
+            return switchKeys.indexOf(n) >= 0
         })
         for (var sj = 0; sj < switchKeys.length; sj++) {
             var skn = switchKeys[sj]
@@ -519,7 +516,7 @@ window.EditDataDialog = function(ui, cell)
         }
         temp = temp.filter(function (item) {
             var n = item.name
-            return n === 'id' || n === 'shape' || unitKeys.indexOf(n) >= 0
+            return unitKeys.indexOf(n) >= 0
         })
         for (var gj = 0; gj < unitKeys.length; gj++) {
             var gkn = unitKeys[gj]
@@ -562,7 +559,7 @@ window.EditDataDialog = function(ui, cell)
         }
         temp = temp.filter(function (item) {
             var n = item.name
-            return n === 'id' || n === 'shape' || xfKeys.indexOf(n) >= 0
+            return xfKeys.indexOf(n) >= 0
         })
         for (var xj = 0; xj < xfKeys.length; xj++) {
             var xkn = xfKeys[xj]
@@ -642,6 +639,11 @@ window.EditDataDialog = function(ui, cell)
         temp.push({ name: 'length', value: lengthValue.toString() });
     }
 
+    // 编辑弹窗不展示 ID / 图形（shape）
+    temp = temp.filter(function (item) {
+        return item.name !== 'id' && item.name !== 'shape'
+    })
+
     // Sorts by name；母线优先顺序与 tooltip 一致：设备名称、设备类型
     if (isBusbar) {
         var orderPref = { name: 0, sblx: 1 };
@@ -689,8 +691,6 @@ window.EditDataDialog = function(ui, cell)
             I_S: 8,
             K_S: 9,
             J_S: 10,
-            id: 98,
-            shape: 99,
         }
         temp.sort(function (a, b) {
             var oa = Object.prototype.hasOwnProperty.call(xfOrderPref, a.name) ? xfOrderPref[a.name] : 50
@@ -717,8 +717,6 @@ window.EditDataDialog = function(ui, cell)
             Q_max: 6,
             Q_min: 7,
             P_meas: 8,
-            id: 98,
-            shape: 99,
         }
         temp.sort(function (a, b) {
             var oa = Object.prototype.hasOwnProperty.call(unitOrderPref, a.name) ? unitOrderPref[a.name] : 50
@@ -735,7 +733,7 @@ window.EditDataDialog = function(ui, cell)
             return 0
         })
     } else if (isLgLoadDevice) {
-        var loadOrderPref = { name: 0, P: 1, Q: 2, id: 98, shape: 99 };
+        var loadOrderPref = { name: 0, P: 1, Q: 2 };
         temp.sort(function (a, b) {
             var oa = Object.prototype.hasOwnProperty.call(loadOrderPref, a.name) ? loadOrderPref[a.name] : 50;
             var ob = Object.prototype.hasOwnProperty.call(loadOrderPref, b.name) ? loadOrderPref[b.name] : 50;
@@ -751,7 +749,7 @@ window.EditDataDialog = function(ui, cell)
             return 0;
         });
     } else if (isLgSwitchDevice) {
-        var switchOrderPref = { name: 0, status: 1, id: 98, shape: 99 };
+        var switchOrderPref = { name: 0, status: 1 };
         temp.sort(function (a, b) {
             var oa = Object.prototype.hasOwnProperty.call(switchOrderPref, a.name) ? switchOrderPref[a.name] : 50;
             var ob = Object.prototype.hasOwnProperty.call(switchOrderPref, b.name) ? switchOrderPref[b.name] : 50;
@@ -782,20 +780,6 @@ window.EditDataDialog = function(ui, cell)
                 return 0;
             }
         });
-    }
-
-    if (id != null)
-    {
-        var text = document.createElement('div');
-        text.style.width = '100%';
-        text.style.fontSize = '12px';
-        text.style.textAlign = 'center';
-        text.style.color = '#909399';
-        mxUtils.write(text, id);
-
-        form.addField('', text);
-        text.style.cursor = 'default';
-        form.body.lastChild.className = 'lg-edit-dialog-id';
     }
 
     for (var i = 0; i < temp.length; i++)
@@ -1085,7 +1069,7 @@ window.EditDataDialog = function(ui, cell)
 
     div.appendChild(buttons);
 
-    var formRowCount = count + (id != null ? 1 : 0);
+    var formRowCount = count;
     var gridRowCount = Math.max(1, Math.ceil(formRowCount / 2));
     this.preferredWidth = 720;
     this.preferredHeight = Math.min(580, Math.max(360, 48 + 64 + 32 + gridRowCount * 50));
