@@ -136,6 +136,12 @@ import {
     LG_SIDEBAR_SWITCH_ENTRIES,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
+    computeLgSwitchCanvasRefSideFromLgdataScale,
+    computeLgSwitchCanvasRefSideFromScale,
+    setLgSwitchCanvasRefSide,
+    getLgSwitchCanvasRefSide,
+    setLgLgdataParserTextScale,
+    getLgLgdataParserTextScale,
 } from '@/view/graph/lg/Constants.js' // 力光侧栏图元与 lgdata / symbol.js 对齐
 // import * as api from '@/api/tmzx/abnormalchange'
 import { ElMessage } from 'element-plus'                                  // 消息提示组件
@@ -223,21 +229,35 @@ function computeLgSidebarScaleFromSvgString(svgStr) {
 /** 以 lgdata 为基准的侧栏缩放与拖入尺寸；切换数据源时沿用，避免侧栏图元顺序/布局变化 */
 let cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(zjtSvg)
 let cachedLgSidebarDragDef = {}
+setLgLgdataParserTextScale(cachedLgSidebarScale)
+setLgSwitchCanvasRefSide(computeLgSwitchCanvasRefSideFromLgdataScale())
 
-/** 打开 lgdata 时刷新侧栏基准；其余数据源只换画布，侧栏仍用缓存 */
+/** 打开 lgdata 时刷新侧栏/开关基准；站所图只换画布，开关仍按 lgdata 边长缩小对齐 */
 function cacheLgSidebarRefFromParser(parser, dataKey) {
     if (dataKey !== 'zjtSvg' || !parser) {
         return
     }
-    cachedLgSidebarScale = parser.getScale() || 1
+    const lgScale = parser.getScale() || 1
+    cachedLgSidebarScale = lgScale
+    setLgLgdataParserTextScale(lgScale)
     cachedLgSidebarDragDef = { ...(parser.shapeDragDefaults || {}) }
+    const d = cachedLgSidebarDragDef.cbreaker
+    if (d && d.w > 0 && d.h > 0) {
+        setLgSwitchCanvasRefSide(Math.max(d.w, d.h))
+    } else {
+        setLgSwitchCanvasRefSide(computeLgSwitchCanvasRefSideFromLgdataScale())
+    }
 }
 
 function resolveCachedLgSwitchDragSize(parser) {
+    const side = getLgSwitchCanvasRefSide()
+    if (side > 0) {
+        return { w: side, h: side }
+    }
     const d = cachedLgSidebarDragDef && cachedLgSidebarDragDef.cbreaker
     if (d && d.w > 0 && d.h > 0) {
-        const side = Math.max(d.w, d.h)
-        return { w: side, h: side }
+        const cachedSide = Math.max(d.w, d.h)
+        return { w: cachedSide, h: cachedSide }
     }
     return parser && typeof parser.getLgSwitchDragSize === 'function'
         ? parser.getLgSwitchDragSize()

@@ -19,8 +19,15 @@ import {
     isLgSwitchShapeOrPsr,
     normalizeLgSwitchStatus,
     applyLgSwitchBreakerVisual,
+    computeLgSwitchCanvasRefSideFromLgdataScale,
+    computeLgSwitchCanvasRefSideFromScale,
+    getLgLgdataParserTextScale,
+    getLgSwitchCanvasRefSide,
     lgSidebarDeviceIdsByLengthDesc,
     refreshAllLgSwitchBreakerVisuals,
+    resolveLgSwitchCanvasVertexSize,
+    setLgLgdataParserTextScale,
+    setLgSwitchCanvasRefSide,
     LG_LGDATA_BREAKER_TYPICAL_USE_SCALE,
     LG_SIDEBAR_SWITCH_GRID_WH,
 } from './Constants.js'
@@ -1675,10 +1682,20 @@ export default class LGSvgParser extends SvgBase {
         if (flag == 'useStation') {
             sb.push('flag=useStation;')
         }
-        sb.push('whiteSpace=wrap;aspect=fixed;')
+        const isSwitchDev = isLgSwitchShapeOrPsr(symbol, PSRType)
+        if (isSwitchDev) {
+            sb.push('whiteSpace=wrap;aspect=variable;')
+        } else {
+            sb.push('whiteSpace=wrap;aspect=fixed;')
+        }
         sb.push(`psrtype=${PSRType};`)
-        let c = 'rgba(255,0,0,0.68)'
-        sb.push(`rotation=${angle};fillColor=rgba(255,0,0,0.4);strokeColor=red;`)
+        if (isSwitchDev) {
+            sb.push(
+                `rotation=${angle};fillColor=none;strokeColor=rgb(185,72,66);strokeWidth=1.2;`
+            )
+        } else {
+            sb.push(`rotation=${angle};fillColor=rgba(255,0,0,0.4);strokeColor=red;`)
+        }
 
         // 如果有关联的名称
         let txtCell = txtMap.get(ObjectID)
@@ -1696,6 +1713,15 @@ export default class LGSvgParser extends SvgBase {
         let scale = param['scale']
         let width = initWidth * scale * this.getScale()
         let height = initHeight * scale * this.getScale()
+        if (isSwitchDev) {
+            const fitted = resolveLgSwitchCanvasVertexSize(
+                width,
+                height,
+                this.getScale()
+            )
+            width = fitted.width
+            height = fitted.height
+        }
 
         let rad = mathutil.angle2Radian(angle)
         let leftWidth = width * xratio
@@ -2533,7 +2559,7 @@ export default class LGSvgParser extends SvgBase {
      * 侧栏/拖入 cbreaker 目标尺寸：与 lgdata Breaker_30500000 一致（方形取原图元较长边）。
      */
     computeLgSwitchDragSizeFromReference() {
-        const s = this.getScale() || 1
+        const s = getLgLgdataParserTextScale() || this.getScale() || 1
         const map = this.getSymbolMap() || {}
         let bestW = 0
         let bestH = 0
@@ -2566,6 +2592,10 @@ export default class LGSvgParser extends SvgBase {
     }
 
     getLgSwitchDragSize() {
+        const refSide = getLgSwitchCanvasRefSide()
+        if (refSide > 0) {
+            return { w: refSide, h: refSide }
+        }
         const d = this.shapeDragDefaults && this.shapeDragDefaults.cbreaker
         if (d && d.w > 0 && d.h > 0) {
             const side = Math.max(d.w, d.h)
@@ -2575,9 +2605,86 @@ export default class LGSvgParser extends SvgBase {
     }
 
     seedLgSwitchShapeDragDefaults(out) {
-        const ref = this.computeLgSwitchDragSizeFromReference()
-        if (!out.cbreaker || out.cbreaker.w < ref.w * 0.85) {
+        const refSide = getLgSwitchCanvasRefSide()
+        const ref =
+            refSide > 0
+                ? { w: refSide, h: refSide }
+                : this.computeLgSwitchDragSizeFromReference()
+        if (!out.cbreaker) {
             out.cbreaker = ref
+            return
+        }
+        const cur = Math.max(out.cbreaker.w, out.cbreaker.h)
+        if (cur > ref.w * 1.05 || cur < ref.w * 0.85) {
+            out.cbreaker = { w: ref.w, h: ref.h }
+        }
+    }
+
+    /**
+     * 站所 SVG 的 getScale() 大于 lgdata 时，0305 会偏大；仅缩小至 lgdata 基准边长，不放大。
+     */
+    normalizeAllLgSwitchSizesToReference() {
+        const graph = this.graph
+        if (graph == null) {
+            return
+        }
+
+        const model = graph.getModel()
+        const cells = []
+        const walk = (parent) => {
+            const n = model.getChildCount(parent)
+            for (let i = 0; i < n; i++) {
+                const cell = model.getChildAt(parent, i)
+                if (model.isVertex(cell)) {
+                    const st = graph.getCurrentCellStyle(cell) || {}
+                    const shape = String((st.shape || cell.symbol || '') + '').toLowerCase()
+                    const psr =
+                        cell.psrtype != null && cell.psrtype !== ''
+                            ? String(cell.psrtype)
+                            : st.psrtype != null
+                              ? String(st.psrtype)
+                              : ''
+                    if (isLgSwitchShapeOrPsr(shape, psr)) {
+                        cells.push(cell)
+                    }
+                }
+                if (model.getChildCount(cell) > 0) {
+                    walk(cell)
+                }
+            }
+        }
+        walk(graph.getDefaultParent())
+        if (cells.length === 0) {
+            return
+        }
+
+        model.beginUpdate()
+        try {
+            for (const cell of cells) {
+                const g = model.getGeometry(cell)
+                if (!g || !(g.width > 0) || !(g.height > 0)) {
+                    continue
+                }
+                const fitted = resolveLgSwitchCanvasVertexSize(
+                    g.width,
+                    g.height,
+                    this.getScale()
+                )
+                if (
+                    Math.abs(fitted.width - g.width) < 0.5 &&
+                    Math.abs(fitted.height - g.height) < 0.5
+                ) {
+                    continue
+                }
+                const ng = g.clone()
+                ng.width = fitted.width
+                ng.height = fitted.height
+                ng.x = g.x + (g.width - ng.width) / 2
+                ng.y = g.y + (g.height - ng.height) / 2
+                model.setGeometry(cell, ng)
+            }
+        } finally {
+            model.endUpdate()
         }
     }
 
@@ -3373,6 +3480,8 @@ export default class LGSvgParser extends SvgBase {
         } finally {
             model.endUpdate()
         }
+
+        this.normalizeAllLgSwitchSizesToReference()
 
         this.collectShapeDragDefaultsFromGraph()
 

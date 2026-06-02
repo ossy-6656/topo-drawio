@@ -10,6 +10,195 @@ export const LG_SIDEBAR_SWITCH_GRID_WH = 10
 /** lgdata 中 Breaker_30500000 use 元素 transform scale 典型值（与导入断路器视觉一致） */
 export const LG_LGDATA_BREAKER_TYPICAL_USE_SCALE = 10.857673
 
+/** lgdata 画布 0305 边长回退值（3×典型 use scale×lgdata 文本层 scale≈3.14） */
+export const LG_SWITCH_CANVAS_REF_SIDE_FALLBACK = 102.27
+
+/**
+ * 画布/侧栏 0305 在 lgdata 基准边上的显示缩放（<1 略缩小，成图更协调）
+ */
+export const LG_SWITCH_CANVAS_DISPLAY_SCALE = 0.85
+
+/**
+ * 站所按原生 scale 算出的边长超过「目标×本系数」时走「大站所」策略（锦艺等），
+ * 不再用 lgdata 文本层 scale 折算。浮龙/张衡等未超阈值时仍走折算。
+ */
+export const LG_SWITCH_STATION_CAP_TO_REF_RATIO = 1.15
+
+/** 大站所（锦艺）：原生边长保留比例，与 ref×LG_SWITCH_LARGE_STATION_REF_BOOST 取较大值 */
+export const LG_SWITCH_LARGE_STATION_SIDE_FACTOR = 0.92
+
+/** 大站所目标边长下限：至少为 lgdata 显示目标×本系数 */
+export const LG_SWITCH_LARGE_STATION_REF_BOOST = 1.55
+
+/**
+ * 站所 getScale / lgdata getScale 超过本值时（锦艺≈3.8），环网柜内全部 0305 统一放大，
+ * 不依赖单颗开关原生边长是否超过 capTh（锦艺 symbol 宽 2，原生 max 边长常 <100）。
+ */
+export const LG_SWITCH_EXTREME_HIGH_SCALE_RATIO = 2.5
+
+/** lgdata 解析时 #Text_Layer 推算的 getScale()，站所图不得用于开关目标尺寸 */
+let lgLgdataParserTextScale = 0
+
+/** lgdata 画布 0305 目标边长（px）；仅随 lgdata 刷新 */
+let lgSwitchCanvasRefSide = 0
+
+export function setLgLgdataParserTextScale(scale) {
+    const n = Number(scale)
+    if (Number.isFinite(n) && n > 0) {
+        lgLgdataParserTextScale = n
+    }
+}
+
+export function getLgLgdataParserTextScale() {
+    return lgLgdataParserTextScale > 0 ? lgLgdataParserTextScale : 0
+}
+
+export function setLgSwitchCanvasRefSide(side) {
+    const n = Number(side)
+    if (Number.isFinite(n) && n > 0) {
+        lgSwitchCanvasRefSide = n
+    }
+}
+
+/** 画布与侧栏拖入使用的 0305 目标边长（已含 LG_SWITCH_CANVAS_DISPLAY_SCALE） */
+export function getLgSwitchCanvasRefSide() {
+    let base = 0
+    if (lgSwitchCanvasRefSide > 0) {
+        base = lgSwitchCanvasRefSide
+    } else {
+        const computed = computeLgSwitchCanvasRefSideFromLgdataScale()
+        base = computed > 0 ? computed : LG_SWITCH_CANVAS_REF_SIDE_FALLBACK
+    }
+    const k = Number(LG_SWITCH_CANVAS_DISPLAY_SCALE)
+    const scale = Number.isFinite(k) && k > 0 ? Math.min(1, k) : 1
+    return base * scale
+}
+
+/**
+ * 将开关宽高对齐到目标边长：默认仅缩小；allowEnlarge 为 true 时也可放大至目标。
+ */
+export function fitLgSwitchVertexToRefSide(width, height, refSide, allowEnlarge = false) {
+    const w = Number(width)
+    const h = Number(height)
+    const ref = Number(refSide)
+    if (!(w > 0) || !(h > 0) || !(ref > 0)) {
+        return { width: w, height: h }
+    }
+    const cur = Math.max(w, h)
+    if (cur <= ref) {
+        if (allowEnlarge && cur < ref * 0.98) {
+            const f = ref / cur
+            return { width: w * f, height: h * f }
+        }
+        return { width: w, height: h }
+    }
+    const f = ref / cur
+    return { width: w * f, height: h * f }
+}
+
+/** 0305 画布统一为正方形（SVG use 常为扁矩形，旋转后易呈细竖条） */
+export function applyLgSwitchSquareCanvasSize(side) {
+    const s = Number(side)
+    if (!(s > 0)) {
+        return { width: s, height: s }
+    }
+    return { width: s, height: s }
+}
+
+/** 文本层 scale 明显大于 lgdata 的站所（锦艺）：目标边长大于通用 ref */
+export function getLgSwitchTargetForLargeStation(stationCur, refSide) {
+    const cur = Number(stationCur)
+    const ref = Number(refSide)
+    if (!(cur > 0) || !(ref > 0)) {
+        return ref
+    }
+    const retain = Number(LG_SWITCH_LARGE_STATION_SIDE_FACTOR)
+    const f = Number.isFinite(retain) && retain > 0 ? retain : 0.82
+    const boost = Number(LG_SWITCH_LARGE_STATION_REF_BOOST)
+    const b = Number.isFinite(boost) && boost > 1 ? boost : 1.32
+    const fromNative = cur * f
+    const fromRef = ref * b
+    return Math.min(cur, Math.max(fromNative, fromRef))
+}
+
+/**
+ * 站所 SVG 文本层 getScale() 大于 lgdata 时，0305 按 lgdata 文本层 scale 折算，避免浮龙/张衡等站偏大。
+ */
+export function scaleLgSwitchVertexForStationImport(width, height, stationParserScale) {
+    const w = Number(width)
+    const h = Number(height)
+    const station = Number(stationParserScale)
+    const lg = getLgLgdataParserTextScale()
+    if (!(w > 0) || !(h > 0) || !(station > 0) || !(lg > 0) || station <= lg) {
+        return { width: w, height: h }
+    }
+    const corr = lg / station
+    return { width: w * corr, height: h * corr }
+}
+
+/** 锦艺等：整站文本层 scale 远高于 lgdata（非单开关边长） */
+export function isLgExtremeHighScaleStation(stationParserScale) {
+    const station = Number(stationParserScale)
+    const lg = getLgLgdataParserTextScale()
+    const ratio = Number(LG_SWITCH_EXTREME_HIGH_SCALE_RATIO)
+    const th = Number.isFinite(ratio) && ratio > 1 ? ratio : 2.5
+    return lg > 0 && station > lg * th
+}
+
+/** 导入/画布 0305：按站所类型在「收到目标边长」与「lgdata 文本层折算」间择优 */
+export function resolveLgSwitchCanvasVertexSize(width, height, stationParserScale) {
+    const ref = getLgSwitchCanvasRefSide()
+    const w = Number(width)
+    const h = Number(height)
+    const station = Number(stationParserScale)
+    const lg = getLgLgdataParserTextScale()
+    if (!(w > 0) || !(h > 0) || !(ref > 0)) {
+        return { width: w, height: h }
+    }
+    const stationCur = Math.max(w, h)
+    const capRatio = Number(LG_SWITCH_STATION_CAP_TO_REF_RATIO)
+    const capTh =
+        Number.isFinite(capRatio) && capRatio > 1 ? ref * capRatio : ref * 1.15
+    const boost = Number(LG_SWITCH_LARGE_STATION_REF_BOOST)
+    const boostMul = Number.isFinite(boost) && boost > 1 ? boost : 1.55
+
+    if (isLgExtremeHighScaleStation(station)) {
+        const target = Math.max(
+            getLgSwitchTargetForLargeStation(stationCur, ref),
+            ref * boostMul
+        )
+        return applyLgSwitchSquareCanvasSize(target)
+    }
+
+    if (lg > 0 && station > lg && stationCur > capTh) {
+        const target = getLgSwitchTargetForLargeStation(stationCur, ref)
+        return applyLgSwitchSquareCanvasSize(target)
+    }
+
+    const corrected = scaleLgSwitchVertexForStationImport(w, h, station)
+    const cur = Math.max(corrected.width, corrected.height)
+    const targetSide = cur > ref ? ref : cur
+    return applyLgSwitchSquareCanvasSize(targetSide)
+}
+
+/** symbol 3×3 × lgdata 典型 use scale × lgdata 文本层 scale（与站所 getScale 无关） */
+export function computeLgSwitchCanvasRefSideFromLgdataScale() {
+    const s = getLgLgdataParserTextScale()
+    if (!(s > 0)) {
+        return 0
+    }
+    return 3 * LG_LGDATA_BREAKER_TYPICAL_USE_SCALE * s
+}
+
+/** @deprecated 使用 computeLgSwitchCanvasRefSideFromLgdataScale */
+export function computeLgSwitchCanvasRefSideFromScale(parserScale) {
+    const s = Number(parserScale)
+    if (!(s > 0)) {
+        return 0
+    }
+    return 3 * LG_LGDATA_BREAKER_TYPICAL_USE_SCALE * s
+}
+
 /** 左侧「开关」面板：站内断路器 0305，与 lgdata 导入尺寸一致，可旋转 */
 export const LG_SIDEBAR_SWITCH_ENTRIES = [
     [
