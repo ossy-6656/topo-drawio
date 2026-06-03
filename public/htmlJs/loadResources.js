@@ -155,19 +155,28 @@ const loadPwtmzxPublic = (r) => {
         tag.onerror = () => reject(new Error(`资源加载错误：${r.href || r.src}`))
     })
 }
-window.addEventListener('DOMContentLoaded', async () => {
-    try {
-        if (!window.__POWERED_BY_QIANKUN__) {
-            // const publicList = [...scripts0,...links, ...scripts,...scripts2]
-            const publicList = [...scripts0,...links, ...scripts]
-            // const publicList = [...links, ...scripts]
-            publicList.forEach(async pub => {
-                await loadPwtmzxPublic(pub)
-            });
-        }
-    } catch (error) {
-        console.error('资源加载失败');
+function startPublicScriptsLoad() {
+    if (window.__publicScriptsLoadStarted) {
+        return window.loadPublicScriptsPromise
     }
+    window.__publicScriptsLoadStarted = true
+    window.loadPublicScriptsPromise = (async () => {
+        if (window.__POWERED_BY_QIANKUN__) {
+            return
+        }
+        // CSS 优先；脚本并行加载，单个失败不阻断其余资源（避免 grapheditor.css 未加载导致页面全乱）
+        const publicList = [...links, ...scripts0, ...scripts]
+        await Promise.allSettled(publicList.map((pub) => loadPwtmzxPublic(pub)))
+    })()
+    return window.loadPublicScriptsPromise
+}
+
+function onPublicScriptsLoadError(error) {
+    console.error('资源加载失败', error)
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    startPublicScriptsLoad().catch(onPublicScriptsLoadError)
 })
 
 window.mxscript = async (src, onLoad, id, dataAppKey, noWrite, onError) => {

@@ -2,6 +2,21 @@ import geometric from '@/plugins/tmzx/geometric.js'
 import GridSymbol from '@/plugins/tmzx/graph/GridSymbol.js'
 import mathutil from '@/plugins/tmzx/mathutil.js'
 
+function arrayMin(values) {
+  if (!values || values.length === 0) return undefined
+  return Math.min(...values)
+}
+
+function arrayMax(values) {
+  if (!values || values.length === 0) return undefined
+  return Math.max(...values)
+}
+
+function arrayExtent(values) {
+  if (!values || values.length === 0) return [undefined, undefined]
+  return [Math.min(...values), Math.max(...values)]
+}
+
 let SymbolUtil = {
   toNum(str) {
     return parseFloat(str)
@@ -73,10 +88,10 @@ let SymbolUtil = {
     let ylist = ls.map((v) => v.y)
 
     return {
-      minx: d3.min(xlist),
-      miny: d3.min(ylist),
-      maxx: d3.max(xlist),
-      maxy: d3.max(ylist)
+      minx: arrayMin(xlist),
+      miny: arrayMin(ylist),
+      maxx: arrayMax(xlist),
+      maxy: arrayMax(ylist)
     }
   },
   polygonDimension(dom) {
@@ -145,8 +160,8 @@ let SymbolUtil = {
       ylist.push(item.miny, item.maxy)
     }
 
-    let ext_x = d3.extent(xlist)
-    let ext_y = d3.extent(ylist)
+    let ext_x = arrayExtent(xlist)
+    let ext_y = arrayExtent(ylist)
 
     return {
       minx: ext_x[0],
