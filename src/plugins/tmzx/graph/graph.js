@@ -10,6 +10,7 @@ import {
     lgSwitchStatusLabel,
     LG_DEVICE_ATTR_LABELS,
     lgDeviceAttrLabelWithUnit,
+    lgSidebarPaletteTitleForShape,
 } from '@/view/graph/lg/Constants.js'
 
 mxGraph.prototype.splitEnabled = false
@@ -307,7 +308,45 @@ Graph.prototype.getTooltipForCell = function (cell) {
                         ? ['name', 'status']
                         : isBusbarConnectorEdge
                         ? ['name', 'model', 'model_paras', 'Ih', 'length']
-                        : ['name', 'attr', 'pubprivflag', 'switchrolename', 'shape', 'lineType'];
+                        : ['name', 'attr', 'pubprivflag', 'switchrolename', 'lineType'];
+
+            // 设备类型（紧跟 ID 展示）
+            let _sblx
+            let sblxName
+
+            let arr = cell.id.split('_')
+            if (cell.id.indexOf('virtual') == -1 && arr.length > 0) {
+                let sbzlx = arr[1]
+                sblxName = sbzlx2nameMap.get(sbzlx) || sbzlx2nameMap.get(cell.sbzlx)
+            }
+
+            if (sblxName) {
+                _sblx = sblxName
+            } else {
+                _sblx = ''
+            }
+            if (psrtype) {
+                if (_sblx) {
+                    _sblx = _sblx + '(' + psrtype + ')'
+                } else {
+                    _sblx = psrtype
+                }
+            }
+            if (!_sblx || (psrtype && _sblx === String(psrtype))) {
+                const paletteTitle = lgSidebarPaletteTitleForShape(shapeTip)
+                if (paletteTitle) {
+                    _sblx = paletteTitle
+                }
+            }
+            if (isBusbar && !_sblx) {
+                _sblx = '母线(0311)'
+            }
+            if (isBusbar && (cellStyle.busbarThin == '1' || cellStyle.busbarThin === 1)) {
+                _sblx = '站内-母线(0311)'
+            }
+            if (_sblx) {
+                sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
+            }
             
             // 先显示固定顺序的属性
             fixedAttrs.forEach(function(attrName) {
@@ -394,42 +433,6 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 }
             }
 
-            // PD_14000000_37748 - 统一处理设备类型（包含 psrtype）
-            let _sblx
-            let sblxName
-
-            let arr = cell.id.split('_')
-            if (cell.id.indexOf('virtual') == -1 && arr.length > 0) {
-                let sbzlx = arr[1]
-                sblxName = sbzlx2nameMap.get(sbzlx) || sbzlx2nameMap.get(cell.sbzlx)
-            }
-
-            if (sblxName) {
-                _sblx = sblxName
-            } else {
-                _sblx = ''
-            }
-            if (psrtype) {
-                if (_sblx) {
-                    _sblx = _sblx + '(' + psrtype + ')'
-                } else {
-                    _sblx = psrtype
-                }
-            }
-            
-            // 母线图元特殊处理：确保设备类型显示
-            if (isBusbar && !_sblx) {
-                _sblx = '母线(0311)';
-            }
-            // 工具栏「站内-母线（0311）」模板带 busbarThin=1，与 PD_31100000 导入一致展示
-            if (isBusbar && (cellStyle.busbarThin == '1' || cellStyle.busbarThin === 1)) {
-                _sblx = '站内-母线(0311)';
-            }
-
-            if (_sblx && !isLgLoadDevice && !isLgSwitchDevice && !isLgGeneratingUnit && !isLgTransformer) {
-                sb.push(`<tr><td>设备类型：</td><td>${_sblx}</td></tr>`)
-            }
-
             // 显示用户自定义添加的其他属性
             // 从 cell 的 XML value 中获取所有属性（母线不再展示电压等级等 XML 扩展项）
             var value = model.getValue(cell);
@@ -447,7 +450,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                             (attrName === 'P' || attrName === 'Q' || attrName === 'status')) &&
                         fixedAttrs.indexOf(attrName) == -1 &&
                         attrName != 'label' && attrName != 'placeholders' &&
-                        attrName != 'psrtype' && attrName != 'id';
+                        attrName != 'psrtype' && attrName != 'id' && attrName != 'shape';
                     
                     if (shouldShow) {
                         let displayName = tooltipAttrNameMap[attrName] || attrName;
