@@ -200,6 +200,66 @@ function createLgVertexPaletteFns(ui, entries, symbolMapForTpl, dragDef, gScale)
     })
 }
 
+/** 画布/保存仍用 dropH=1.6；侧栏单独用 CSS 粗条预览，避免缩略图几乎不可见 */
+const LG_BUSBAR_DROP_W = 200
+const LG_BUSBAR_DROP_H = 1.6
+const LG_BUSBAR_SIDEBAR_STYLE =
+    'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;'
+
+function createLgBusbarSidebarEntry(ui) {
+    const title = '站内-母线（0311）'
+    const sidebar = ui.sidebar
+    return sidebar.addEntry(title + ' ' + title, function () {
+        const elt = document.createElement('a')
+        elt.className = 'geItem lgSidebarBusbarPreview'
+        const border = 2 * sidebar.thumbBorder
+        elt.style.width = sidebar.thumbWidth + border + 'px'
+        elt.style.height = sidebar.thumbHeight + border + 'px'
+        elt.style.padding = sidebar.thumbPadding + 'px'
+        elt.style.boxSizing = 'content-box'
+
+        const bar = document.createElement('div')
+        bar.className = 'lgSidebarBusbarPreviewBar'
+        bar.setAttribute('aria-hidden', 'true')
+        elt.appendChild(bar)
+
+        mxEvent.addListener(elt, 'click', function (evt) {
+            mxEvent.consume(evt)
+        })
+
+        const cells = [
+            new mxCell('', new mxGeometry(0, 0, LG_BUSBAR_DROP_W, LG_BUSBAR_DROP_H), LG_BUSBAR_SIDEBAR_STYLE),
+        ]
+        cells[0].vertex = true
+        const bounds = new mxRectangle(0, 0, LG_BUSBAR_DROP_W, LG_BUSBAR_DROP_H)
+        const ds = sidebar.createDragSource(
+            elt,
+            sidebar.createDropHandler(cells, true, true, bounds),
+            sidebar.createDragPreview(LG_BUSBAR_DROP_W, LG_BUSBAR_DROP_H),
+            cells,
+            bounds
+        )
+        sidebar.addClickHandler(elt, ds, cells)
+        ds.isGuidesEnabled = mxUtils.bind(sidebar, function () {
+            return sidebar.editorUi.editor.graph.graphHandler.guidesEnabled
+        })
+
+        if (!mxClient.IS_IOS) {
+            mxEvent.addGestureListeners(
+                elt,
+                null,
+                mxUtils.bind(sidebar, function (evt) {
+                    if (mxEvent.isMouseEvent(evt)) {
+                        sidebar.showTooltip(elt, cells, bounds.width, bounds.height, title, null)
+                    }
+                })
+            )
+        }
+
+        return elt
+    })
+}
+
 /**
  * 与 LGSvgParser.parseSvg / getMinFontSize 一致：由 #Text_Layer 首段文字字号推算 scale，
  * 供 svg1/svg2 侧栏与 lgdata 对齐（未先打开 lgdata 时也有预估值）。
@@ -566,19 +626,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             }
 
                             // ── 母线 / 连接线模板（与下方 add 顺序一致：母线→连接线→变压器→机组→开关→负荷）──
-                            const lgBusbarFns = [
-                                // 站内母线 0311：与 LGSvgParser.parseBusbar 一致（矩形 + flag=busbar）
-                                ui.sidebar.createVertexTemplateEntry(
-                                    'shape=rect;flag=busbar;busbarThin=1;whiteSpace=wrap;psrtype=0311;fillColor=rgb(185,72,66);strokeColor=none;rotation=0;rotatable=0;html=1;',
-                                    200,
-                                    1.6,  // 拖入画布默认高度与 LGSvgParser 母线 busbarThin 锁定一致
-                                    '',
-                                    '站内-母线（0311）',
-                                    null,
-                                    null,
-                                    '站内-母线（0311）'
-                                ),
-                            ]
+                            const lgBusbarFns = [createLgBusbarSidebarEntry(ui)]
                             // 连接线：直线（noEdgeStyle=1，无正交/肘形弯折）；默认下沿中点→上沿中点，上下排列时为竖直线段
                             const lgStraightVerticalLineStyle =
                                 'endArrow=none;html=1;rounded=0;noEdgeStyle=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;flag=line;type=polyline;strokeWidth=0.4;strokeColor=rgb(185,72,66);'
@@ -889,6 +937,23 @@ onActivated(() => {
     width: 100%;
     height: 0;
     clear: both;
+}
+
+/* 母线侧栏预览：仅加粗展示，拖入画布/导出 SVG 仍为 1.6 高 */
+::v-deep .geSidebar .lgSidebarBusbarPreview {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+::v-deep .geSidebar .lgSidebarBusbarPreviewBar {
+    width: calc(100% - 6px);
+    height: 3px;
+    min-height: 3px;
+    background: rgb(185, 72, 66);
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+    pointer-events: none;
 }
 
 ::v-deep .geHsplit {
