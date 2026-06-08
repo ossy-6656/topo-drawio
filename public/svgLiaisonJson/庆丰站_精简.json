@@ -1,0 +1,274 @@
+{
+  "code": 1,
+  "message": "查询成功",
+  "data": {
+    "station_data": [
+      {
+        "station_id": "63fb43e0-7aa1-4dc0-af48-a12acbef077e",
+        "station_name": "庆丰站",
+        "vn_kv": 230,
+        "lon": 17.676934028960122,
+        "lat": 2.151258997535295,
+        "trafo_display_list": [
+          { "p_mw": 11.046, "q_mvar": 0 },
+          { "p_mw": 11.07, "q_mvar": 0 }
+        ]
+      },
+      {
+        "station_id": "b5ebd1e0-8b1a-4db9-ac99-a3f8ac1b966b",
+        "station_name": "郑州.春藤站",
+        "vn_kv": 115,
+        "lon": 9.52333360932634,
+        "lat": 4.938386788029402,
+        "trafo_display_list": [{ "p_mw": 4.782, "q_mvar": 0.08 }]
+      },
+      {
+        "station_id": "cfd31b51-b791-4f7d-8e11-dd1942ad96a9",
+        "station_name": "郑州.碧桃站",
+        "vn_kv": 115,
+        "lon": 22.800859316309502,
+        "lat": -1.3414655512940619,
+        "trafo_display_list": [{ "p_mw": 0.023, "q_mvar": 0 }]
+      },
+      {
+        "station_id": "29c333dd-f1c5-41c0-9513-256af8bb4935",
+        "station_name": "郑州.瑞达站",
+        "vn_kv": 115,
+        "lon": 16.903469203912078,
+        "lat": 4.7859395831436915,
+        "trafo_display_list": [{ "p_mw": 0.308, "q_mvar": 0.02 }]
+      },
+      {
+        "station_id": "2cfaf08b-11d1-4267-95a7-b1859a65a66f",
+        "station_name": "郑州.紫竹站",
+        "vn_kv": 115,
+        "lon": 24.375111335088224,
+        "lat": 0.2926113355717052,
+        "trafo_display_list": [{ "p_mw": -0.453, "q_mvar": 0 }]
+      },
+      {
+        "station_id": "c674baf8-e948-42db-b99a-83930f761e93",
+        "station_name": "郑州.秋棠站",
+        "vn_kv": 115,
+        "lon": 7.7578697353984865,
+        "lat": 0.6023434410173575,
+        "trafo_display_list": [
+          { "p_mw": 0.191, "q_mvar": 0.04 },
+          { "p_mw": 0.018, "q_mvar": -0.01 }
+        ]
+      },
+      {
+        "station_id": "fda8bd40-197b-4b8c-9069-409233dd1375",
+        "station_name": "郑州.万科站",
+        "vn_kv": 115,
+        "lon": 18.77343227426923,
+        "lat": -2.298575587429172,
+        "trafo_display_list": [{ "p_mw": -0.043, "q_mvar": 0 }]
+      },
+      {
+        "station_id": "7eac3a4e-62da-419d-aa17-b8dc61026066",
+        "station_name": "郑州.雪莲站",
+        "vn_kv": 115,
+        "lon": 12.373319108612147,
+        "lat": -0.5909774933847648,
+        "trafo_display_list": [{ "p_mw": 0.097, "q_mvar": 0 }]
+      },
+      {
+        "station_id": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "station_name": "郑州.T10站",
+        "vn_kv": 115,
+        "lon": 17.160229028630337,
+        "lat": -0.07302702925803745
+      },
+      {
+        "station_id": "2e946737-88d6-4d79-a0eb-ef6ef20df25a",
+        "station_name": "郑州.荥阳市.昭成站",
+        "vn_kv": 115,
+        "lon": 12.280790583003576,
+        "lat": 1.3624874313112678,
+        "trafo_display_list": [{ "p_mw": 0.002, "q_mvar": 0 }]
+      }
+    ],
+    "channel_data": [
+      {
+        "from_station": "29c333dd-f1c5-41c0-9513-256af8bb4935",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "庆瑞(瑞达-T10)线",
+            "in_service": true,
+            "p_from_mw": -0.3079582218095993,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": [
+          {
+            "name": "庆瑞开关1",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 8
+          },
+          {
+            "name": "庆瑞开关2",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 8
+          }
+        ]
+      },
+      {
+        "from_station": "b5ebd1e0-8b1a-4db9-ac99-a3f8ac1b966b",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "Ⅱ春支线",
+            "in_service": true,
+            "p_from_mw": -4.781865686409844,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "63fb43e0-7aa1-4dc0-af48-a12acbef077e",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "庆瑞(庆丰-T10)线",
+            "in_service": true,
+            "p_from_mw": 5.0898239082194285,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "庆燃(庆丰-T10)线",
+            "in_service": true,
+            "p_from_mw": 0.023102909864373772,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "Ⅰ庆丰紫竹(庆丰-T10)线",
+            "in_service": true,
+            "p_from_mw": -0.3990750346902291,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "Ⅱ庆丰紫竹(庆丰-T10)线",
+            "in_service": true,
+            "p_from_mw": 0.03223304538518257,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "cfd31b51-b791-4f7d-8e11-dd1942ad96a9",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "桃支线",
+            "in_service": true,
+            "p_from_mw": -0.023102909864405774,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "63fb43e0-7aa1-4dc0-af48-a12acbef077e",
+        "to_station": "c674baf8-e948-42db-b99a-83930f761e93",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "Ⅰ庆丰秋棠线",
+            "in_service": true,
+            "p_from_mw": 0.01756826405611922,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "Ⅱ庆丰秋棠线",
+            "in_service": true,
+            "p_from_mw": 0.19057519325810546,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "fda8bd40-197b-4b8c-9069-409233dd1375",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "Ⅰ庆紫万科支线",
+            "in_service": true,
+            "p_from_mw": -0.0535747106580402,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "Ⅱ庆紫万科支线",
+            "in_service": true,
+            "p_from_mw": -0.032233045385169135,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "2cfaf08b-11d1-4267-95a7-b1859a65a66f",
+        "to_station": "88a76a42-d449-4a0d-ba5f-275c68ed6cd8",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "Ⅰ庆丰紫竹(紫竹-T10)线",
+            "in_service": true,
+            "p_from_mw": 0.4526497453481966,
+            "q_from_mvar": 0
+          },
+          {
+            "name": "Ⅱ庆丰紫竹(紫竹-T10)线",
+            "in_service": true,
+            "p_from_mw": 0,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "63fb43e0-7aa1-4dc0-af48-a12acbef077e",
+        "to_station": "7eac3a4e-62da-419d-aa17-b8dc61026066",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "庆丰雪莲线",
+            "in_service": true,
+            "p_from_mw": 0.09716062371386258,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      },
+      {
+        "from_station": "63fb43e0-7aa1-4dc0-af48-a12acbef077e",
+        "to_station": "2e946737-88d6-4d79-a0eb-ef6ef20df25a",
+        "min_vn_kv": 115,
+        "line_data": [
+          {
+            "name": "庆昭线",
+            "in_service": true,
+            "p_from_mw": -2.7755575615628914e-17,
+            "q_from_mvar": 0
+          }
+        ],
+        "switch_data": []
+      }
+    ]
+  }
+}

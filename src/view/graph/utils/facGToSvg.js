@@ -129,8 +129,8 @@ async function loadSymbolXmlFromProject(subdir, fileBase) {
 /** 与 lgdata 类似的最小 CSS，便于画布解析 stroke/fill class */
 const FAC_DEFS_MIN_STYLE = `<style type="text/css"><![CDATA[
 symbol {overflow:visible}
-.kv10 {fill:none;stroke:rgb(240,65,85);stroke-width:1;}
-.lkv220 {fill:none;stroke:rgb(128,0,128);stroke-width:1;}
+.kv10 {fill:none;stroke:rgb(240,65,85);stroke-width:5;}
+.lkv220 {fill:none;stroke:rgb(128,0,128);stroke-width:5;}
 ]]></style>`;
 
 function escapeXmlAttr(s) {
@@ -187,15 +187,13 @@ function lineGToPolylineSvg(dom) {
     poly += `points="${escapeXmlAttr(x1)},${escapeXmlAttr(y1)} ${escapeXmlAttr(x2)},${escapeXmlAttr(y2)}" `;
     if (lc) poly += `stroke="rgb(${escapeXmlAttr(lc)})" `;
     if (lw) poly += `stroke-width="${escapeXmlAttr(lw)}" `;
-    poly += 'class="lkv220" />';
+    poly += '/>';
     poly += ' />';
 
     return poly;
 }
 
 function wrapLineLikeGroup(dom, innerSvg, idx) {
-    console.log('++++++++++++++++++');
-    console.log(innerSvg);
     const id = dom.getAttribute('id') || `PD_line_${idx}`;
     const oid = escapeXmlAttr(id);
     const name = escapeXmlAttr(dom.getAttribute('name') || dom.getAttribute('keyname') || '');

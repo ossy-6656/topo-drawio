@@ -1,0 +1,3428 @@
+{
+    "code": 1,
+    "message": "查询成功",
+    "data": {
+        "max_lat": 5.5,
+        "min_lat": -13.0,
+        "max_lon": 18.0,
+        "min_lon": 0.0,
+        "show_station_list": [
+            926,
+            927,
+            929,
+            1617,
+            1178,
+            1180,
+            1181,
+            1485,
+            1487,
+            1439,
+            1501,
+            100000,
+            100311,
+            100384,
+            100513,
+            100732,
+            100824,
+            100954,
+            101114,
+            101175,
+            101312,
+            101509,
+            101531,
+            101544,
+            101634,
+            101745,
+            102071,
+            102219,
+            102358,
+            102573,
+            102597,
+            102622,
+            200000,
+            200267,
+            200312,
+            200409,
+            200458,
+            200532,
+            200640,
+            200827,
+            200837,
+            200845,
+            300000,
+            300295,
+            300387,
+            300416
+        ],
+        "show_station_data": [
+            [
+                926,
+                927,
+                929,
+                1617
+            ],
+            [
+                1178,
+                1180,
+                1181
+            ],
+            [
+                1485,
+                1487
+            ],
+            [
+                1439
+            ],
+            [
+                1501
+            ],
+            [
+                100000
+            ],
+            [
+                100311
+            ],
+            [
+                100384
+            ],
+            [
+                100513
+            ],
+            [
+                100732
+            ],
+            [
+                100824
+            ],
+            [
+                100954
+            ],
+            [
+                101114
+            ],
+            [
+                101175
+            ],
+            [
+                101312
+            ],
+            [
+                101509
+            ],
+            [
+                101531
+            ],
+            [
+                101544
+            ],
+            [
+                101634
+            ],
+            [
+                101745
+            ],
+            [
+                102071
+            ],
+            [
+                102219
+            ],
+            [
+                102358
+            ],
+            [
+                102573
+            ],
+            [
+                102597
+            ],
+            [
+                102622
+            ],
+            [
+                200000
+            ],
+            [
+                200267
+            ],
+            [
+                200312
+            ],
+            [
+                200409
+            ],
+            [
+                200458
+            ],
+            [
+                200532
+            ],
+            [
+                200640
+            ],
+            [
+                200827
+            ],
+            [
+                200837
+            ],
+            [
+                200845
+            ],
+            [
+                300000
+            ],
+            [
+                300295
+            ],
+            [
+                300387
+            ],
+            [
+                300416
+            ]
+        ],
+        "station_data": [
+            {
+                "station_id": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "station_type": "station",
+                "station_name": "原武站",
+                "vn_kv": 230.0,
+                "bus_name_list": [
+                    "原武站.230.2",
+                    "原武站.115.2",
+                    "原武站.10.2",
+                    "原武站.1.1"
+                ],
+                "color": "",
+                "lat": -0.25,
+                "lon": 15.0,
+                "bus_id_list": [
+                    926,
+                    927,
+                    929,
+                    1617
+                ],
+                "trafo_id_list": [
+                    274,
+                    275,
+                    276
+                ],
+                "trafo_name_list": [
+                    "原武站.原#1主变_低",
+                    "原武站.原#1主变_中",
+                    "原武站.原#1主变_高"
+                ],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 9.08134980864932,
+                "res_trafo_sum_q_hv_mvar": -1.570336880825689,
+                "res_trafo_sum_p_lv_mw": 1.226112544827629e-10,
+                "res_trafo_sum_q_lv_mvar": -1.467235222207819e-10,
+                "res_trafo_sum_loading_percent": 29.633609888476027,
+                "res_trafo_max_p_hv_mw": 9.08134980864932,
+                "res_trafo_max_q_hv_mvar": 16.886684100710216,
+                "res_trafo_max_p_lv_mw": 9.03020987039317,
+                "res_trafo_max_q_lv_mvar": 23.759034987860193,
+                "res_trafo_max_loading_percent": 14.418936285952643,
+                "res_load_sum_p_mw": 3.6659476,
+                "res_load_sum_q_mvar": -1.2340140000000002,
+                "res_load_max_p_mw": 3.63153,
+                "res_load_max_q_mvar": 0.594736,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 4.040172955805777,
+                "res_bus_sum_p_mw": -5.41540220864932,
+                "res_bus_sum_q_mvar": 5.38629461749516,
+                "res_bus_max_vm_pu": 1.0134272031669245,
+                "res_bus_max_p_mw": 3.63153,
+                "res_bus_max_q_mvar": 24.033846215739686
+            },
+            {
+                "station_id": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 116.56597467528945,
+                "bus_name_list": [
+                    "郑州.坤泰站.115.2",
+                    "郑州.坤泰站.10.2",
+                    "郑州.坤泰站.10.3"
+                ],
+                "color": "",
+                "lat": -5.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    1178,
+                    1180,
+                    1181
+                ],
+                "trafo_id_list": [
+                    417,
+                    418
+                ],
+                "trafo_name_list": [
+                    "郑州.坤泰站.坤#2主变",
+                    "郑州.坤泰站.坤#1主变"
+                ],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": -3.1826585163769954,
+                "res_trafo_sum_q_hv_mvar": -3.336817380850646,
+                "res_trafo_sum_p_lv_mw": 3.266987010549813,
+                "res_trafo_sum_q_lv_mvar": -0.6738102041307629,
+                "res_trafo_sum_loading_percent": 10.963937539035705,
+                "res_trafo_max_p_hv_mw": 0.05887761749572302,
+                "res_trafo_max_q_hv_mvar": -1.2581856154806845,
+                "res_trafo_max_p_lv_mw": 3.2834115055468556,
+                "res_trafo_max_q_lv_mvar": 0.04492016565933803,
+                "res_trafo_max_loading_percent": 6.860878678097032,
+                "res_load_sum_p_mw": -3.2669903500000004,
+                "res_load_sum_q_mvar": 0.8954964000000001,
+                "res_load_max_p_mw": 0.0164226,
+                "res_load_max_q_mvar": 0.732346,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 3.0448552364870736,
+                "res_bus_sum_p_mw": -3.2669903500000004,
+                "res_bus_sum_q_mvar": 0.8954964,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 0.016422599999999843,
+                "res_bus_max_q_mvar": 0.8315704
+            },
+            {
+                "station_id": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 116.4843892975433,
+                "bus_name_list": [
+                    "郑州.前程站.115.2",
+                    "郑州.前程站.10.2"
+                ],
+                "color": "",
+                "lat": -6.25,
+                "lon": 12.0,
+                "bus_id_list": [
+                    1485,
+                    1487
+                ],
+                "trafo_id_list": [
+                    576
+                ],
+                "trafo_name_list": [
+                    "郑州.前程站.前#1主变"
+                ],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 8.569727394500996,
+                "res_trafo_sum_q_hv_mvar": -0.4155826779019551,
+                "res_trafo_sum_p_lv_mw": -8.516705561198405,
+                "res_trafo_sum_q_lv_mvar": -1.444241946549036,
+                "res_trafo_sum_loading_percent": 17.090245922722946,
+                "res_trafo_max_p_hv_mw": 8.569727394500996,
+                "res_trafo_max_q_hv_mvar": -0.4155826779019551,
+                "res_trafo_max_p_lv_mw": -8.516705561198405,
+                "res_trafo_max_q_lv_mvar": -1.444241946549036,
+                "res_trafo_max_loading_percent": 17.090245922722946,
+                "res_load_sum_p_mw": 8.516704,
+                "res_load_sum_q_mvar": 1.545667,
+                "res_load_max_p_mw": 7.84793,
+                "res_load_max_q_mvar": 1.43855,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 2.0238110496381623,
+                "res_bus_sum_p_mw": 8.516703999999999,
+                "res_bus_sum_q_mvar": 1.545667,
+                "res_bus_max_vm_pu": 1.0129077330221157,
+                "res_bus_max_p_mw": 8.516703999999999,
+                "res_bus_max_q_mvar": 1.545667
+            },
+            {
+                "station_id": "862fd006-394e-4485-9b80-9d40adfca5f9",
+                "station_type": "station",
+                "station_name": "郑州.T10站",
+                "vn_kv": 116.5648263566495,
+                "bus_name_list": [
+                    "郑州.T10站.115.78"
+                ],
+                "color": "",
+                "lat": -2.5,
+                "lon": 6.0,
+                "bus_id_list": [
+                    1439
+                ],
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 0.0,
+                "res_load_sum_q_mvar": 0.0,
+                "res_load_max_p_mw": null,
+                "res_load_max_q_mvar": null,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0136071857099958,
+                "res_bus_sum_p_mw": 0.0,
+                "res_bus_sum_q_mvar": 0.0,
+                "res_bus_max_vm_pu": 1.0136071857099958,
+                "res_bus_max_p_mw": 0.0,
+                "res_bus_max_q_mvar": 0.0
+            },
+            {
+                "station_id": "83310a9b-2e0f-44aa-b230-827bcb8c8c91",
+                "station_type": "station",
+                "station_name": "郑州.香樟站",
+                "vn_kv": 116.5648263566495,
+                "bus_name_list": [
+                    "郑州.香樟站.115.3"
+                ],
+                "color": "",
+                "lat": -2.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    1501
+                ],
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 0.0,
+                "res_load_sum_q_mvar": 0.0,
+                "res_load_max_p_mw": null,
+                "res_load_max_q_mvar": null,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0136071857099958,
+                "res_bus_sum_p_mw": 0.0,
+                "res_bus_sum_q_mvar": 0.0,
+                "res_bus_max_vm_pu": 1.0136071857099958,
+                "res_bus_max_p_mw": 0.0,
+                "res_bus_max_q_mvar": 0.0
+            },
+            {
+                "station_id": "675ebd34-7ed1-4841-91e3-66db2fea216c",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤39板Ⅱ郑信路一所线_0"
+                ],
+                "color": "",
+                "lat": -13.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    100000
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.0478253642531854e-6,
+                "res_load_sum_q_mvar": -0.02532307448939264,
+                "res_load_max_p_mw": 1.0478253642531854e-6,
+                "res_load_max_q_mvar": -0.02532307448939264,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 1.0478253642531854e-6,
+                "res_bus_sum_q_mvar": -0.02532307448939264,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 1.0478253642531854e-6,
+                "res_bus_max_q_mvar": -0.02532307448939264
+            },
+            {
+                "station_id": "24048519-40ef-4bea-bbc3-691ef10c2620",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤12板Ⅰ永顺路二所线_0"
+                ],
+                "color": "",
+                "lat": -4.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    100311
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 2.3137181415222585e-7,
+                "res_load_sum_q_mvar": -0.015852665822876588,
+                "res_load_max_p_mw": 2.3137181415222585e-7,
+                "res_load_max_q_mvar": -0.015852665822876588,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 2.3137181415222585e-7,
+                "res_bus_sum_q_mvar": -0.015852665822876588,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 2.3137181415222585e-7,
+                "res_bus_max_q_mvar": -0.015852665822876588
+            },
+            {
+                "station_id": "1768c0b9-cf32-4095-86f5-6a5d68c0b26c",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤21板Ⅰ前程路一所线_0"
+                ],
+                "color": "",
+                "lat": -12.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    100384
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 8.011875252122991e-8,
+                "res_load_sum_q_mvar": -0.011152719470828742,
+                "res_load_max_p_mw": 8.011875252122991e-8,
+                "res_load_max_q_mvar": -0.011152719470828742,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 8.011875252122991e-8,
+                "res_bus_sum_q_mvar": -0.011152719470828742,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 8.011875252122991e-8,
+                "res_bus_max_q_mvar": -0.011152719470828742
+            },
+            {
+                "station_id": "9acc063b-20d8-4898-a9be-eafb3974dad9",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤6板Ⅱ前程路一所线_0"
+                ],
+                "color": "",
+                "lat": -3.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    100513
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.8923469724541064e-7,
+                "res_load_sum_q_mvar": -0.01484103851976215,
+                "res_load_max_p_mw": 1.8923469724541064e-7,
+                "res_load_max_q_mvar": -0.01484103851976215,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 1.8923469724541064e-7,
+                "res_bus_sum_q_mvar": -0.01484103851976215,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 1.8923469724541064e-7,
+                "res_bus_max_q_mvar": -0.01484103851976215
+            },
+            {
+                "station_id": "cceac6e2-e2d0-4bd5-b12b-eebe5f90ba04",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤15板Ⅰ玉溪路一所线_0"
+                ],
+                "color": "",
+                "lat": -2.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    100732
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 2.3053962650010362e-7,
+                "res_load_sum_q_mvar": -0.015959427424718342,
+                "res_load_max_p_mw": 2.3053962650010362e-7,
+                "res_load_max_q_mvar": -0.015959427424718342,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 2.3053962650010362e-7,
+                "res_bus_sum_q_mvar": -0.015959427424718342,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 2.3053962650010362e-7,
+                "res_bus_max_q_mvar": -0.015959427424718342
+            },
+            {
+                "station_id": "5d4e3355-2691-47f3-bcb7-17ca71d11568",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤11板Ⅰ象辰路一所线_0"
+                ],
+                "color": "",
+                "lat": -1.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    100824
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.2611235433723778e-7,
+                "res_load_sum_q_mvar": -0.013000013597320503,
+                "res_load_max_p_mw": 1.2611235433723778e-7,
+                "res_load_max_q_mvar": -0.013000013597320503,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 1.2611235433723778e-7,
+                "res_bus_sum_q_mvar": -0.013000013597320503,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 1.2611235433723778e-7,
+                "res_bus_max_q_mvar": -0.013000013597320503
+            },
+            {
+                "station_id": "481dfa2e-8d7a-48f4-b6d5-3f7f2499c780",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤36板Ⅱ象辰路一所线_0"
+                ],
+                "color": "",
+                "lat": -11.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    100954
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.7355591808154713e-7,
+                "res_load_sum_q_mvar": -0.01442005229409915,
+                "res_load_max_p_mw": 1.7355591808154713e-7,
+                "res_load_max_q_mvar": -0.01442005229409915,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 1.7355591808154713e-7,
+                "res_bus_sum_q_mvar": -0.01442005229409915,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 1.7355591808154713e-7,
+                "res_bus_max_q_mvar": -0.01442005229409915
+            },
+            {
+                "station_id": "cc78bee3-68a6-443e-a555-9a34a9a35172",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤34板Ⅱ永顺路二所线_0"
+                ],
+                "color": "",
+                "lat": -10.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    101114
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 3.456821104919072e-7,
+                "res_load_sum_q_mvar": -0.01815868835456058,
+                "res_load_max_p_mw": 3.456821104919072e-7,
+                "res_load_max_q_mvar": -0.01815868835456058,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 3.456821104919072e-7,
+                "res_bus_sum_q_mvar": -0.01815868835456058,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 3.456821104919072e-7,
+                "res_bus_max_q_mvar": -0.01815868835456058
+            },
+            {
+                "station_id": "f39767cd-bbf0-41df-843d-7ab89c8b9cde",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤13板Ⅰ杨桥路一所线_0"
+                ],
+                "color": "",
+                "lat": -0.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    101175
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 5.0257312977919355e-8,
+                "res_load_sum_q_mvar": -0.009613314638386328,
+                "res_load_max_p_mw": 5.0257312977919355e-8,
+                "res_load_max_q_mvar": -0.009613314638386328,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 5.0257312977919355e-8,
+                "res_bus_sum_q_mvar": -0.009613314638386328,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 5.0257312977919355e-8,
+                "res_bus_max_q_mvar": -0.009613314638386328
+            },
+            {
+                "station_id": "ee7f70d0-08b5-47f4-83cd-460da39848b3",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤37板Ⅱ杨桥路一所线_0"
+                ],
+                "color": "",
+                "lat": -9.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    101312
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 3.442255547270179e-8,
+                "res_load_sum_q_mvar": -0.01095163768150087,
+                "res_load_max_p_mw": 3.442255547270179e-8,
+                "res_load_max_q_mvar": -0.01095163768150087,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 3.442255547270179e-8,
+                "res_bus_sum_q_mvar": -0.01095163768150087,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 3.442255547270179e-8,
+                "res_bus_max_q_mvar": -0.01095163768150087
+            },
+            {
+                "station_id": "5c1f2bf3-e8c7-4c0a-a10b-bef06d61b775",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤7板高庄路二柜线_0"
+                ],
+                "color": "",
+                "lat": 0.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    101509
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.0763187674456276e-8,
+                "res_load_sum_q_mvar": -0.005843370887873789,
+                "res_load_max_p_mw": 1.0763187674456276e-8,
+                "res_load_max_q_mvar": -0.005843370887873789,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 1.0763187674456276e-8,
+                "res_bus_sum_q_mvar": -0.005843370887873789,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 1.0763187674456276e-8,
+                "res_bus_max_q_mvar": -0.005843370887873789
+            },
+            {
+                "station_id": "ebdaf39d-d1e4-494c-94e8-6d1f59dcb588",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤24板高庄路一所线_0"
+                ],
+                "color": "",
+                "lat": -8.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    101531
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 4.837534106627572e-8,
+                "res_load_sum_q_mvar": -0.009613310178906431,
+                "res_load_max_p_mw": 4.837534106627572e-8,
+                "res_load_max_q_mvar": -0.009613310178906431,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 4.837534106627572e-8,
+                "res_bus_sum_q_mvar": -0.009613310178906431,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 4.837534106627572e-8,
+                "res_bus_max_q_mvar": -0.009613310178906431
+            },
+            {
+                "station_id": "6eea5606-8b7f-463b-9e8f-36242616f122",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤26板Ⅱ玉溪路一所线_0"
+                ],
+                "color": "",
+                "lat": -7.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    101544
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.6323929230566137e-7,
+                "res_load_sum_q_mvar": -0.014137300495804084,
+                "res_load_max_p_mw": 1.6323929230566137e-7,
+                "res_load_max_q_mvar": -0.014137300495804084,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 1.6323929230566137e-7,
+                "res_bus_sum_q_mvar": -0.014137300495804084,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 1.6323929230566137e-7,
+                "res_bus_max_q_mvar": -0.014137300495804084
+            },
+            {
+                "station_id": "c35b8343-328e-4bcd-a46b-590a0efae93c",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤泰变坤25板永盛西路一柜线_0"
+                ],
+                "color": "",
+                "lat": -6.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    101634
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.3642420526593924e-11,
+                "res_load_sum_q_mvar": -0.0006911503965056909,
+                "res_load_max_p_mw": 1.3642420526593924e-11,
+                "res_load_max_q_mvar": -0.0006911503965056909,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 1.3642420526593924e-11,
+                "res_bus_sum_q_mvar": -0.0006911503965056909,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 1.3642420526593924e-11,
+                "res_bus_max_q_mvar": -0.0006911503965056909
+            },
+            {
+                "station_id": "eeb79462-16fc-4c99-9280-9298d2f7fbb1",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤9板节俭路一柜线_0"
+                ],
+                "color": "",
+                "lat": 1.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    101745
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 3.4024196793325245e-9,
+                "res_load_sum_q_mvar": -0.005026552757044556,
+                "res_load_max_p_mw": 3.4024196793325245e-9,
+                "res_load_max_q_mvar": -0.005026552757044556,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 3.4024196793325245e-9,
+                "res_bus_sum_q_mvar": -0.005026552757044556,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 3.4024196793325245e-9,
+                "res_bus_max_q_mvar": -0.005026552757044556
+            },
+            {
+                "station_id": "f231e887-b9c6-4217-803c-c3037b2c3efc",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤4板Ⅰ永胜线_0"
+                ],
+                "color": "",
+                "lat": 2.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    102071
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.1714519132510759e-8,
+                "res_load_sum_q_mvar": -0.004460207990859999,
+                "res_load_max_p_mw": 1.1714519132510759e-8,
+                "res_load_max_q_mvar": -0.004460207990859999,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 1.1714519132510759e-8,
+                "res_bus_sum_q_mvar": -0.004460207990859999,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 1.1714519132510759e-8,
+                "res_bus_max_q_mvar": -0.004460207990859999
+            },
+            {
+                "station_id": "f850cb2e-3b66-4361-a49c-cfb8d8c43422",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤5板Ⅱ永胜线_0"
+                ],
+                "color": "",
+                "lat": 3.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    102219
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 2.077831595670432e-8,
+                "res_load_sum_q_mvar": -0.002513323773200682,
+                "res_load_max_p_mw": 2.077831595670432e-8,
+                "res_load_max_q_mvar": -0.002513323773200682,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 2.077831595670432e-8,
+                "res_bus_sum_q_mvar": -0.002513323773200682,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 2.077831595670432e-8,
+                "res_bus_max_q_mvar": -0.002513323773200682
+            },
+            {
+                "station_id": "cda4cc11-7098-470f-8fb4-29163406f04c",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "坤泰变坤16板Ⅰ永盛西路二所线_0"
+                ],
+                "color": "",
+                "lat": 4.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    102358
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 5.635758952848846e-7,
+                "res_load_sum_q_mvar": -0.021331875194277927,
+                "res_load_max_p_mw": 5.635758952848846e-7,
+                "res_load_max_q_mvar": -0.021331875194277927,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 5.635758952848846e-7,
+                "res_bus_sum_q_mvar": -0.021331875194277927,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 5.635758952848846e-7,
+                "res_bus_max_q_mvar": -0.021331875194277927
+            },
+            {
+                "station_id": "b27a5159-c0b6-4f8a-b59c-37853d2f5a46",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤35板福家置业线_0"
+                ],
+                "color": "",
+                "lat": -5.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    102573
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 5.19321474712342e-10,
+                "res_load_sum_q_mvar": -0.0018849563507501443,
+                "res_load_max_p_mw": 5.19321474712342e-10,
+                "res_load_max_q_mvar": -0.0018849563507501443,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 5.19321474712342e-10,
+                "res_bus_sum_q_mvar": -0.0018849563507501443,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 5.19321474712342e-10,
+                "res_bus_max_q_mvar": -0.0018849563507501443
+            },
+            {
+                "station_id": "51cf7c66-415a-48ce-84bd-1192e93da0c7",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.16647150970045,
+                "bus_name_list": [
+                    "坤38板Ⅲ华强线_0"
+                ],
+                "color": "",
+                "lat": -4.0,
+                "lon": 9.0,
+                "bus_id_list": [
+                    102597
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.2441887520253658e-9,
+                "res_load_sum_q_mvar": -0.0025132759451480524,
+                "res_load_max_p_mw": 1.2441887520253658e-9,
+                "res_load_max_q_mvar": -0.0025132759451480524,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.016647150970045,
+                "res_bus_sum_p_mw": 1.2441887520253658e-9,
+                "res_bus_sum_q_mvar": -0.0025132759451480524,
+                "res_bus_max_vm_pu": 1.016647150970045,
+                "res_bus_max_p_mw": 1.2441887520253658e-9,
+                "res_bus_max_q_mvar": -0.0025132759451480524
+            },
+            {
+                "station_id": "951348f1-195a-418e-adaf-5726950140b0",
+                "station_type": "station",
+                "station_name": "郑州.坤泰站",
+                "vn_kv": 10.14590914427555,
+                "bus_name_list": [
+                    "10KV坤8板Ⅰ郑汴开发白沙园区1#专用配线_0"
+                ],
+                "color": "",
+                "lat": 5.5,
+                "lon": 3.0,
+                "bus_id_list": [
+                    102622
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.坤泰站.tc",
+                "sub_system": 0,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 6.7357177613303065e-9,
+                "res_load_sum_q_mvar": -0.004398239591864694,
+                "res_load_max_p_mw": 6.7357177613303065e-9,
+                "res_load_max_q_mvar": -0.004398239591864694,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.014590914427555,
+                "res_bus_sum_p_mw": 6.7357177613303065e-9,
+                "res_bus_sum_q_mvar": -0.004398239591864694,
+                "res_bus_max_vm_pu": 1.014590914427555,
+                "res_bus_max_p_mw": 6.7357177613303065e-9,
+                "res_bus_max_q_mvar": -0.004398239591864694
+            },
+            {
+                "station_id": "f21c03c6-8885-4dbf-ae26-871a50d468ad",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前8板Ⅰ芦医庙大街北一所线_0"
+                ],
+                "color": "",
+                "lat": -10.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200000
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.022333435685141e-7,
+                "res_load_sum_q_mvar": -0.015582435273699957,
+                "res_load_max_p_mw": 1.022333435685141e-7,
+                "res_load_max_q_mvar": -0.015582435273699957,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 1.022333435685141e-7,
+                "res_bus_sum_q_mvar": -0.015582435273699957,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 1.022333435685141e-7,
+                "res_bus_max_q_mvar": -0.015582435273699957
+            },
+            {
+                "station_id": "13bbf9c4-6078-48c7-b725-5e1504d1802f",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前3板Ⅰ复兴路一所线_0"
+                ],
+                "color": "",
+                "lat": -9.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200267
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 2.4449445845675655e-7,
+                "res_load_sum_q_mvar": -0.016361525196998628,
+                "res_load_max_p_mw": 2.4449445845675655e-7,
+                "res_load_max_q_mvar": -0.016361525196998628,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 2.4449445845675655e-7,
+                "res_bus_sum_q_mvar": -0.016361525196998628,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 2.4449445845675655e-7,
+                "res_bus_max_q_mvar": -0.016361525196998628
+            },
+            {
+                "station_id": "8bb1305d-5e01-49be-a242-25284a63d4f6",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前16板Ⅰ中原大道一所线_0"
+                ],
+                "color": "",
+                "lat": -8.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200312
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 2.487654455762822e-7,
+                "res_load_sum_q_mvar": -0.01633643419506825,
+                "res_load_max_p_mw": 2.487654455762822e-7,
+                "res_load_max_q_mvar": -0.01633643419506825,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 2.487654455762822e-7,
+                "res_bus_sum_q_mvar": -0.01633643419506825,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 2.487654455762822e-7,
+                "res_bus_max_q_mvar": -0.01633643419506825
+            },
+            {
+                "station_id": "09ebb774-f737-4962-b1df-c1d92605bd7e",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前15板Ⅰ雍华路一所线_0"
+                ],
+                "color": "",
+                "lat": -7.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200409
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 4.924868335365318e-8,
+                "res_load_sum_q_mvar": -0.009550481961696278,
+                "res_load_max_p_mw": 4.924868335365318e-8,
+                "res_load_max_q_mvar": -0.009550481961696278,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 4.924868335365318e-8,
+                "res_bus_sum_q_mvar": -0.009550481961696278,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 4.924868335365318e-8,
+                "res_bus_max_q_mvar": -0.009550481961696278
+            },
+            {
+                "station_id": "bab3ef95-b79e-4382-9891-9e7fe12b447c",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前6板白沙路一所线_0"
+                ],
+                "color": "",
+                "lat": -6.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200458
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 7.710038403274666e-7,
+                "res_load_sum_q_mvar": -0.02199320990268916,
+                "res_load_max_p_mw": 7.710038403274666e-7,
+                "res_load_max_q_mvar": -0.02199320990268916,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 7.710038403274666e-7,
+                "res_bus_sum_q_mvar": -0.02199320990268916,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 7.710038403274666e-7,
+                "res_bus_max_q_mvar": -0.02199320990268916
+            },
+            {
+                "station_id": "0e44a9cb-3d0c-4ec7-964f-6ff93972fd85",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前4板光阳路一柜线_0"
+                ],
+                "color": "",
+                "lat": -5.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200532
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.8189894035458565e-12,
+                "res_load_sum_q_mvar": -0.0003141592660540482,
+                "res_load_max_p_mw": 1.8189894035458565e-12,
+                "res_load_max_q_mvar": -0.0003141592660540482,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 1.8189894035458565e-12,
+                "res_bus_sum_q_mvar": -0.0003141592660540482,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 1.8189894035458565e-12,
+                "res_bus_max_q_mvar": -0.0003141592660540482
+            },
+            {
+                "station_id": "6a88979a-a8ae-496b-a63c-5da95a1dad52",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前2板前白线_0"
+                ],
+                "color": "",
+                "lat": -4.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200640
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.5283831089618616e-8,
+                "res_load_sum_q_mvar": -0.005044666706226053,
+                "res_load_max_p_mw": 1.5283831089618616e-8,
+                "res_load_max_q_mvar": -0.005044666706226053,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 1.5283831089618616e-8,
+                "res_bus_sum_q_mvar": -0.005044666706226053,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 1.5283831089618616e-8,
+                "res_bus_max_q_mvar": -0.005044666706226053
+            },
+            {
+                "station_id": "f9d264e2-5ab3-4500-a380-bc604e2cb4cd",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前11板前广线_0"
+                ],
+                "color": "",
+                "lat": -3.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200827
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.482476363889873e-10,
+                "res_load_sum_q_mvar": -0.0012566372779474477,
+                "res_load_max_p_mw": 1.482476363889873e-10,
+                "res_load_max_q_mvar": -0.0012566372779474477,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 1.482476363889873e-10,
+                "res_bus_sum_q_mvar": -0.0012566372779474477,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 1.482476363889873e-10,
+                "res_bus_max_q_mvar": -0.0012566372779474477
+            },
+            {
+                "station_id": "eea1bfc4-9f94-4e0f-b1ea-d129395dd887",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前10板Ⅰ富公线_0"
+                ],
+                "color": "",
+                "lat": -2.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200837
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 5.188667273614556e-10,
+                "res_load_sum_q_mvar": -0.0018849563512048917,
+                "res_load_max_p_mw": 5.188667273614556e-10,
+                "res_load_max_q_mvar": -0.0018849563512048917,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 5.188667273614556e-10,
+                "res_bus_sum_q_mvar": -0.0018849563512048917,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 5.188667273614556e-10,
+                "res_bus_max_q_mvar": -0.0018849563512048917
+            },
+            {
+                "station_id": "1e07e1bd-99a8-4498-bb14-92b4f548eb63",
+                "station_type": "station",
+                "station_name": "郑州.前程站",
+                "vn_kv": 10.109033166160463,
+                "bus_name_list": [
+                    "前程变前5板白沙青年路二柜线_0"
+                ],
+                "color": "",
+                "lat": -1.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    200845
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-郑州.前程站.tc",
+                "sub_system": 1,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.2936197890667245e-7,
+                "res_load_sum_q_mvar": -0.013100547203066526,
+                "res_load_max_p_mw": 1.2936197890667245e-7,
+                "res_load_max_q_mvar": -0.013100547203066526,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0109033166160464,
+                "res_bus_sum_p_mw": 1.2936197890667245e-7,
+                "res_bus_sum_q_mvar": -0.013100547203066526,
+                "res_bus_max_vm_pu": 1.0109033166160464,
+                "res_bus_max_p_mw": 1.2936197890667245e-7,
+                "res_bus_max_q_mvar": -0.013100547203066526
+            },
+            {
+                "station_id": "a2a0f165-c118-4c48-bef8-b5b390510a90",
+                "station_type": "station",
+                "station_name": "原武站",
+                "vn_kv": 10.134272031669244,
+                "bus_name_list": [
+                    "原武变原武17板Ⅱ金柳路一所线_0"
+                ],
+                "color": "",
+                "lat": -0.75,
+                "lon": 18.0,
+                "bus_id_list": [
+                    300000
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-原武站.tc",
+                "sub_system": 2,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 4.504709067987278e-7,
+                "res_load_sum_q_mvar": -0.01981753500558625,
+                "res_load_max_p_mw": 4.504709067987278e-7,
+                "res_load_max_q_mvar": -0.01981753500558625,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0134272031669245,
+                "res_bus_sum_p_mw": 4.504709067987278e-7,
+                "res_bus_sum_q_mvar": -0.01981753500558625,
+                "res_bus_max_vm_pu": 1.0134272031669245,
+                "res_bus_max_p_mw": 4.504709067987278e-7,
+                "res_bus_max_q_mvar": -0.01981753500558625
+            },
+            {
+                "station_id": "5b42d0df-f57d-4ea1-87d4-dfd9077270c2",
+                "station_type": "station",
+                "station_name": "原武站",
+                "vn_kv": 10.134272031669244,
+                "bus_name_list": [
+                    "原武变原武14板明霞街一所线_0"
+                ],
+                "color": "",
+                "lat": 0.25,
+                "lon": 18.0,
+                "bus_id_list": [
+                    300295
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-原武站.tc",
+                "sub_system": 2,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 5.9699152643588604e-6,
+                "res_load_sum_q_mvar": -0.04680833029863152,
+                "res_load_max_p_mw": 5.9699152643588604e-6,
+                "res_load_max_q_mvar": -0.04680833029863152,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0134272031669245,
+                "res_bus_sum_p_mw": 5.9699152643588604e-6,
+                "res_bus_sum_q_mvar": -0.04680833029863152,
+                "res_bus_max_vm_pu": 1.0134272031669245,
+                "res_bus_max_p_mw": 5.9699152643588604e-6,
+                "res_bus_max_q_mvar": -0.04680833029863152
+            },
+            {
+                "station_id": "e32c138a-a5ed-4dd0-804c-e7c196f806f1",
+                "station_type": "station",
+                "station_name": "原武站",
+                "vn_kv": 10.134272031669244,
+                "bus_name_list": [
+                    "10KV原武16板II中原大数据中心专用线_0"
+                ],
+                "color": "",
+                "lat": 1.25,
+                "lon": 18.0,
+                "bus_id_list": [
+                    300387
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-原武站.tc",
+                "sub_system": 2,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.5006662579253316e-11,
+                "res_load_sum_q_mvar": -0.0006283185516622325,
+                "res_load_max_p_mw": 1.5006662579253316e-11,
+                "res_load_max_q_mvar": -0.0006283185516622325,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0134272031669245,
+                "res_bus_sum_p_mw": 1.5006662579253316e-11,
+                "res_bus_sum_q_mvar": -0.0006283185516622325,
+                "res_bus_max_vm_pu": 1.0134272031669245,
+                "res_bus_max_p_mw": 1.5006662579253316e-11,
+                "res_bus_max_q_mvar": -0.0006283185516622325
+            },
+            {
+                "station_id": "04e0968b-9618-46fb-aabf-cce766aa8fa7",
+                "station_type": "station",
+                "station_name": "原武站",
+                "vn_kv": 10.134272031669244,
+                "bus_name_list": [
+                    "10KV原武15板II中原大数据中心专用二线_0"
+                ],
+                "color": "",
+                "lat": 2.25,
+                "lon": 18.0,
+                "bus_id_list": [
+                    300416
+                ],
+                "sub_system_file_path": "/tode/database/teapcase/sub_system/474877de-cae1-4b96-936d-22b29708e117-原武站.tc",
+                "sub_system": 2,
+                "trafo_id_list": [],
+                "trafo_name_list": [],
+                "feedin_relation_bus_name_list": [],
+                "res_trafo_sum_p_hv_mw": 0.0,
+                "res_trafo_sum_q_hv_mvar": 0.0,
+                "res_trafo_sum_p_lv_mw": 0.0,
+                "res_trafo_sum_q_lv_mvar": 0.0,
+                "res_trafo_sum_loading_percent": 0.0,
+                "res_trafo_max_p_hv_mw": null,
+                "res_trafo_max_q_hv_mvar": null,
+                "res_trafo_max_p_lv_mw": null,
+                "res_trafo_max_q_lv_mvar": null,
+                "res_trafo_max_loading_percent": null,
+                "res_load_sum_p_mw": 1.5006662579253316e-11,
+                "res_load_sum_q_mvar": -0.0006283185516622325,
+                "res_load_max_p_mw": 1.5006662579253316e-11,
+                "res_load_max_q_mvar": -0.0006283185516622325,
+                "res_feedin_sum_p_mw": 0.0,
+                "res_feedin_sum_q_mvar": 0.0,
+                "res_bus_sum_vm_pu": 1.0134272031669245,
+                "res_bus_sum_p_mw": 1.5006662579253316e-11,
+                "res_bus_sum_q_mvar": -0.0006283185516622325,
+                "res_bus_max_vm_pu": 1.0134272031669245,
+                "res_bus_max_p_mw": 1.5006662579253316e-11,
+                "res_bus_max_q_mvar": -0.0006283185516622325
+            }
+        ],
+        "channel_data": [
+            {
+                "channel_name": "原武站.115.2_郑州.前程站.115.2",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "line_data": [
+                    {
+                        "name": "Ⅰ原武前程线",
+                        "type": "ac_line",
+                        "color": "",
+                        "vn_kv": 115.0,
+                        "line_types": "solid",
+                        "index": 0,
+                        "from_bus": 927,
+                        "to_bus": 1485,
+                        "in_service": true,
+                        "max_i_ka": 1.2,
+                        "max_loading_rate": null,
+                        "transmission_cost": null,
+                        "timeseries": [],
+                        "max_total_elec_tran_mwh": null,
+                        "min_total_elec_tran_mwh": null,
+                        "electricity_relax_cost_cny_per_mwh": null,
+                        "parallel": 1,
+                        "length_km": 1.0,
+                        "r_ohm_per_km": 0.734649,
+                        "x_ohm_per_km": 0.633742,
+                        "c_nf_per_km": 0.0,
+                        "g_us_per_km": 0.0,
+                        "lineid": "",
+                        "cap_const": null,
+                        "existing_construction_cost": null,
+                        "fixed_OM_cost": null,
+                        "variable_OM_cost": null,
+                        "commissioning_datetime": null,
+                        "decommissioning_datetime": null,
+                        "feederid": "",
+                        "_commissioning_datetime": null,
+                        "_decommissioning_datetime": null,
+                        "from_bus_name": "原武站.115.2",
+                        "to_bus_name": "郑州.前程站.115.2",
+                        "isSequence": true,
+                        "p_from_mw": 8.573713039118768,
+                        "q_from_mvar": -0.4121444777080765,
+                        "i_ka": 0.04252543032473584,
+                        "loading_percent": 3.5437858603946535
+                    }
+                ],
+                "switch_data": [],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        12.0,
+                        -6.25
+                    ]
+                ],
+                "min_vn_kv": 115.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": 8.573713039118768,
+                "res_line_sum_q_from_mvar": -0.4121444777080765,
+                "res_line_sum_i_ka": 0.04252543032473584,
+                "res_line_sum_loading_percent": 3.5437858603946535,
+                "res_line_max_p_from_mw": 8.573713039118768,
+                "res_line_max_q_from_mvar": -0.4121444777080765,
+                "res_line_max_i_ka": 0.04252543032473584,
+                "res_line_max_loading_percent": 3.5437858603946535
+            },
+            {
+                "channel_name": "郑州.香樟站.115.3_郑州.T10站.115.78",
+                "from_station": "83310a9b-2e0f-44aa-b230-827bcb8c8c91",
+                "to_station": "862fd006-394e-4485-9b80-9d40adfca5f9",
+                "line_data": [
+                    {
+                        "name": "原坤香樟支线",
+                        "type": "ac_line",
+                        "color": "",
+                        "vn_kv": 115.0,
+                        "line_types": "solid",
+                        "index": 1,
+                        "from_bus": 1501,
+                        "to_bus": 1439,
+                        "in_service": true,
+                        "max_i_ka": 0.6,
+                        "max_loading_rate": null,
+                        "transmission_cost": null,
+                        "timeseries": [],
+                        "max_total_elec_tran_mwh": null,
+                        "min_total_elec_tran_mwh": null,
+                        "electricity_relax_cost_cny_per_mwh": null,
+                        "parallel": 1,
+                        "length_km": 1.0,
+                        "r_ohm_per_km": 0.112941,
+                        "x_ohm_per_km": 0.547647,
+                        "c_nf_per_km": 0.0,
+                        "g_us_per_km": 0.0,
+                        "lineid": "",
+                        "cap_const": null,
+                        "existing_construction_cost": null,
+                        "fixed_OM_cost": null,
+                        "variable_OM_cost": null,
+                        "commissioning_datetime": null,
+                        "decommissioning_datetime": null,
+                        "feederid": "",
+                        "_commissioning_datetime": null,
+                        "_decommissioning_datetime": null,
+                        "from_bus_name": "郑州.香樟站.115.3",
+                        "to_bus_name": "郑州.T10站.115.78",
+                        "isSequence": true,
+                        "p_from_mw": 0.0,
+                        "q_from_mvar": 0.0,
+                        "i_ka": 0.0,
+                        "loading_percent": 0.0
+                    }
+                ],
+                "switch_data": [],
+                "coords": [
+                    [
+                        9.0,
+                        -2.0
+                    ],
+                    [
+                        6.0,
+                        -2.5
+                    ]
+                ],
+                "min_vn_kv": 115.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": 0.0,
+                "res_line_max_q_from_mvar": 0.0,
+                "res_line_max_i_ka": 0.0,
+                "res_line_max_loading_percent": 0.0
+            },
+            {
+                "channel_name": "原武站.115.2_郑州.T10站.115.78",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "862fd006-394e-4485-9b80-9d40adfca5f9",
+                "line_data": [
+                    {
+                        "name": "原武坤泰(原武-T10)线",
+                        "type": "ac_line",
+                        "color": "",
+                        "vn_kv": 115.0,
+                        "line_types": "solid",
+                        "index": 2,
+                        "from_bus": 927,
+                        "to_bus": 1439,
+                        "in_service": true,
+                        "max_i_ka": 0.6,
+                        "max_loading_rate": null,
+                        "transmission_cost": null,
+                        "timeseries": [],
+                        "max_total_elec_tran_mwh": null,
+                        "min_total_elec_tran_mwh": null,
+                        "electricity_relax_cost_cny_per_mwh": null,
+                        "parallel": 1,
+                        "length_km": 1.0,
+                        "r_ohm_per_km": 0.489325,
+                        "x_ohm_per_km": 0.533761,
+                        "c_nf_per_km": 0.0,
+                        "g_us_per_km": 0.0,
+                        "lineid": "",
+                        "cap_const": null,
+                        "existing_construction_cost": null,
+                        "fixed_OM_cost": null,
+                        "variable_OM_cost": null,
+                        "commissioning_datetime": null,
+                        "decommissioning_datetime": null,
+                        "feederid": "",
+                        "_commissioning_datetime": null,
+                        "_decommissioning_datetime": null,
+                        "from_bus_name": "原武站.115.2",
+                        "to_bus_name": "郑州.T10站.115.78",
+                        "isSequence": true,
+                        "p_from_mw": -3.181880753082296,
+                        "q_from_mvar": -3.335930756477223,
+                        "i_ka": 0.02283950245000732,
+                        "loading_percent": 3.806583741667887
+                    }
+                ],
+                "switch_data": [],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        6.0,
+                        -2.5
+                    ]
+                ],
+                "min_vn_kv": 115.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": -3.181880753082296,
+                "res_line_sum_q_from_mvar": -3.335930756477223,
+                "res_line_sum_i_ka": 0.02283950245000732,
+                "res_line_sum_loading_percent": 3.806583741667887,
+                "res_line_max_p_from_mw": -3.181880753082296,
+                "res_line_max_q_from_mvar": -3.335930756477223,
+                "res_line_max_i_ka": 0.02283950245000732,
+                "res_line_max_loading_percent": 3.806583741667887
+            },
+            {
+                "channel_name": "郑州.坤泰站.115.2_郑州.T10站.115.78",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "862fd006-394e-4485-9b80-9d40adfca5f9",
+                "line_data": [
+                    {
+                        "name": "原武坤泰(坤泰-T10)线",
+                        "type": "ac_line",
+                        "color": "",
+                        "vn_kv": 115.0,
+                        "line_types": "solid",
+                        "index": 3,
+                        "from_bus": 1178,
+                        "to_bus": 1439,
+                        "in_service": true,
+                        "max_i_ka": 0.6,
+                        "max_loading_rate": null,
+                        "transmission_cost": null,
+                        "timeseries": [],
+                        "max_total_elec_tran_mwh": null,
+                        "min_total_elec_tran_mwh": null,
+                        "electricity_relax_cost_cny_per_mwh": null,
+                        "parallel": 1,
+                        "length_km": 1.0,
+                        "r_ohm_per_km": 0.007671,
+                        "x_ohm_per_km": 0.032798,
+                        "c_nf_per_km": 0.0,
+                        "g_us_per_km": 0.0,
+                        "lineid": "",
+                        "cap_const": null,
+                        "existing_construction_cost": null,
+                        "fixed_OM_cost": null,
+                        "variable_OM_cost": null,
+                        "commissioning_datetime": null,
+                        "decommissioning_datetime": null,
+                        "feederid": "",
+                        "_commissioning_datetime": null,
+                        "_decommissioning_datetime": null,
+                        "from_bus_name": "郑州.坤泰站.115.2",
+                        "to_bus_name": "郑州.T10站.115.78",
+                        "isSequence": true,
+                        "p_from_mw": 3.182658516336624,
+                        "q_from_mvar": 3.336817380683074,
+                        "i_ka": 0.022839502449311492,
+                        "loading_percent": 3.8065837415519153
+                    }
+                ],
+                "switch_data": [],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        6.0,
+                        -2.5
+                    ]
+                ],
+                "min_vn_kv": 115.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 3.182658516336624,
+                "res_line_sum_q_from_mvar": 3.336817380683074,
+                "res_line_sum_i_ka": 0.022839502449311492,
+                "res_line_sum_loading_percent": 3.8065837415519153,
+                "res_line_max_p_from_mw": 3.182658516336624,
+                "res_line_max_q_from_mvar": 3.336817380683074,
+                "res_line_max_i_ka": 0.022839502449311492,
+                "res_line_max_loading_percent": 3.8065837415519153
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤39板Ⅱ郑信路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "675ebd34-7ed1-4841-91e3-66db2fea216c",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤39开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 0
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -13.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤12板Ⅰ永顺路二所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "24048519-40ef-4bea-bbc3-691ef10c2620",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤12开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 1
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        -4.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤21板Ⅰ前程路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "1768c0b9-cf32-4095-86f5-6a5d68c0b26c",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤21开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 2
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -12.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤6板Ⅱ前程路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "9acc063b-20d8-4898-a9be-eafb3974dad9",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤6开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 3
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        -3.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤15板Ⅰ玉溪路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "cceac6e2-e2d0-4bd5-b12b-eebe5f90ba04",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤15开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 4
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        -2.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤11板Ⅰ象辰路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "5d4e3355-2691-47f3-bcb7-17ca71d11568",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤11开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 5
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        -1.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤36板Ⅱ象辰路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "481dfa2e-8d7a-48f4-b6d5-3f7f2499c780",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤36开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 6
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -11.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤34板Ⅱ永顺路二所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "cc78bee3-68a6-443e-a555-9a34a9a35172",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤34开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 7
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -10.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤13板Ⅰ杨桥路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "f39767cd-bbf0-41df-843d-7ab89c8b9cde",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤13开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 8
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        -0.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤37板Ⅱ杨桥路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "ee7f70d0-08b5-47f4-83cd-460da39848b3",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤37开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 9
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -9.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤7板高庄路二柜线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "5c1f2bf3-e8c7-4c0a-a10b-bef06d61b775",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤7开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 10
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        0.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤24板高庄路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "ebdaf39d-d1e4-494c-94e8-6d1f59dcb588",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤24开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 11
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -8.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤26板Ⅱ玉溪路一所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "6eea5606-8b7f-463b-9e8f-36242616f122",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤26开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 12
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -7.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤泰变坤25板永盛西路一柜线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "c35b8343-328e-4bcd-a46b-590a0efae93c",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤25开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 13
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -6.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤9板节俭路一柜线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "eeb79462-16fc-4c99-9280-9298d2f7fbb1",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤9开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 14
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        1.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤4板Ⅰ永胜线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "f231e887-b9c6-4217-803c-c3037b2c3efc",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤4开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 15
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        2.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤5板Ⅱ永胜线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "f850cb2e-3b66-4361-a49c-cfb8d8c43422",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤5开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 16
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        3.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_坤泰变坤16板Ⅰ永盛西路二所线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "cda4cc11-7098-470f-8fb4-29163406f04c",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤16开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 17
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        4.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤35板福家置业线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "b27a5159-c0b6-4f8a-b59c-37853d2f5a46",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤35开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 18
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -5.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.2_坤38板Ⅲ华强线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "51cf7c66-415a-48ce-84bd-1192e93da0c7",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤38开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 19
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        9.0,
+                        -4.0
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.坤泰站.10.3_10KV坤8板Ⅰ郑汴开发白沙园区1#专用配线_0",
+                "from_station": "63a4c59c-736d-490a-90bb-2f5381b8819b",
+                "to_station": "951348f1-195a-418e-adaf-5726950140b0",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "坤8开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 20
+                    }
+                ],
+                "coords": [
+                    [
+                        3.0,
+                        -5.5
+                    ],
+                    [
+                        3.0,
+                        5.5
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前8板Ⅰ芦医庙大街北一所线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "f21c03c6-8885-4dbf-ae26-871a50d468ad",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前8开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 21
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -10.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前3板Ⅰ复兴路一所线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "13bbf9c4-6078-48c7-b725-5e1504d1802f",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前3开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 22
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -9.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前16板Ⅰ中原大道一所线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "8bb1305d-5e01-49be-a242-25284a63d4f6",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前16开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 23
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -8.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前15板Ⅰ雍华路一所线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "09ebb774-f737-4962-b1df-c1d92605bd7e",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前15开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 24
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -7.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前6板白沙路一所线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "bab3ef95-b79e-4382-9891-9e7fe12b447c",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前6开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 25
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -6.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前4板光阳路一柜线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "0e44a9cb-3d0c-4ec7-964f-6ff93972fd85",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前4开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 26
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -5.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前2板前白线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "6a88979a-a8ae-496b-a63c-5da95a1dad52",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前2开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 27
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -4.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前11板前广线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "f9d264e2-5ab3-4500-a380-bc604e2cb4cd",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前11开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 28
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -3.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前10板Ⅰ富公线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "eea1bfc4-9f94-4e0f-b1ea-d129395dd887",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前10开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 29
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -2.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "郑州.前程站.10.2_前程变前5板白沙青年路二柜线_0",
+                "from_station": "4f0640e6-b08d-4b8f-a1e0-95aab5192595",
+                "to_station": "1e07e1bd-99a8-4498-bb14-92b4f548eb63",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "前5开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 30
+                    }
+                ],
+                "coords": [
+                    [
+                        12.0,
+                        -6.25
+                    ],
+                    [
+                        18.0,
+                        -1.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 115.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "原武站.10.2_原武变原武17板Ⅱ金柳路一所线_0",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "a2a0f165-c118-4c48-bef8-b5b390510a90",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "原武17开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 31
+                    }
+                ],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        18.0,
+                        -0.75
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "原武站.10.2_原武变原武14板明霞街一所线_0",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "5b42d0df-f57d-4ea1-87d4-dfd9077270c2",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "原武14开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 32
+                    }
+                ],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        18.0,
+                        0.25
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "原武站.10.2_10KV原武16板II中原大数据中心专用线_0",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "e32c138a-a5ed-4dd0-804c-e7c196f806f1",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "原武16开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 33
+                    }
+                ],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        18.0,
+                        1.25
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            },
+            {
+                "channel_name": "原武站.10.2_10KV原武15板II中原大数据中心专用二线_0",
+                "from_station": "ff1f9a61-887f-4fbd-8299-33eef076d682",
+                "to_station": "04e0968b-9618-46fb-aabf-cce766aa8fa7",
+                "line_data": [],
+                "switch_data": [
+                    {
+                        "name": "原武15开关",
+                        "closed": true,
+                        "color": "",
+                        "in_ka": null,
+                        "line_types": "solid",
+                        "index": 34
+                    }
+                ],
+                "coords": [
+                    [
+                        15.0,
+                        -0.25
+                    ],
+                    [
+                        18.0,
+                        2.25
+                    ]
+                ],
+                "min_vn_kv": 10.0,
+                "max_vn_kv": 230.0,
+                "res_line_sum_p_from_mw": 0.0,
+                "res_line_sum_q_from_mvar": 0.0,
+                "res_line_sum_i_ka": 0.0,
+                "res_line_sum_loading_percent": 0.0,
+                "res_line_max_p_from_mw": null,
+                "res_line_max_q_from_mvar": null,
+                "res_line_max_i_ka": null,
+                "res_line_max_loading_percent": null
+            }
+        ],
+        "tc_file_path": "/tmp/tmppj348pnw/474877de-cae1-4b96-936d-22b29708e117.tc",
+        "warning_msg": []
+    }
+}

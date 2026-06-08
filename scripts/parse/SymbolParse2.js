@@ -389,7 +389,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('line-width="' + lw + '" ');
+			sb.push('stroke-width="' + (lw + 1) + '" ');
 		}
 
 		let tfr = dom.getAttribute('tfr');
@@ -525,9 +525,8 @@ export default {
 		let h = parseInt(dom.getAttribute('h'))  * 3/4;
 		let ts = dom.getAttribute('ts'); // 文本内容
 		sb.push('flag="text" ');
-		sb.push('x="' + x + '" ');
-		sb.push('y="' + (y + h) + '" ');
-
+		sb.push('x="' + (x + 20) + '" ');
+		sb.push('y="' + (y + 15) + '" ');
 		// for(let name of attrList) {
 		// 	let v = dom.getAttribute(name);
 		// 	if (name == 'lc') {
@@ -577,7 +576,10 @@ export default {
 		sb.push('"')
 
 		sb.push('>');
-		sb.push(ts);
+        // 排除显示的号码相关内容
+        if(ts.indexOf('号码') == -1) {
+            sb.push(ts);
+        }
 		sb.push('</text>');
 		return sb.join('');
 	},

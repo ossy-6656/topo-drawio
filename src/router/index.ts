@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
  
 import LOGIN from "../view/login.vue";
 import graphLg from "../view/graph/graphLg.vue";
+import SvgLiaisonDrawio from "../view/liaison/SvgLiaisonDrawio.vue";
  
 const routes = [
   {
@@ -17,6 +18,11 @@ const routes = [
     path: "/graphLg",
     name: "graphLg",
     component: graphLg
+  },
+  {
+    path: "/svg-liaison-drawio",
+    name: "svgLiaisonDrawio",
+    component: SvgLiaisonDrawio
   }
 ];
  
