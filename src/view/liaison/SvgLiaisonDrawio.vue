@@ -1273,7 +1273,7 @@ async function handleStationDoubleClick(stationInfo) {
       }
     )
     router.push({
-      path: '/graphLg',
+      path: '/in-site-svg',
       query: {
         id: stationInfo.station_id,
         name: stationInfo.station_name,

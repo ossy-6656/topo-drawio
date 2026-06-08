@@ -22,8 +22,12 @@
         </div>
     </div> -->
 
-    <!-- 数据选择 + 上传 G 图 -->
-    <div class="dataSelector" style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: min(100vw - 24px, 560px);">
+    <!-- 数据源选择页（/graphLg）顶栏 -->
+    <div
+        v-if="isDatasetMode"
+        class="dataSelector"
+        style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: min(100vw - 24px, 560px);"
+    >
         <span style="font-size: 14px; font-weight: 500; color: #333;">选择数据源：</span>
         <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
             <option value="zjtSvg">lgdata (示例数据)</option>
@@ -33,8 +37,15 @@
                 :key="opt.value"
                 :value="opt.value"
             >{{ opt.label }}</option>
-            <option value="uploaded" :disabled="!uploadedSvg">本地上传的 G 图</option>
         </select>
+    </div>
+
+    <!-- G 文件上传页（/in-site-svg）顶栏 -->
+    <div
+        v-if="isUploadMode"
+        class="dataSelector"
+        style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: min(100vw - 24px, 560px);"
+    >
         <label class="gUploadLabel" style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 14px; color: #409eff;">
             <input
                 ref="gFileInputRef"
@@ -101,7 +112,7 @@
 <script setup>
 // ==================== 导入依赖 ====================
 import { useRoute } from 'vue-router'                                   // Vue Router 路由钩子
-import { ref, onMounted, onActivated, onBeforeUnmount, onDeactivated } from 'vue' // Vue 3 组合式 API
+import { ref, computed, onMounted, onActivated, onBeforeUnmount, onDeactivated } from 'vue' // Vue 3 组合式 API
 
 // 导入图形处理工具类
 import GraphUtil from '@/plugins/tmzx/graph/GraphUtil.js'
@@ -366,6 +377,17 @@ window['customShape'] = true
 // 将 App 类挂载到 window 对象，方便全局访问
 window.App = App
 
+// ==================== 页面模式（dataset=/graphLg，upload=/in-site-svg） ====================
+const props = defineProps({
+    mode: {
+        type: String,
+        default: 'dataset',
+        validator: (v) => ['dataset', 'upload'].includes(v),
+    },
+})
+const isDatasetMode = computed(() => props.mode === 'dataset')
+const isUploadMode = computed(() => props.mode === 'upload')
+
 // ==================== 路由参数获取 ====================
 const route = useRoute()
 let { id, taskId, name } = route.query  // 从 URL 获取：正交图ID、任务ID、名称
@@ -392,7 +414,6 @@ const dataSources = {
     zjtSvg: zjtSvg,
     svg2: svg2,
     ...STATION_DATA_MAP,
-    uploaded: null, // 动态获取
 }
 
 // G 文件选择处理函数
@@ -405,13 +426,10 @@ async function onGFileSelected(event) {
         const arrayBuffer = await file.arrayBuffer()
         const { svg: svgStr, missingSymbols } = await convertFacGBufferToSvg(arrayBuffer, {})
         uploadedSvg.value = svgStr
-        dataSources.uploaded = svgStr
         if (missingSymbols?.length) {
             console.warn('[facG] 以下图元未在工程中加载:', missingSymbols)
         }
-        selectedData.value = 'uploaded'
-        // 自动切换到上传的 G 图
-        handleDataChange()
+        loadSvgIntoEditor(svgStr)
         ElMessage.success('G 文件转换成功')
     } catch (e) {
         console.error('G 文件转换失败:', e)
@@ -425,14 +443,8 @@ async function onGFileSelected(event) {
     }
 }
 
-// 数据切换处理函数（须用 window.initGraphWithSvg：赋值在 onMounted 内，模块内无同名变量）
-const handleDataChange = () => {
-    let selectedSvg = null
-    if (selectedData.value === 'uploaded') {
-        selectedSvg = uploadedSvg.value
-    } else {
-        selectedSvg = dataSources[selectedData.value]
-    }
+/** 加载 SVG 到编辑器（须用 window.initGraphWithSvg：赋值在 onMounted 内） */
+function loadSvgIntoEditor(selectedSvg) {
     const load = typeof window.initGraphWithSvg === 'function' ? window.initGraphWithSvg : null
     if (!selectedSvg || !load) return
     // App.main 在 isMainCalled 为 true 时直接 return，必须重置后才能再次加载新 SVG
@@ -446,6 +458,11 @@ const handleDataChange = () => {
         console.warn('切换数据源：销毁编辑器', e)
     }
     load(selectedSvg, undefined)
+}
+
+// 数据切换处理函数
+const handleDataChange = () => {
+    loadSvgIntoEditor(dataSources[selectedData.value])
 }
 
 /** 切换为 svg2.js 数据，供「站外-大馈线」点击调用 */
@@ -854,6 +871,13 @@ window.initGraphWithSvg = (_svg, themecut) => {
                 //   let themecut = obj.themecut
                 //   console.log("888888888888",svgstr, themecut)
                 setTimeout(() => {
+                    if (isUploadMode.value) {
+                        const statusEl = document.getElementById('geStatus')
+                        if (statusEl) {
+                            statusEl.textContent = '请上传 G 文件'
+                        }
+                        return
+                    }
                     const firstSvg = dataSources[selectedData.value]
                     console.log('graphLg init', selectedData.value, firstSvg && firstSvg.length)
                     window.initGraphWithSvg(firstSvg, undefined)

@@ -214,6 +214,61 @@ function wrapTextBlock(dom, textXml) {
     return `<g id="${gid}"${pidPart}>` + inner + `<metadata><cge:PSR_Ref ObjectID="${gid}"/><cge:Layer_Ref ObjectName="Text_Layer"/></metadata>` + `</g>`;
 }
 
+function parse_link_ids(link_str){
+    let ids = []
+    if(!link_str) {
+        return ids
+    }
+    let segments = link_str.trim().replace(/;+$/, "").split(';');
+    segments.forEach((seg) => {
+        let parts = seg.split(',')
+        if (parts.length >= 3) {
+            ids.push(parts[2])
+        }
+    })
+    return ids
+}
+
+function get_best_voltype(voltype_list){
+    let best = null;
+    let best_level = -1;
+    const VOLTAGE_CONFIG = {
+        '1005': {color: '192,0,192',lv: 5},   // 220kV 紫
+        '1006': {color: '185,72,66',lv: 4},   // 110kV 红
+        '1008': {color: '255,255,0',lv: 3},   // 35kV 黄
+        '1009': {color: '185,72,66',lv: 2}   // 10kV 红
+    }
+    for (const vt of voltype_list) {
+      // 判断key是否存在配置里（对应python in）
+      if (VOLTAGE_CONFIG.hasOwnProperty(vt)) {
+        const lv = VOLTAGE_CONFIG[vt].lv; // 解构取值，_忽略第一个值
+        if (lv > best_level) {
+          best_level = lv;
+          best = vt;
+        }
+      }
+    }
+    return best;
+}
+
+function parse_node_area(node_area_str) {
+    const res = [];
+    // 空字符串直接返回空数组
+    if (!node_area_str) return res;
+
+    // 对应: strip().rstrip(';').split(';')
+    const segments = node_area_str.trim().replace(/;+$/, '').split(';');
+
+    for (const seg of segments) {
+        const parts = seg.split(',');
+        if (parts.length >= 3) {
+            const port_idx = parts[0];
+            const node_id = parts[2];
+            res.push([port_idx, node_id]); // js用数组替代python元组
+        }
+    }
+    return res;
+}
 /**
  * LGSvgParser 要求：svg 下直接子节点为各 *_Layer 的 &lt;g&gt;，设备/线/文本为带 metadata 的分组。
  */
@@ -223,11 +278,101 @@ function buildLgCompatibleBody(children, onWarn) {
     const deviceParts = [];
     const lineParts = [];
     const inlineDefs = [];
+    const VOLTAGE_CONFIG = {
+        '1005': {color: '192,0,192',lv: 5},   // 220kV 紫
+        '1006': {color: '185,72,66',lv: 4},   // 110kV 红
+        '1008': {color: '255,255,0',lv: 3},   // 35kV 黄
+        '1009': {color: '185,72,66',lv: 2}   // 10kV 红
+    }
+    let id_to_voltage = {}
+    for (let i = 0; i < children.length; i++) {
+        const dom = children[i];
+        if (dom.nodeType !== 1) continue;
+        const nodeName = dom.nodeName;
+        
+        let eid = dom.getAttribute('id')
+        let vt = dom.getAttribute('voltype')
+        if (VOLTAGE_CONFIG.hasOwnProperty(vt)) {
+            id_to_voltage[eid] = vt
+        }
+        if(nodeName == 'Bus' && VOLTAGE_CONFIG.hasOwnProperty(vt)) {
+            dom.setAttribute('lc',VOLTAGE_CONFIG[vt].color)
+        }
+    }
+    // 第2遍：专门处理 Transformer3
+    for (let i = 0; i < children.length; i++) {
+        const dom = children[i];
+        if (dom.nodeType !== 1) continue;
+        const nodeName = dom.nodeName;
+        let tid = dom.getAttribute('id')
+        if (nodeName == 'Transformer3') {
+            // 取三个绕组电压
+            let vt1 = dom.getAttribute('voltype1')
+            let vt2 = dom.getAttribute('voltype2')
+            let vt3 = dom.getAttribute('voltype3')
+            let vt_list = [vt1, vt2, vt3]
+            
+            // 整个变压器取最高电压（用于自身图元）
+            let best_vt = get_best_voltype(vt_list)
+            if (best_vt){
+                id_to_voltage[tid] = best_vt
+            }
+            // 关键：node_area 每个端口ID 一一对应 voltype1/2/3
+            let node_area = dom.getAttribute('node_area', '')
+            let port_nodes = parse_node_area(node_area)
+            // if(dom.getAttribute('id') == '103007888') {
+            //     debugger
+            // }
+            port_nodes.forEach((item,index) => {
+                if (index < vt_list.length) {
+                    let vt = vt_list[index]
+                    if (VOLTAGE_CONFIG.hasOwnProperty(vt)) {
+                        id_to_voltage[item[1]] = vt
+                    }
+                }
+            })
+        }
+    }
+    for (let i = 0; i < children.length; i++) {
+        const dom = children[i];
+        if (dom.nodeType !== 1) continue;
+        const nodeName = dom.nodeName;
+        if (nodeName == 'ConnectLine'||nodeName == 'ACLineEnd') {
+            let link_str = dom.getAttribute('link', '')
+            let linked_ids = parse_link_ids(link_str)
+            let best_vt = null
+            let best_level = -1
+            // if(dom.getAttribute('id') == '34007614') {
+            //     debugger
+            // }
+            linked_ids.forEach((lid) => {
+                if (id_to_voltage.hasOwnProperty(lid)) {
+                    
+                    let vt = id_to_voltage[lid]
+                    let lv = VOLTAGE_CONFIG[vt].lv
+                    if(lv > best_level){
+                        best_level = lv
+                        best_vt = vt
+                    }
+                }
+            })
+            if(id_to_voltage.hasOwnProperty(dom.getAttribute('id'))) {
+                let vt = id_to_voltage[dom.getAttribute('id')]
+                best_vt = vt
+            }
+            let color = VOLTAGE_CONFIG[best_vt]?VOLTAGE_CONFIG[best_vt].color : '128,128,128'
+            
+            dom.setAttribute('lc',color)
+        }
+    }
 
     for (let i = 0; i < children.length; i++) {
         const dom = children[i];
         if (dom.nodeType !== 1) continue;
         const nodeName = dom.nodeName;
+        
+        let eid = dom.getAttribute('id')
+        let vt = dom.getAttribute('voltype')
 
         switch (nodeName) {
             case 'rect':

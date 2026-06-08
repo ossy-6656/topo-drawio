@@ -2,12 +2,13 @@ import { createRouter, createWebHistory } from "vue-router";
  
 import LOGIN from "../view/login.vue";
 import graphLg from "../view/graph/graphLg.vue";
+import inSiteSvg from "../view/graph/inSiteSvg.vue";
 import SvgLiaisonDrawio from "../view/liaison/SvgLiaisonDrawio.vue";
  
 const routes = [
   {
     path: "/",
-    redirect: '/login'
+    redirect: '/svg-liaison-drawio'
   },
   {
     path: "/login",
@@ -17,7 +18,12 @@ const routes = [
   {
     path: "/graphLg",
     name: "graphLg",
-    component: graphLg
+    component: graphLg,
+  },
+  {
+    path: "/in-site-svg",
+    name: "inSiteSvg",
+    component: inSiteSvg,
   },
   {
     path: "/svg-liaison-drawio",
