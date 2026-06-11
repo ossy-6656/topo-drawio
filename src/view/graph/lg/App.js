@@ -4520,13 +4520,15 @@ App.prototype.start = function ()
 
                     let graph = this.editor.graph;
                     ui.svgParser.setGraph(graph);
-                    ui.svgParser.parseSvg();
+                    if (!ui.svgParser.skipInitialParseSvg) {
+                        ui.svgParser.parseSvg();
+                    }
                     ui.editor.setModified(false);
                     ui.editor.undoManager.clear();
 
                     this.editor.setStatus(mxUtils.htmlEntities(mxResources.get('allChangesSaved')));
                     let action = this.actions.get('fitWindow');
-                    if (action)
+                    if (action && !ui.svgParser.skipInitialParseSvg)
                     {
                         action.funct();
                     }

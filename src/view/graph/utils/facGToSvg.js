@@ -193,11 +193,38 @@ function lineGToPolylineSvg(dom) {
     return poly;
 }
 
+function feederShortName(keyName) {
+    if (!keyName) return '';
+    const s = String(keyName);
+    const dot = s.lastIndexOf('.');
+    if (dot >= 0 && dot < s.length - 1) return s.slice(dot + 1);
+    const slash = s.lastIndexOf('/');
+    if (slash >= 0 && slash < s.length - 1) return s.slice(slash + 1);
+    return s;
+}
+
 function wrapLineLikeGroup(dom, innerSvg, idx) {
     const id = dom.getAttribute('id') || `PD_line_${idx}`;
     const oid = escapeXmlAttr(id);
-    const name = escapeXmlAttr(dom.getAttribute('name') || dom.getAttribute('keyname') || '');
+    const name = escapeXmlAttr(
+        dom.getAttribute('name') || dom.getAttribute('key_name') || dom.getAttribute('keyname') || ''
+    );
     return `<g id="${oid}">` + innerSvg + `<metadata>` + `<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="36000000"/>` + `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` + `</metadata></g>`;
+}
+
+/** 站内图出线端（ACLineEnd）→ 可点击跳转至站外馈线图 */
+function wrapAclineEndGroup(dom, innerSvg, idx) {
+    const id = dom.getAttribute('id') || `PD_acline_${idx}`;
+    const oid = escapeXmlAttr(id);
+    const keyName = dom.getAttribute('key_name') || dom.getAttribute('keyname') || '';
+    const keyid = dom.getAttribute('keyid') || '';
+    const rtkeyid = dom.getAttribute('rtkeyid') || '';
+    const shortName = feederShortName(keyName);
+    const name = escapeXmlAttr(shortName || keyName || id);
+    return `<g id="${oid}">` + innerSvg + `<metadata>` +
+        `<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="12104104" key_name="${escapeXmlAttr(keyName)}" keyid="${escapeXmlAttr(keyid)}" rtkeyid="${escapeXmlAttr(rtkeyid)}"/>` +
+        `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` +
+        `</metadata></g>`;
 }
 
 function wrapTextBlock(dom, textXml) {
@@ -383,10 +410,14 @@ function buildLgCompatibleBody(children, onWarn) {
                 if (onWarn) onWarn(nodeName, dom.getAttribute('id'));
                 break;
             case 'polyline':
-            case 'ConnectLine':
-            case 'ACLineEnd': {
+            case 'ConnectLine': {
                 const inner = SymbolParse.parsePolyline(dom, true);
                 if (inner) lineParts.push(wrapLineLikeGroup(dom, inner, i));
+                break;
+            }
+            case 'ACLineEnd': {
+                const inner = SymbolParse.parsePolyline(dom, true);
+                if (inner) lineParts.push(wrapAclineEndGroup(dom, inner, i));
                 break;
             }
             case 'BusbarSection':

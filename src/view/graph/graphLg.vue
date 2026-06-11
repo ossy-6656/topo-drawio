@@ -40,25 +40,6 @@
         </select>
     </div>
 
-    <!-- G 文件上传页（/in-site-svg）顶栏 -->
-    <div
-        v-if="isUploadMode"
-        class="dataSelector"
-        style="position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; flex-wrap: wrap; gap: 10px; max-width: min(100vw - 24px, 560px);"
-    >
-        <label class="gUploadLabel" style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer; font-size: 14px; color: #409eff;">
-            <input
-                ref="gFileInputRef"
-                type="file"
-                accept=".g,application/xml,text/xml"
-                style="display: none"
-                @change="onGFileSelected"
-            />
-            <span style="user-select: none;">上传 G 文件</span>
-        </label>
-        <span v-if="uploadingG" style="font-size: 13px; color: #909399;">正在转换为 SVG…</span>
-    </div>
-
     <!-- 图形容器：包含图形编辑器和加载提示 -->
     <div class="graphCon" id="graphCon">
         <!-- 图形编辑器容器：mxGraph 渲染的目标容器 -->
@@ -111,7 +92,7 @@
 
 <script setup>
 // ==================== 导入依赖 ====================
-import { useRoute } from 'vue-router'                                   // Vue Router 路由钩子
+import { useRoute, useRouter } from 'vue-router'                          // Vue Router 路由钩子
 import { ref, computed, onMounted, onActivated, onBeforeUnmount, onDeactivated } from 'vue' // Vue 3 组合式 API
 
 // 导入图形处理工具类
@@ -320,6 +301,30 @@ function cacheLgSidebarRefFromParser(parser, dataKey) {
     }
 }
 
+/**
+ * 站所 SVG（张衡等）负荷侧栏：跟当前图 scale 与图中设备尺寸；
+ * lgdata/svg2 仍沿用 lgdata 基准，避免侧栏随站所图漂移。
+ */
+function resolveLgLoadSidebarSizing(lgsvgParser, dataKey) {
+    const isStationDataset = Boolean(STATION_DATA_MAP[dataKey])
+    const fallbackScale =
+        cachedLgSidebarScale != null
+            ? cachedLgSidebarScale
+            : lgsvgParser?.getScale() || 1
+    if (!isStationDataset || !lgsvgParser) {
+        return { gScale: fallbackScale, dragDef: cachedLgSidebarDragDef }
+    }
+    const stationDrag = lgsvgParser.shapeDragDefaults || {}
+    const stationScale =
+        lgsvgParser.getScale() ||
+        computeLgSidebarScaleFromSvgString(STATION_DATA_MAP[dataKey]) ||
+        fallbackScale
+    return {
+        gScale: stationScale,
+        dragDef: Object.keys(stationDrag).length > 0 ? stationDrag : cachedLgSidebarDragDef,
+    }
+}
+
 function resolveCachedLgSwitchDragSize(parser) {
     const side = getLgSwitchCanvasRefSide()
     if (side > 0) {
@@ -377,35 +382,52 @@ window['customShape'] = true
 // 将 App 类挂载到 window 对象，方便全局访问
 window.App = App
 
-// ==================== 页面模式（dataset=/graphLg，upload=/in-site-svg） ====================
+// ==================== 页面模式（dataset=/graphLg，gfile=/in-site-svg） ====================
 const props = defineProps({
     mode: {
         type: String,
         default: 'dataset',
-        validator: (v) => ['dataset', 'upload'].includes(v),
+        validator: (v) => ['dataset', 'gfile'].includes(v),
+    },
+    gFileUrl: {
+        type: String,
+        default: '',
     },
 })
 const isDatasetMode = computed(() => props.mode === 'dataset')
-const isUploadMode = computed(() => props.mode === 'upload')
+const isGFileMode = computed(() => props.mode === 'gfile')
 
 // ==================== 路由参数获取 ====================
 const route = useRoute()
+const router = useRouter()
 let { id, taskId, name } = route.query  // 从 URL 获取：正交图ID、任务ID、名称
 
-// 如果有名称参数，设置页面标题
-if (name) {
+/** 从 /in-site-svg 跳转时携带的馈线 query */
+function getFeederQueryFromRoute() {
+    const q = route.query
+    const feeder = q.feeder != null ? String(q.feeder) : ''
+    const feederKey = q.feederKey != null ? String(q.feederKey) : ''
+    const keyid = q.keyid != null ? String(q.keyid) : ''
+    const rtkeyid = q.rtkeyid != null ? String(q.rtkeyid) : ''
+    if (!feeder && !feederKey && !keyid) {
+        return null
+    }
+    return { feeder, feederKey, keyid, rtkeyid }
+}
+
+const feederFromRoute = getFeederQueryFromRoute()
+
+// 页面标题：优先馈线名，其次 name 参数
+if (feederFromRoute?.feeder) {
+    document.title = feederFromRoute.feeder
+} else if (name) {
     document.title = name
 }
 
 // ==================== 组件状态变量 ====================
 let uiEditor                       // 编辑器 UI 实例（App 类的实例）
 let poleEle = ref()                 // 柱上辅助复选框的引用
-const selectedData = ref('zjtSvg')  // 当前选中的数据源
-
-// G 文件上传相关
-let uploadedSvg = ref('')           // 存储上传 G 文件转换后的 SVG 数据
-let uploadingG = ref(false)         // 上传状态标志
-let gFileInputRef = ref()           // 文件输入框的引用
+const selectedData = ref(feederFromRoute ? 'changcun' : 'zjtSvg')  // 站内馈线跳转时默认常村变电站
 
 const stationDataOptions = STATION_DATA_OPTIONS
 
@@ -416,30 +438,39 @@ const dataSources = {
     ...STATION_DATA_MAP,
 }
 
-// G 文件选择处理函数
-async function onGFileSelected(event) {
-    const file = event.target.files && event.target.files[0]
-    if (!file) return
+/** 将 G 文件 buffer 转为 SVG 并加载到编辑器 */
+async function loadGFromBuffer(arrayBuffer) {
+    const { svg: svgStr, missingSymbols } = await convertFacGBufferToSvg(arrayBuffer, {})
+    if (missingSymbols?.length) {
+        console.warn('[facG] 以下图元未在工程中加载:', missingSymbols)
+    }
+    loadSvgIntoEditor(svgStr)
+    return svgStr
+}
 
-    uploadingG.value = true
+/** 从 URL 加载预设 G 文件（/in-site-svg 使用） */
+async function loadPresetGFile() {
+    const url = props.gFileUrl
+    if (!url) {
+        ElMessage.error('未配置 G 文件路径')
+        return
+    }
+    const statusEl = document.getElementById('geStatus')
+    if (statusEl) {
+        statusEl.textContent = '正在加载 G 文件…'
+    }
     try {
-        const arrayBuffer = await file.arrayBuffer()
-        const { svg: svgStr, missingSymbols } = await convertFacGBufferToSvg(arrayBuffer, {})
-        uploadedSvg.value = svgStr
-        if (missingSymbols?.length) {
-            console.warn('[facG] 以下图元未在工程中加载:', missingSymbols)
+        const response = await fetch(url)
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
         }
-        loadSvgIntoEditor(svgStr)
-        ElMessage.success('G 文件转换成功')
+        await loadGFromBuffer(await response.arrayBuffer())
     } catch (e) {
-        console.error('G 文件转换失败:', e)
-        ElMessage.error('G 文件转换失败: ' + (e.message || e))
-    } finally {
-        uploadingG.value = false
-        // 清空文件输入，允许重复上传同一文件
-        if (gFileInputRef.value) {
-            gFileInputRef.value.value = ''
+        console.error('G 文件加载失败:', e)
+        if (statusEl) {
+            statusEl.textContent = 'G 文件加载失败'
         }
+        ElMessage.error('G 文件加载失败: ' + (e.message || e))
     }
 }
 
@@ -475,6 +506,19 @@ function switchToSvg2() {
     ElMessage.success('已切换至 svg2 数据')
 }
 window.switchToSvg2 = switchToSvg2
+
+/** 站内图馈线点击 → 跳转 /graphLg 并携带馈线信息（由 graph.js 调用） */
+window.navigateToGraphLgWithFeeder = (payload) => {
+    router.push({
+        path: '/graphLg',
+        query: {
+            feeder: payload.feeder || '',
+            feederKey: payload.feederKey || '',
+            keyid: payload.keyid || '',
+            rtkeyid: payload.rtkeyid || '',
+        },
+    })
+}
 
 // ==================== 容器 ID 生成 ====================
 // 生成唯一的容器 ID，避免多个实例冲突
@@ -542,13 +586,15 @@ let initEditFun = (svgstr, lgsvgParser) => {
                             }
 
                             cacheLgSidebarRefFromParser(lgsvgParser, selectedData.value)
-                            // 侧栏宽高始终跟 lgdata 基准缓存，不随当前站所/上传图解析结果变化
+                            // 侧栏开关/变压器等仍跟 lgdata 基准；负荷面板站所图跟当前图 scale 与设备尺寸
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
                             const gScale =
                                 cachedLgSidebarScale != null
                                     ? cachedLgSidebarScale
                                     : lgsvgParser.getScale() || 1
                             const dragDef = cachedLgSidebarDragDef
+                            const { gScale: loadGScale, dragDef: loadDragDef } =
+                                resolveLgLoadSidebarSizing(lgsvgParser, selectedData.value)
                             // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
                             const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
                                 const symbolId = entry[0]
@@ -558,14 +604,14 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 const styleExtra =
                                     entry.length > 4 && entry[4] ? String(entry[4]) : ''
                                 const key = String(symbolId).toLowerCase()
-                                const fromGraph = dragDef[key]
+                                const fromGraph = loadDragDef[key]
                                 const { w, h } = resolveLgSidebarDragWh(
                                     key,
                                     fw,
                                     fh,
                                     fromGraph,
                                     symbolMapForTpl,
-                                    gScale
+                                    loadGScale
                                 )
                                 return { symbolId, label, key, w, h, styleExtra }
                             })
@@ -818,6 +864,10 @@ function poleHelperHandler() {
 }
 
 onMounted(() => {
+    if (isGFileMode.value) {
+        window.__lgInSiteSvgMode = true
+    }
+
     applyDrawioSaveStatusIcon()
 
     // const params = {
@@ -871,16 +921,20 @@ window.initGraphWithSvg = (_svg, themecut) => {
                 //   let themecut = obj.themecut
                 //   console.log("888888888888",svgstr, themecut)
                 setTimeout(() => {
-                    if (isUploadMode.value) {
-                        const statusEl = document.getElementById('geStatus')
-                        if (statusEl) {
-                            statusEl.textContent = '请上传 G 文件'
-                        }
+                    if (isGFileMode.value) {
+                        loadPresetGFile()
                         return
                     }
                     const firstSvg = dataSources[selectedData.value]
                     console.log('graphLg init', selectedData.value, firstSvg && firstSvg.length)
                     window.initGraphWithSvg(firstSvg, undefined)
+                    if (feederFromRoute) {
+                        const stationLabel =
+                            stationDataOptions.find((o) => o.value === selectedData.value)?.label || '常村变电站'
+                        ElMessage.success(
+                            `已打开馈线：${feederFromRoute.feeder || feederFromRoute.feederKey}（${stationLabel}）`
+                        )
+                    }
                 }, 500);
                   
                     //  go(_svg, themecut)
@@ -896,6 +950,10 @@ window.initGraphWithSvg = (_svg, themecut) => {
 
 onBeforeUnmount(() => {
     $bus.off('multiScale_zjt')
+    if (isGFileMode.value) {
+        window.__lgInSiteSvgMode = false
+    }
+    delete window.navigateToGraphLgWithFeeder
     try {
         if (uiEditor) {
             uiEditor.destroy()

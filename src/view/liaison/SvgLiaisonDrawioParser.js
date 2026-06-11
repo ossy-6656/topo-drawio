@@ -10,9 +10,10 @@ function shortStationName(name) {
   return parts[parts.length - 1] || raw || '未知站'
 }
 
-/** 名称含 T10 的虚拟站：与 110kV 同尺寸的虚线空心矩形母线框；内有文字（有标签时为短名，无标签时为「T10」） */
+/** 名称含 T+数字（如 T1、T2、T10）的虚拟站：与 110kV 同尺寸的虚线空心矩形母线框；内有文字（有标签时为短名，无标签时为「T+数字」） */
 function isVirtualT10Station(name) {
-  return String(name || '').includes('T10')
+  const str = String(name || '')
+  return /T\d+/i.test(str)
 }
 
 /** 110kV 档站房外框色，用于 T10 虚线矩形描边 */
@@ -21,11 +22,9 @@ const STROKE_110 = '#c03548'
 /** 站房尺寸由算法/JSON 决定，禁止在画布上拉伸 */
 const LIAISON_STATION_NO_RESIZE = 'resizable=0;rotatable=0;'
 
-function virtualT10StationStyle(kv, topAlign = false) {
-  const stroke = kv >= 220 ? '#3d0060' : kv >= 110 ? STROKE_110 : '#b8b800'
-  const va = topAlign ? 'top' : 'middle'
-  const st = topAlign ? '4' : '0'
-  return `${LIAISON_STATION_NO_RESIZE}shape=rectangle;rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=${stroke};strokeWidth=2;dashed=1;fontColor=#1e293b;fontSize=12;fontStyle=1;align=center;verticalAlign=${va};spacingTop=${st};`
+function virtualT10StationStyle(kv) {
+  const fill = kv >= 220 ? '#3d0060' : kv >= 110 ? STROKE_110 : '#b8b800'
+  return `${LIAISON_STATION_NO_RESIZE}shape=ellipse;aspect=fixed;whiteSpace=wrap;html=1;fillColor=${fill};strokeColor=${fill};strokeWidth=1;fontColor=#ffffff;fontSize=10;fontStyle=1;align=center;verticalAlign=middle;`
 }
 
 /** 230kV 视同 220kV，115kV 视同 110kV（normalizeKV + 阈值） */
@@ -200,13 +199,17 @@ function stationInnerLabelColor(kv) {
  */
 function buildStationVertexLabelHtml(s, showLabels) {
   if (!showLabels) {
-    if (s.isVirtual) return { html: 'T10', topAlign: false }
+    if (s.isVirtual) {
+      const match = String(s.name || '').match(/T\d+/i)
+      const label = match ? match[0] : 'T10'
+      return { html: label, topAlign: false }
+    }
     return { html: '', topAlign: false }
   }
   if (s.isVirtual) {
     const ne = escapeHtmlLabel(s.name)
     return {
-      html: `<div style="text-align:center;font-size:11px;font-weight:700;color:#1e293b;">${ne}</div>`,
+      html: `<div style="text-align:center;font-size:11px;font-weight:700;color:#ffffff;">${ne}</div>`,
       topAlign: false,
     }
   }
@@ -410,6 +413,10 @@ function pointOnStation(station, side) {
   const y = station.y
   const w = station.w
   const h = station.h
+
+  if (station.isVirtual) {
+    return { x: x + w / 2, y: y + h / 2 }
+  }
 
   if (side === 'left') return { x, y: y + h / 2 }
   if (side === 'right') return { x: x + w, y: y + h / 2 }
@@ -1297,8 +1304,8 @@ export default class SvgLiaisonDrawioParser {
 
     stations.forEach((s) => {
       if (isVirtualT10Station(s.name)) {
-        s.w = 100
-        s.h = 50
+        s.w = 60
+        s.h = 60
         s.isVirtual = true
       } else {
         const baseW = s.kv >= 220 ? 120 : s.kv >= 110 ? 100 : 80
@@ -1343,7 +1350,7 @@ export default class SvgLiaisonDrawioParser {
           s.y,
           s.w,
           s.h,
-          isVirt ? virtualT10StationStyle(s.kv, topAlign) : stationStyleByKV(s.kv, topAlign, trafoLabel)
+          isVirt ? virtualT10StationStyle(s.kv) : stationStyleByKV(s.kv, topAlign, trafoLabel)
         )
         cell.entityType = 'station'
         cell.entityInfo = {

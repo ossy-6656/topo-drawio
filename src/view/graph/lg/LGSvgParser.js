@@ -12,6 +12,7 @@ import SymbolUtil from '@/plugins/tmzx/graph/SymbolUtil.js';
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler';
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js';
 import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc } from './Constants.js';
+import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js';
 import SvgBase from '../common/SvgBase.js';
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js';
 import Line2LineUtil from '../common/Line2LineUtil.js';
@@ -55,6 +56,32 @@ function applyLgPeiXianMark(cell, propMap, objectName, psrType) {
 
 /** 站外-大馈线（sbzlx 10000100，图元 id 形如 PD_10000100_*） */
 const LG_SBZLX_DAKUIXIAN = '10000100';
+
+/** 站内图出线端 ACLineEnd（G 文件 facGToSvg 标记 PSRType=12104104） */
+const LG_PSR_ACLINE_END = '12104104';
+
+function applyLgInSiteFeederMark(cell, objectName, psrType, propMap) {
+    if (cell == null) {
+        return;
+    }
+    if (String(psrType || '') !== LG_PSR_ACLINE_END) {
+        return;
+    }
+    cell.lgInSiteFeeder = true;
+    cell.feederKeyName = objectName || '';
+    const psr = propMap && propMap['cge:PSR_Ref'];
+    if (psr) {
+        if (psr.key_name) {
+            cell.feederKeyName = psr.key_name;
+        }
+        if (psr.keyid) {
+            cell.keyid = psr.keyid;
+        }
+        if (psr.rtkeyid) {
+            cell.rtkeyid = psr.rtkeyid;
+        }
+    }
+}
 
 function applyLgDakuixianMark(cell, objectId, psrType) {
     if (cell == null) {
@@ -1120,6 +1147,7 @@ export default class LGSvgParser extends SvgBase {
 
         cell.psrtype = PSRType;
         cell.name = ObjectName;
+        applyLgInSiteFeederMark(cell, ObjectName, PSRType, propMap);
         applyLgPeiXianMark(cell, propMap, ObjectName, PSRType);
         applyLgDakuixianMark(cell, ObjectID, PSRType);
 
@@ -2129,7 +2157,8 @@ export default class LGSvgParser extends SvgBase {
         let cellLinkMap = this.cellLinkMap;
 
         let keys = new Set();
-
+        // 因此把它们单独收集，交由上层归类到 lineList 里统一排序。
+        let virtualEdges = [];
         for (let [id, cell] of widgetMap) {
             if (cell.isEdge()) {
                 continue;
@@ -2170,9 +2199,11 @@ export default class LGSvgParser extends SvgBase {
                     let style = sb.join('');
                     let tmpCell = graph.insertEdge(parent, ObjectID, null, cell, relCell, style);
                     tmpCell.flag = 'virtualLine';
+                    virtualEdges.push(tmpCell)
                 }
             }
         }
+        return virtualEdges;
     }
 
     /**
@@ -2912,6 +2943,8 @@ export default class LGSvgParser extends SvgBase {
         this.captureImportedDeviceSnapshot();
 
         this.initValidateEvt();
+
+        installLgBreakerEdgeDrop(graph, this);
 
         this.textBeauty = new TextBeauty(graph, this.getSymbolMap());
         // this.addEvent()

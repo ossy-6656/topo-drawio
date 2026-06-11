@@ -1263,25 +1263,14 @@ function bindClickInfo(graph) {
 
 async function handleStationDoubleClick(stationInfo) {
   if (!stationInfo?.station_id || !stationInfo?.station_name) return
-  try {
-    await ElMessageBox.confirm(
-      `确认跳转到变电站「${stationInfo.station_name}」的站内图？`,
-      '跳转确认',
-      {
-        type: 'info',
-        ...msgboxConfirmOpts,
-      }
-    )
+  
     router.push({
       path: '/in-site-svg',
       query: {
         id: stationInfo.station_id,
         name: stationInfo.station_name,
-      },
+      }
     })
-  } catch {
-    return
-  }
 }
 
 function bindStationDoubleClick(graph) {

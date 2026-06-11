@@ -109,6 +109,39 @@ function isPeiXianLinkCell(cell, graph) {
     return false
 }
 
+/** 站内图出线馈线（ACLineEnd，/in-site-svg 页点击跳转 /graphLg） */
+function isInSiteFeederCell(cell) {
+    return cell != null && cell.lgInSiteFeeder === true;
+}
+
+function handleInSiteFeederCellClick(cell) {
+    if (!isInSiteFeederCell(cell) || !window.__lgInSiteSvgMode) {
+        return false;
+    }
+    const feederKey = cell.feederKeyName || cell.name || '';
+    const payload = {
+        feeder: cell.name || feederShortNameFromKey(feederKey) || feederKey,
+        feederKey,
+        keyid: cell.keyid || cell.id || '',
+        rtkeyid: cell.rtkeyid || '',
+    };
+    console.log('[站内馈线点击] handleInSiteFeederCellClick', payload);
+    if (typeof window.navigateToGraphLgWithFeeder === 'function') {
+        window.navigateToGraphLgWithFeeder(payload);
+    }
+    return true;
+}
+
+function feederShortNameFromKey(keyName) {
+    if (!keyName) return '';
+    const s = String(keyName);
+    const dot = s.lastIndexOf('.');
+    if (dot >= 0 && dot < s.length - 1) return s.slice(dot + 1);
+    const slash = s.lastIndexOf('/');
+    if (slash >= 0 && slash < s.length - 1) return s.slice(slash + 1);
+    return s;
+}
+
 /** 点击配线：打印方法名（配线数据源 dkxdata 已移除，不再自动切换） */
 function handlePeiXianCellClick(cell, graph) {
     if (!isPeiXianLinkCell(cell, graph)) {
@@ -159,7 +192,9 @@ Graph.prototype.init = function (container) {
     this.addListener(mxEvent.CLICK, function (sender, evt) {
         const cell = evt.getProperty('cell')
         let handled = false
-        if (handleDakuixianCellClick(cell, sender)) {
+        if (handleInSiteFeederCellClick(cell)) {
+            handled = true
+        } else if (handleDakuixianCellClick(cell, sender)) {
             handled = true
         } else if (handlePeiXianCellClick(cell, sender)) {
             handled = true
@@ -176,7 +211,11 @@ Graph.prototype.init = function (container) {
 
 var graphGetCursorForCellPre = Graph.prototype.getCursorForCell
 Graph.prototype.getCursorForCell = function (cell) {
-    if (isZhanWaiDakuixianCell(cell) || isPeiXianLinkCell(cell, this)) {
+    if (
+        (isInSiteFeederCell(cell) && window.__lgInSiteSvgMode) ||
+        isZhanWaiDakuixianCell(cell) ||
+        isPeiXianLinkCell(cell, this)
+    ) {
         return 'pointer'
     }
     return graphGetCursorForCellPre.apply(this, arguments)
@@ -505,7 +544,7 @@ mxShape.prototype.redrawShape = function (state, force, rendering) {
 
         let cell = s.cell
 
-        if (style.flag) {
+        if (style.flag && style.flag !== 'svgLiaisonLine') {
             let w
             if (window.drawflag) {
                 if (style.flag == 'text') {

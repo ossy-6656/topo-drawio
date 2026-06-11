@@ -628,6 +628,7 @@ export function installLgBreakerEdgeDrop(graph, svgParser) {
         return
     }
     graph._lgBreakerEdgeDropInstalled = true
+    graph._lgEvtInited = true
     if (svgParser) {
         graph.lgSvgParser = svgParser
     }
