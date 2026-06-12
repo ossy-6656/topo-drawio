@@ -265,6 +265,23 @@ Graph.prototype.getTooltipForCell = function (cell) {
     var tip = graphGetTooltipForCell.apply(this, arguments)
     var geo = this.getCellGeometry(cell)
 
+    if (cell != null && cell.lgPvIcon === true) {
+        const userNum =
+            cell.pvUserNum != null && cell.pvUserNum !== '' ? String(cell.pvUserNum) : '-'
+        const installCap =
+            cell.pvInstallCapacity != null && cell.pvInstallCapacity !== ''
+                ? String(cell.pvInstallCapacity)
+                : '-'
+        const userDisplay = userNum === '-' ? '-' : `${userNum} 户`
+        const capDisplay = installCap === '-' ? '-' : `${installCap} MW`
+        return (
+            '<table>' +
+            `<tr><td>光伏用户总数：</td><td>${userDisplay}</td></tr>` +
+            `<tr><td>光伏装机总容量：</td><td>${capDisplay}</td></tr>` +
+            '</table>'
+        )
+    }
+
     let sb = []
     // if (tip.length > 0){
     // 	sb.push(tip);

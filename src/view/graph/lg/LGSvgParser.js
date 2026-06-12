@@ -13,6 +13,13 @@ import PoleHandler from '@/plugins/tmzx/graph/PoleHandler';
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js';
 import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc } from './Constants.js';
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js';
+import {
+    applyLgPvIconShineOverlays,
+    installLgPvIconShineListeners,
+    LG_PV_ICON_VIEW_H,
+    LG_PV_ICON_VIEW_W,
+    lgPvIconImageDataUri,
+} from './lgPvIconOverlay.js';
 import SvgBase from '../common/SvgBase.js';
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js';
 import Line2LineUtil from '../common/Line2LineUtil.js';
@@ -122,6 +129,116 @@ function markAllLgDakuixianCells(graph) {
         }
     };
     visit(model.getRoot());
+}
+
+/** 将光伏角标置于配变图元上方（保持角标正向朝上） */
+function positionPvIconAboveDevice(graph, devCell, iconCell) {
+    const model = graph.getModel();
+    const devGeo = model.getGeometry(devCell);
+    const iconGeo = model.getGeometry(iconCell).clone();
+    if (!devGeo) {
+        return;
+    }
+    const devStyle = graph.getCurrentCellStyle(devCell) || {};
+    const angle = mathutil.negativeAngle2Positive(Number(devStyle.rotation) || 0);
+    const devCx = devGeo.getCenterX();
+    const devCy = devGeo.getCenterY();
+    const gap = Math.max(4, devGeo.height * 0.12);
+    const orient = mathutil.isHorizontalOrVertical(angle);
+
+    if (orient === 'H') {
+        iconGeo.x = devCx - iconGeo.width / 2;
+        iconGeo.y = devCy - devGeo.height / 2 - gap - iconGeo.height;
+    } else if (orient === 'V') {
+        iconGeo.x = devCx + devGeo.height / 2 + gap;
+        iconGeo.y = devCy - iconGeo.height / 2;
+    } else {
+        const aVec = GraphTool.getTouchPoint(graph, devCell, 0, 0.5);
+        const bVec = GraphTool.getTouchPoint(graph, devCell, 1, 0.5);
+        let lineAngle = mathutil.lineAngle(aVec.x, aVec.y, bVec.x, bVec.y);
+        if (lineAngle > 90) {
+            lineAngle -= 180;
+        }
+        const initX = 0;
+        const initY = -devGeo.height / 2 - gap - iconGeo.height / 2;
+        const vecInt = new Vector2(initX, initY);
+        const vecTran = new Vector2(devCx, devCy);
+        const radian = -mathutil.angle2Radian(lineAngle);
+        const m = mathutil.commonMatrix(null, radian, null);
+        const vec2 = vecInt.applyMatrix3(m).add(vecTran);
+        iconGeo.x = vec2.x - iconGeo.width / 2;
+        iconGeo.y = vec2.y - iconGeo.height / 2;
+    }
+    graph.setCellStyles('rotation', 0, [iconCell]);
+    model.setGeometry(iconCell, iconGeo);
+}
+
+/** 按 changcunPV 等设备 id 列表，在光伏配变图元上方叠加 pvsolar 角标 */
+function applyPvDeviceIcons(graph, pvDeviceList) {
+    if (!graph || !pvDeviceList || !pvDeviceList.length) {
+        return;
+    }
+    const model = graph.getModel();
+    const parent = graph.getDefaultParent();
+    const iconCells = [];
+    model.beginUpdate();
+    try {
+        for (const item of pvDeviceList) {
+            if (!item || item.isPv !== true || !item.id) {
+                continue;
+            }
+            const devId = String(item.id);
+            const devCell = model.getCell(devId);
+            if (!devCell || !model.isVertex(devCell)) {
+                continue;
+            }
+            const iconId = 'PV-' + devId;
+            if (model.getCell(iconId)) {
+                continue;
+            }
+            const devGeo = model.getGeometry(devCell);
+            if (!devGeo) {
+                continue;
+            }
+            const iconW = Math.max(12, Math.min(22, devGeo.width * 0.48));
+            const iconH = iconW * (LG_PV_ICON_VIEW_H / LG_PV_ICON_VIEW_W);
+            const sb = [];
+            sb.push('shape=image;');
+            sb.push('imageAspect=0;');
+            sb.push(`image=${lgPvIconImageDataUri()};`);
+            sb.push(`id=${iconId};`);
+            sb.push('flag=pvicon;');
+            sb.push('whiteSpace=wrap;aspect=fixed;');
+            sb.push('rotatable=0;');
+            sb.push('fillColor=none;strokeColor=none;');
+            sb.push('rotation=0;');
+            const layer = (graph.getCurrentCellStyle(devCell) || {}).layer;
+            if (layer) {
+                sb.push(`layer=${layer};`);
+            }
+            const iconCell = graph.insertVertex(parent, iconId, '', 0, 0, iconW, iconH, sb.join(''));
+            iconCell.sbid = devId;
+            iconCell.lgPvIcon = true;
+            iconCell.pvUserNum = item.pvUserNum;
+            iconCell.pvInstallCapacity = item.pvInstallCapacity;
+            iconCell.setVertex(true);
+            iconCell.setConnectable(false);
+            devCell.lgPvTransformer = true;
+            positionPvIconAboveDevice(graph, devCell, iconCell);
+            iconCells.push(iconCell);
+        }
+        if (iconCells.length > 0) {
+            graph.orderCells(false, iconCells);
+        }
+    } finally {
+        model.endUpdate();
+    }
+    if (iconCells.length > 0) {
+        window.setTimeout(() => {
+            applyLgPvIconShineOverlays(graph);
+            installLgPvIconShineListeners(graph);
+        }, 80);
+    }
 }
 
 /**
@@ -2939,6 +3056,10 @@ export default class LGSvgParser extends SvgBase {
         this.collectShapeDragDefaultsFromGraph();
 
         markAllLgDakuixianCells(graph);
+
+        if (this.pvDeviceList && this.pvDeviceList.length) {
+            applyPvDeviceIcons(graph, this.pvDeviceList);
+        }
 
         this.captureImportedDeviceSnapshot();
 

@@ -49,6 +49,14 @@ export default `
             <use x="1.5" y="2.92" terminal-index="2" type="0" xlink:href="#terminal"/>
         </symbol>
 
+        <!-- 光伏配变角标：深蓝底 + 青色栅格，叠在配变图元上方 -->
+        <symbol id="pvsolar" viewBox="0 0 3 2" width="3" height="2">
+            <rect x="0.12" y="0.12" width="2.76" height="1.76" fill="rgb(0,24,48)" stroke="rgb(0,200,255)" stroke-width="0.1"/>
+            <line x1="1" y1="0.12" x2="1" y2="1.88" stroke="rgb(0,200,255)" stroke-width="0.06"/>
+            <line x1="2" y1="0.12" x2="2" y2="1.88" stroke="rgb(0,200,255)" stroke-width="0.06"/>
+            <line x1="0.12" y1="1" x2="2.88" y2="1" stroke="rgb(0,200,255)" stroke-width="0.06"/>
+        </symbol>
+
         <!-- 站内断路器(0305) 断开：空心 -->
         <symbol id="cbreaker_open" viewBox="0 0 3 3" width="3" height="3">
             <line x1="1.5" y1="0.15" x2="1.5" y2="0.5" stroke="rgb(255,0,0)" stroke-width="0.12" stroke-linecap="round"/>

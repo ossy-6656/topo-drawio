@@ -113,6 +113,8 @@ import {
     STATION_DATA_OPTIONS,
     STATION_DATA_MAP,
 } from '@/view/graph/data/stationDatasets.js'                          // data/*.svg 转 lgdata 格式
+import changcunPvList from '@/view/graph/data/changcunPV.json'
+import { teardownLgPvIconShine } from '@/view/graph/lg/lgPvIconOverlay.js'
 
 // 导入 G 文件转换工具
 import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G 文件转 SVG
@@ -481,6 +483,9 @@ function loadSvgIntoEditor(selectedSvg) {
     // App.main 在 isMainCalled 为 true 时直接 return，必须重置后才能再次加载新 SVG
     App.isMainCalled = false
     try {
+        if (uiEditor?.editor?.graph) {
+            teardownLgPvIconShine(uiEditor.editor.graph)
+        }
         if (uiEditor) {
             uiEditor.destroy()
             uiEditor = null
@@ -894,6 +899,8 @@ window.initGraphWithSvg = (_svg, themecut) => {
                 lgsvgParser = new LGSvgParser(id)
                 lgsvgParser.setTaskId(taskId)
                 lgsvgParser.setThemecut(themecut)
+                lgsvgParser.pvDeviceList =
+                    selectedData.value === 'changcun' ? changcunPvList : null
 
                 if (_svg.indexOf('bridgeOverRiver') == -1) {
                     let index = _svg.indexOf('</defs>')
@@ -955,6 +962,9 @@ onBeforeUnmount(() => {
     }
     delete window.navigateToGraphLgWithFeeder
     try {
+        if (uiEditor?.editor?.graph) {
+            teardownLgPvIconShine(uiEditor.editor.graph)
+        }
         if (uiEditor) {
             uiEditor.destroy()
             uiEditor = null

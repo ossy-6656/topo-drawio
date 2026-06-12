@@ -1,0 +1,23 @@
+[
+  {
+    "name": "河口社区1#变",
+    "id": "PD_11000000_178579",
+    "isPv": true,
+    "pvUserNum": 120,
+    "pvInstallCapacity": 78
+  },
+  {
+    "name": "河口社区2#变",
+    "id": "PD_11000000_178580",
+    "isPv": true,
+    "pvUserNum": 186,
+    "pvInstallCapacity": 14
+  },
+  {
+    "name": "河口社区3#变",
+    "id": "PD_11000000_178581",
+    "isPv": true,
+    "pvUserNum": 7585,
+    "pvInstallCapacity": 47
+  }
+]
