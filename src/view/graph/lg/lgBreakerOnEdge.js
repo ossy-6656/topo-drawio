@@ -7,8 +7,8 @@ import mathutil from '@/plugins/tmzx/mathutil.js'
 import { applyLgSwitchBreakerVisual, isLgSwitchShapeOrPsr } from './Constants.js'
 
 /** 拖放到虚线时的命中容差（屏幕像素） */
-const LG_BREAKER_DASHED_LINE_HIT_PX = 28
-const LG_BREAKER_SOLID_LINE_HIT_PX = 14
+const LG_BREAKER_DASHED_LINE_HIT_PX = 20
+const LG_BREAKER_SOLID_LINE_HIT_PX = 10
 
 /** cbreaker 竖向默认端子（symbol viewBox 0 0 3 3，y=0.08 / 2.92） */
 const LG_BREAKER_TERM_TOP = { x: 0.5, y: 0.08 / 3 }
@@ -53,6 +53,23 @@ function isLgBreakerCell(graph, cell) {
     const psr =
         cell.psrtype != null && cell.psrtype !== '' ? cell.psrtype : st.psrtype
     return isLgSwitchShapeOrPsr(shape, psr)
+}
+
+function hitTolerancePxForEdge(graph, edge) {
+    return isLgDashedConnLine(graph, edge)
+        ? LG_BREAKER_DASHED_LINE_HIT_PX
+        : LG_BREAKER_SOLID_LINE_HIT_PX
+}
+
+/** 拖放/点击落点与连接线折线的屏幕像素距离是否在容差内 */
+function isPointerNearEdge(graph, edge, evt) {
+    if (graph == null || edge == null || evt == null) {
+        return false
+    }
+    const pt = graph.getPointForEvent(evt)
+    const d = distPxPointToEdge(graph, edge, pt.x, pt.y)
+    const limit = hitTolerancePxForEdge(graph, edge)
+    return d != null && d <= limit
 }
 
 function edgeLineFlag(edge, graph) {
@@ -449,57 +466,6 @@ function distPxPointToEdge(graph, edge, mx, my) {
     return min
 }
 
-function findSplittableEdgeAt(graph, x, y) {
-    return graph.getCellAt(x, y, null, null, null, function (st) {
-        return graph.getModel().isEdge(st.cell) && isLgSplittableConnLine(graph, st.cell)
-    })
-}
-
-/**
- * 按与 (mx,my) 的距离查找可分割连接线；虚线使用更大容差（细线难点选）。
- */
-function forEachSplittableEdge(graph, fn) {
-    const model = graph.getModel()
-    const edges = model.filterDescendants(function (cell) {
-        return model.isEdge(cell) && isLgSplittableConnLine(graph, cell)
-    }, model.getRoot())
-    for (let i = 0; i < edges.length; i++) {
-        fn(edges[i])
-    }
-}
-
-function findNearestSplittableEdge(graph, mx, my, opts) {
-    const maxDistPx = opts?.maxDistPx ?? LG_BREAKER_SOLID_LINE_HIT_PX
-    const preferDashed = opts?.preferDashed !== false
-
-    let bestDashed = null
-    let bestDashedD = LG_BREAKER_DASHED_LINE_HIT_PX
-    let bestAny = null
-    let bestAnyD = maxDistPx
-
-    forEachSplittableEdge(graph, function (cell) {
-        const d = distPxPointToEdge(graph, cell, mx, my)
-        if (d == null) {
-            return
-        }
-        const dashed = isLgDashedConnLine(graph, cell)
-        const limit = dashed ? LG_BREAKER_DASHED_LINE_HIT_PX : maxDistPx
-        if (d <= limit && d <= bestAnyD) {
-            bestAnyD = d
-            bestAny = cell
-        }
-        if (preferDashed && dashed && d <= LG_BREAKER_DASHED_LINE_HIT_PX && d <= bestDashedD) {
-            bestDashedD = d
-            bestDashed = cell
-        }
-    })
-
-    if (preferDashed && bestDashed != null) {
-        return bestDashed
-    }
-    return bestAny
-}
-
 /**
  * 断路器已在图中时手动分割（与 mxGraph.splitEdge 拓扑一致：新线 源→断路器，原线 断路器→目标）
  */
@@ -589,38 +555,6 @@ export function forceLgBreakerSplitOnLine(graph, breaker, edge) {
     return true
 }
 
-/** 断路器已落画布但未正确接线时，强制吸附最近连接线/虚线并分割 */
-function tryConnectBreakerToNearbyLine(graph, breaker) {
-    if (!isLgBreakerCell(graph, breaker)) {
-        return false
-    }
-    const model = graph.getModel()
-    const edges = model.getEdges(breaker) || []
-    if (edges.length >= 2) {
-        return false
-    }
-
-    const geo = model.getGeometry(breaker)
-    if (geo == null) {
-        return false
-    }
-    const cx = geo.x + geo.width / 2
-    const cy = geo.y + geo.height / 2
-
-    let edge = findNearestSplittableEdge(graph, cx, cy, {
-        preferDashed: true,
-        maxDistPx: LG_BREAKER_DASHED_LINE_HIT_PX,
-    })
-    if (edge == null) {
-        edge = findSplittableEdgeAt(graph, cx, cy)
-    }
-    if (edge == null) {
-        return false
-    }
-
-    return forceLgBreakerSplitOnLine(graph, breaker, edge)
-}
-
 let splitTargetPatched = false
 
 export function installLgBreakerEdgeDrop(graph, svgParser) {
@@ -675,7 +609,9 @@ export function installLgBreakerEdgeDrop(graph, svgParser) {
             if (!this.isCellConnectable(cell)) {
                 return false
             }
-            // 虚线连接：跳过 drawio 默认校验，允许强制分割（细线不易命中时由 CELLS_ADDED 兜底）
+            if (!isPointerNearEdge(this, target, evt)) {
+                return false
+            }
             if (isLgDashedConnLine(this, target) && !isBusbarConnectorEdge(this, target)) {
                 return true
             }
@@ -692,38 +628,5 @@ export function installLgBreakerEdgeDrop(graph, svgParser) {
             return
         }
         alignBreakerAfterSplitEdge(graph, breaker, edgeKept, edgeNew)
-    })
-
-    graph.addListener(mxEvent.CELLS_ADDED, function (sender, evt) {
-        const cells = evt.getProperty('cells')
-        if (cells == null || cells.length === 0) {
-            return
-        }
-        for (let i = 0; i < cells.length; i++) {
-            const cell = cells[i]
-            if (!graph.getModel().isVertex(cell) || !isLgBreakerCell(graph, cell)) {
-                continue
-            }
-            const edges = graph.getModel().getEdges(cell) || []
-            if (edges.length >= 2) {
-                continue
-            }
-            const runConnect = function () {
-                const id =
-                    typeof cell.getId === 'function' ? cell.getId() : cell.id
-                if (graph.getModel().getCell(id) == null) {
-                    return
-                }
-                graph.view.validate()
-                const n = graph.getModel().getEdges(cell) || []
-                if (n.length >= 2) {
-                    return
-                }
-                tryConnectBreakerToNearbyLine(graph, cell)
-            }
-            window.setTimeout(runConnect, 0)
-            window.setTimeout(runConnect, 80)
-            window.setTimeout(runConnect, 200)
-        }
     })
 }
