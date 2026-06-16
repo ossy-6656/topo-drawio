@@ -395,6 +395,17 @@ export function isLgLoadShapeOrPsr(shapeOrSymbol, psrtype) {
     return isLgPtUserShapeOrPsr(sym, psr)
 }
 
+/** 侧栏拖入的负荷图元（简名 shape：substation / xb / ptuser） */
+export function isLgSidebarAddedLoadShapeOrPsr(shapeOrSymbol, psrtype) {
+    const sym = String(shapeOrSymbol || '').toLowerCase()
+    return sym === 'substation' || sym === 'xb' || sym === 'ptuser'
+}
+
+/** 导入 SVG 原有配变/负荷图元（非侧栏拖入），无 P/Q 数据，tooltip 不展示有功/无功 */
+export function isLgImportedLoadShapeOrPsr(shapeOrSymbol, psrtype) {
+    return isLgLoadShapeOrPsr(shapeOrSymbol, psrtype) && !isLgSidebarAddedLoadShapeOrPsr(shapeOrSymbol, psrtype)
+}
+
 /** 左侧「变压器」面板：0314；先 resolve 再统一为双绕组尺寸（同箱式变对齐配电站） */
 export const LG_SIDEBAR_TRANSFORMER_ENTRIES = [
     ['potentialtransformer2w', '电压互感器-双绕组(0314)', 3, 3],

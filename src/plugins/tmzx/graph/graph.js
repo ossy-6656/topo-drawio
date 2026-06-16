@@ -5,6 +5,7 @@ import DeviceCategoryUtil from './DeviceCategoryUtil.js'
 import TextUtil from './TextUtil.js'
 import mathutil from '@/plugins/tmzx/mathutil.js'
 import {
+    isLgImportedLoadShapeOrPsr,
     isLgLoadShapeOrPsr,
     isLgSwitchShapeOrPsr,
     lgSwitchStatusLabel,
@@ -302,6 +303,8 @@ Graph.prototype.getTooltipForCell = function (cell) {
             let isBusbar = cell.symbol == 'busbar' || psrtype == '0311' || cellStyle.flag == 'busbar';
             let shapeTip = (cellStyle.shape || cell.symbol || '').toString().toLowerCase()
             let isLgLoadDevice = isLgLoadShapeOrPsr(shapeTip, psrtype)
+            let isLgImportedLoadDevice = isLgImportedLoadShapeOrPsr(shapeTip, psrtype)
+            let lgLoadTooltipAttrs = isLgImportedLoadDevice ? ['name'] : ['name', 'P', 'Q']
             let isLgSwitchDevice = isLgSwitchShapeOrPsr(shapeTip, psrtype)
             let isLgGeneratingUnit = shapeTip === 'generatingunit'
             let isLgTransformer =
@@ -359,7 +362,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                   : isLgGeneratingUnit
                     ? lgGenUnitTooltipAttrs
                     : isLgLoadDevice
-                      ? ['name', 'P', 'Q']
+                      ? lgLoadTooltipAttrs
                       : isLgSwitchDevice
                         ? ['name', 'status']
                         : isBusbarConnectorEdge
@@ -439,7 +442,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 }
                 if (
                     isLgLoadDevice &&
-                    (attrName === 'name' || attrName === 'P' || attrName === 'Q')
+                    lgLoadTooltipAttrs.indexOf(attrName) >= 0
                 ) {
                     attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
                     let dn = tooltipAttrNameMap[attrName] || attrName
@@ -502,6 +505,8 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     var shouldShow = !isBusbar &&
                         !isLgGeneratingUnit &&
                         !isLgTransformer &&
+                        !(isLgImportedLoadDevice &&
+                            (attrName === 'P' || attrName === 'Q')) &&
                         !(isLgSwitchDevice &&
                             (attrName === 'P' || attrName === 'Q' || attrName === 'status')) &&
                         fixedAttrs.indexOf(attrName) == -1 &&
