@@ -130,6 +130,11 @@ import {
     LG_SIDEBAR_SWITCH_ENTRIES,
     LG_SIDEBAR_TRANSFORMER_ENTRIES,
     LG_SIDEBAR_UNIT_ENTRIES,
+    getLgdataSidebarReferenceDragDef,
+    buildInSiteGfileSidebarDragDef,
+    scaleInSiteGfileSidebarDragDef,
+    LG_IN_SITE_GFILE_DEVICE_DISPLAY_SCALE,
+    maxSideFromShapeDragDefaults,
     computeLgSwitchCanvasRefSideFromLgdataScale,
     computeLgSwitchCanvasRefSideFromScale,
     setLgSwitchCanvasRefSide,
@@ -283,8 +288,73 @@ function computeLgSidebarScaleFromSvgString(svgStr) {
 /** 以 lgdata 为基准的侧栏缩放与拖入尺寸；切换数据源时沿用，避免侧栏图元顺序/布局变化 */
 let cachedLgSidebarScale = computeLgSidebarScaleFromSvgString(zjtSvg)
 let cachedLgSidebarDragDef = {}
+/** /graphLg 打开 lgdata 后冻结的侧栏参考；/in-site-svg 复用，不被 G 文件解析覆盖 */
+let lgdataSidebarRefScale = cachedLgSidebarScale
+let lgdataSidebarRefDragDef = getLgdataSidebarReferenceDragDef(lgdataSidebarRefScale)
 setLgLgdataParserTextScale(cachedLgSidebarScale)
 setLgSwitchCanvasRefSide(computeLgSwitchCanvasRefSideFromLgdataScale())
+
+function freezeLgdataSidebarRef(parser) {
+    if (!parser) {
+        return
+    }
+    const scale = parser.getScale() || lgdataSidebarRefScale || 1
+    lgdataSidebarRefScale = scale
+    const defs = parser.shapeDragDefaults || {}
+    if (defs && Object.keys(defs).length > 0) {
+        lgdataSidebarRefDragDef = { ...defs }
+    }
+}
+
+/** /in-site-svg 侧栏：与 /graphLg 默认 lgdata(zjtSvg) 尺寸一致 */
+function getLgdataSidebarReferenceSizing() {
+    const gScale =
+        lgdataSidebarRefScale > 0
+            ? lgdataSidebarRefScale
+            : cachedLgSidebarScale > 0
+              ? cachedLgSidebarScale
+              : 1
+    let dragDef = lgdataSidebarRefDragDef
+    if (!dragDef || Object.keys(dragDef).length === 0) {
+        dragDef = cachedLgSidebarDragDef
+    }
+    if (!dragDef || Object.keys(dragDef).length === 0) {
+        dragDef = getLgdataSidebarReferenceDragDef(gScale)
+    }
+    return { gScale, dragDef }
+}
+
+/**
+ * /in-site-svg：侧栏与拖入尺寸跟当前 G 图画布设备（断路器/负荷等）对齐，避免 lgdata 小尺寸。
+ */
+function resolveLgInSiteGfileSidebarSizing(lgsvgParser) {
+    const gScale = lgsvgParser?.getScale() || 1
+    const gDrag = lgsvgParser?.shapeDragDefaults || {}
+    let anchorSide = maxSideFromShapeDragDefaults(gDrag, [
+        'cbreaker',
+        'substation',
+        'xb',
+        'ptuser',
+        'generatingunit',
+        'potentialtransformer2w',
+        'potentialtransformer3w',
+    ])
+    if (anchorSide <= 0) {
+        anchorSide = getLgSwitchCanvasRefSide() || 0
+    }
+    if (anchorSide <= 0) {
+        const lgRef = getLgdataSidebarReferenceSizing()
+        anchorSide = Math.max(
+            maxSideFromShapeDragDefaults(lgRef.dragDef),
+            3 * lgRef.gScale
+        )
+    }
+    const dragDef = scaleInSiteGfileSidebarDragDef(
+        buildInSiteGfileSidebarDragDef(gDrag, anchorSide),
+        LG_IN_SITE_GFILE_DEVICE_DISPLAY_SCALE
+    )
+    return { gScale, dragDef }
+}
 
 /** 打开 lgdata 时刷新侧栏/开关基准；站所图只换画布，开关仍按 lgdata 边长缩小对齐 */
 function cacheLgSidebarRefFromParser(parser, dataKey) {
@@ -295,6 +365,7 @@ function cacheLgSidebarRefFromParser(parser, dataKey) {
     cachedLgSidebarScale = lgScale
     setLgLgdataParserTextScale(lgScale)
     cachedLgSidebarDragDef = { ...(parser.shapeDragDefaults || {}) }
+    freezeLgdataSidebarRef(parser)
     const d = cachedLgSidebarDragDef.cbreaker
     if (d && d.w > 0 && d.h > 0) {
         setLgSwitchCanvasRefSide(Math.max(d.w, d.h))
@@ -590,16 +661,29 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 )
                             }
 
-                            cacheLgSidebarRefFromParser(lgsvgParser, selectedData.value)
-                            // 侧栏开关/变压器等仍跟 lgdata 基准；负荷面板站所图跟当前图 scale 与设备尺寸
+                            const gfileMode = isGFileMode.value
+                            const inSiteSizing = gfileMode
+                                ? resolveLgInSiteGfileSidebarSizing(lgsvgParser)
+                                : null
+                            if (!gfileMode) {
+                                cacheLgSidebarRefFromParser(lgsvgParser, selectedData.value)
+                            }
+                            if (inSiteSizing && typeof lgsvgParser.setInSiteSidebarDragDef === 'function') {
+                                lgsvgParser.setInSiteSidebarDragDef(inSiteSizing.dragDef)
+                            }
+                            // gfile：变压器/机组/负荷跟 G 图画布设备；graphLg 仍按数据源策略
                             const symbolMapForTpl = lgsvgParser.getSymbolMap()
                             const gScale =
-                                cachedLgSidebarScale != null
+                                inSiteSizing?.gScale ??
+                                (cachedLgSidebarScale != null
                                     ? cachedLgSidebarScale
-                                    : lgsvgParser.getScale() || 1
-                            const dragDef = cachedLgSidebarDragDef
-                            const { gScale: loadGScale, dragDef: loadDragDef } =
+                                    : lgsvgParser.getScale() || 1)
+                            const dragDef =
+                                inSiteSizing?.dragDef ?? cachedLgSidebarDragDef
+                            const loadSizing =
+                                inSiteSizing ??
                                 resolveLgLoadSidebarSizing(lgsvgParser, selectedData.value)
+                            const { gScale: loadGScale, dragDef: loadDragDef } = loadSizing
                             // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
                             const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
                                 const symbolId = entry[0]

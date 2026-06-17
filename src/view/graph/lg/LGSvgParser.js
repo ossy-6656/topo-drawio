@@ -11,7 +11,7 @@ import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js';
 import SymbolUtil from '@/plugins/tmzx/graph/SymbolUtil.js';
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler';
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js';
-import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc } from './Constants.js';
+import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc, LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS } from './Constants.js';
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js';
 import {
     applyLgPvIconShineOverlays,
@@ -281,6 +281,8 @@ export default class LGSvgParser extends SvgBase {
         this.poleHelper = 1;
         /** 侧栏图元 key(小写简名) -> 当前图中该类设备的中位宽高 */
         this.shapeDragDefaults = {};
+        /** /in-site-svg 侧栏拖入目标尺寸（graphLg 初始化侧栏时写入） */
+        this._inSiteSidebarDragDef = null;
         /** parseSvg 完成后由 captureImportedDeviceSnapshot 填充，用于保存时 delete */
         this.importedDeviceSnapshot = [];
     }
@@ -785,6 +787,18 @@ export default class LGSvgParser extends SvgBase {
             if (rotatableSidebarCells.length > 0) {
                 graph.setCellStyles('rotatable', 1, rotatableSidebarCells);
                 graph.setCellStyles('resizable', 1, rotatableSidebarCells);
+            }
+            if (
+                typeof window !== 'undefined' &&
+                window.__lgInSiteSvgMode &&
+                parser._inSiteSidebarDragDef
+            ) {
+                for (let ci = 0; ci < list.length; ci++) {
+                    const added = list[ci];
+                    if (model.isVertex(added)) {
+                        parser.applyInSiteSidebarDragSizeToCell(graph, added);
+                    }
+                }
             }
         });
 
@@ -2483,6 +2497,74 @@ export default class LGSvgParser extends SvgBase {
             out[k] = { w: ws[mid], h: hs[mid] };
         }
         this.shapeDragDefaults = out;
+    }
+
+    setInSiteSidebarDragDef(def) {
+        this._inSiteSidebarDragDef =
+            def && typeof def === 'object' ? { ...def } : null;
+    }
+
+    _matchInSiteSidebarDragKey(cell, style) {
+        if (cell == null) {
+            return null;
+        }
+        const st = style || {};
+        const shape = String((st.shape || cell.symbol || '') + '').toLowerCase();
+        const psr =
+            cell.psrtype != null && cell.psrtype !== ''
+                ? String(cell.psrtype)
+                : st.psrtype != null
+                  ? String(st.psrtype)
+                  : '';
+        let key = this.matchSidebarShapeKey(shape);
+        if (!key && psr === '0110') {
+            key = 'ptuser';
+        }
+        if (!key) {
+            return null;
+        }
+        key = String(key).toLowerCase();
+        if (LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS.indexOf(key) < 0) {
+            return null;
+        }
+        return key;
+    }
+
+    /** /in-site-svg：侧栏新拖入设备与 G 图画布已有设备尺寸对齐 */
+    applyInSiteSidebarDragSizeToCell(graph, cell) {
+        const def = this._inSiteSidebarDragDef;
+        if (
+            def == null ||
+            graph == null ||
+            cell == null ||
+            !graph.getModel().isVertex(cell) ||
+            this.attrMap.has(cell.id)
+        ) {
+            return;
+        }
+        const st = graph.getCurrentCellStyle(cell) || {};
+        const key = this._matchInSiteSidebarDragKey(cell, st);
+        if (key == null) {
+            return;
+        }
+        const d = def[key];
+        if (d == null || !(d.w > 0) || !(d.h > 0)) {
+            return;
+        }
+        const model = graph.getModel();
+        const geo = model.getGeometry(cell);
+        if (geo == null) {
+            return;
+        }
+        const geo2 = geo.clone();
+        const cx = geo.x + geo.width / 2;
+        const cy = geo.y + geo.height / 2;
+        geo2.width = d.w;
+        geo2.height = d.h;
+        geo2.x = cx - d.w / 2;
+        geo2.y = cy - d.h / 2;
+        model.setGeometry(cell, geo2);
+        graph.view.invalidate(cell);
     }
 
     /** 侧栏负荷/机组/变压器（与 EditDataDialog、tooltip 判定一致） */

@@ -4,6 +4,107 @@
  */
 export const LG_SIDEBAR_DRAG_SYMBOL_BLEND = 0.12
 
+/**
+ * lgdata 侧栏参考尺寸（/graphLg 打开 zjtSvg 前或与图中无对应设备时的回退）。
+ * /in-site-svg 复用，与 graphLg 默认 zjtSvg 侧栏一致。
+ */
+export function getLgdataSidebarReferenceDragDef(scale) {
+    const s = Number(scale)
+    if (!(s > 0)) {
+        return {}
+    }
+    const side = 3 * s
+    const ptH = 2.550548 * s
+    return {
+        substation: { w: side, h: side },
+        xb: { w: side, h: side },
+        ptuser: { w: side, h: ptH },
+        potentialtransformer2w: { w: side, h: side },
+        potentialtransformer3w: { w: side, h: side },
+        generatingunit: { w: side, h: side },
+    }
+}
+
+/** /in-site-svg 侧栏拖入：变压器、机组、负荷等 shape 键 */
+export const LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS = [
+    'substation',
+    'xb',
+    'ptuser',
+    'potentialtransformer2w',
+    'potentialtransformer3w',
+    'generatingunit',
+]
+
+/** /in-site-svg：变压器/机组/负荷相对画布锚定尺寸的显示缩放（略小于断路器锚点） */
+export const LG_IN_SITE_GFILE_DEVICE_DISPLAY_SCALE = 0.6
+
+/** 从 shapeDragDefaults 取最大边长（优先指定键，否则全表扫描） */
+export function maxSideFromShapeDragDefaults(dragDef, preferKeys) {
+    let max = 0
+    const map = dragDef || {}
+    const keys =
+        preferKeys && preferKeys.length > 0 ? preferKeys : Object.keys(map)
+    for (let i = 0; i < keys.length; i++) {
+        const d = map[keys[i]]
+        if (d && d.w > 0) {
+            max = Math.max(max, d.w, d.h)
+        }
+    }
+    if (max <= 0) {
+        for (const d of Object.values(map)) {
+            if (d && d.w > 0) {
+                max = Math.max(max, d.w, d.h)
+            }
+        }
+    }
+    return max
+}
+
+/**
+ * /in-site-svg：以 G 图画布设备边长为锚，补齐变压器/机组/负荷侧栏与拖入尺寸。
+ */
+export function buildInSiteGfileSidebarDragDef(gDrag, targetSide) {
+    const side = Number(targetSide)
+    const out = { ...(gDrag || {}) }
+    if (!(side > 0)) {
+        return out
+    }
+    const ptH = side * (2.550548 / 3)
+    for (let i = 0; i < LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS.length; i++) {
+        const key = LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS[i]
+        if (!out[key] || !(out[key].w > 0)) {
+            out[key] =
+                key === 'ptuser' ? { w: side, h: ptH } : { w: side, h: side }
+        }
+    }
+    if (out.potentialtransformer2w && out.potentialtransformer2w.w > 0) {
+        const tw = { ...out.potentialtransformer2w }
+        out.potentialtransformer3w = { ...tw }
+        out.generatingunit = { ...tw }
+    }
+    if (out.substation && out.substation.w > 0) {
+        out.xb = { w: out.substation.w, h: out.substation.h }
+    }
+    return out
+}
+
+/** 仅缩小 in-site-svg 变压器/机组/负荷侧栏与拖入尺寸 */
+export function scaleInSiteGfileSidebarDragDef(dragDef, scale) {
+    const s = Number(scale)
+    if (!(s > 0) || Math.abs(s - 1) < 0.001) {
+        return dragDef || {}
+    }
+    const out = { ...(dragDef || {}) }
+    for (let i = 0; i < LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS.length; i++) {
+        const key = LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS[i]
+        const d = out[key]
+        if (d && d.w > 0 && d.h > 0) {
+            out[key] = { w: d.w * s, h: d.h * s }
+        }
+    }
+    return out
+}
+
 /** 侧栏「站内-断路器(0305)」无图中参考时的网格边长（× getScale）；有 lgdata 时以 shapeDragDefaults 为准 */
 export const LG_SIDEBAR_SWITCH_GRID_WH = 10
 
