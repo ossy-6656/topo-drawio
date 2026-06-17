@@ -20,7 +20,11 @@ import {
     LG_PV_ICON_VIEW_W,
     lgPvIconImageDataUri,
 } from './lgPvIconOverlay.js';
-import { applyLgDeviceNameFontColors, getLgDeviceNameFontColor } from './lgCanvasTheme.js';
+import SvgBase from '../common/SvgBase.js';
+import {
+    applyLgDeviceNameFontColors,
+    getLgDeviceNameFontColor,
+} from './lgCanvasTheme.js';
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js';
 import Line2LineUtil from '../common/Line2LineUtil.js';
 import TextBeauty from '@/plugins/tmzx/graph/TextBeauty.js';
