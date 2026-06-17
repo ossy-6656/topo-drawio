@@ -41,7 +41,11 @@
     </div>
 
     <!-- 图形容器：包含图形编辑器和加载提示 -->
-    <div class="graphCon" id="graphCon">
+    <div
+        class="graphCon"
+        :class="lgSidebarExpanded ? 'lg-sidebar-expanded' : 'lg-sidebar-collapsed'"
+        id="graphCon"
+    >
         <!-- 图形编辑器容器：mxGraph 渲染的目标容器 -->
         <div class="geEditor" :id="geEditor"></div>
 
@@ -52,6 +56,31 @@
                 <h2 id="geStatus">加载中...</h2>
             </div>
         </div>
+
+        <button
+            v-show="lgSidebarExpanded"
+            type="button"
+            class="lg-sidebar-toggle lg-sidebar-toggle--collapse"
+            title="收起图元面板"
+            aria-label="收起图元面板"
+            @click="setLgSidebarExpanded(false)"
+        >
+            <svg class="lg-sidebar-toggle__svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" />
+            </svg>
+        </button>
+        <button
+            v-show="!lgSidebarExpanded"
+            type="button"
+            class="lg-sidebar-toggle lg-sidebar-toggle--expand"
+            title="展开图元面板"
+            aria-label="展开图元面板"
+            @click="setLgSidebarExpanded(true)"
+        >
+            <svg class="lg-sidebar-toggle__svg" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" />
+            </svg>
+        </button>
     </div>
     <!-- <Dialog
         :title="'多设备缩放'"
@@ -124,6 +153,7 @@ import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G �
 import $bus from '@/utils/bus'                                           // 全局事件总线
 import customSymbolStr from './data/symbol.js'                           // 自定义 SVG 符号
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
+import { applyLgCanvasTheme, getLgCanvasTheme } from '@/view/graph/lg/lgCanvasTheme.js'
 import {
     LG_SIDEBAR_DEVICE_ENTRIES,
     LG_SIDEBAR_DRAG_SYMBOL_BLEND,
@@ -413,6 +443,133 @@ function resolveCachedLgSwitchDragSize(parser) {
         : { w: 10, h: 10 }
 }
 
+const LG_SIDEBAR_WIDTH = 240
+const lgSidebarExpanded = ref(true)
+
+function setLgSidebarExpanded(expanded) {
+    applyLgSidebarLayout(uiEditor, document.getElementById(conid), expanded)
+}
+
+/** 侧栏展开/收起后，按当前可视区域重新居中并适配 SVG 内容 */
+function fitLgDiagramToViewport(ui) {
+    if (!ui?.editor?.graph) return
+    if (window['drawflag']) return
+
+    const graph = ui.editor.graph
+    if (typeof graph.isEditing === 'function' && graph.isEditing()) return
+
+    const doFit = () => {
+        try {
+            if (typeof ui.fitDiagramToWindow === 'function') {
+                ui.fitDiagramToWindow()
+            } else {
+                const action = ui.actions?.get('fitWindow')
+                if (action?.funct) {
+                    action.funct()
+                }
+            }
+            ui.scrollLeft = graph.container.scrollLeft
+            ui.scrollTop = graph.container.scrollTop
+        } catch (e) {
+            console.warn('侧栏切换后画布适配失败', e)
+        }
+    }
+
+    // 等待 refresh / DOM 布局完成后再读取新的 container 尺寸
+    window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(doFit)
+    })
+}
+
+/** 左侧图元侧栏展开/收起，收起时画布铺满剩余区域 */
+function applyLgSidebarLayout(ui, container, expanded) {
+    lgSidebarExpanded.value = expanded
+    const graphCon = document.getElementById('graphCon')
+    if (graphCon) {
+        graphCon.classList.toggle('lg-sidebar-expanded', expanded)
+        graphCon.classList.toggle('lg-sidebar-collapsed', !expanded)
+    }
+    if (ui) {
+        ui.hsplitPosition = expanded ? LG_SIDEBAR_WIDTH : 0
+        if (typeof ui.refresh === 'function') {
+            ui.refresh()
+        }
+    }
+    if (!container) return
+
+    const sidebar =
+        container.querySelector('.geSidebarContainer') ||
+        container.querySelector('.geSidebar')
+    const hsplit = container.querySelector('.geHsplit')
+    const diagramContainer = container.querySelector('.geDiagramContainer')
+
+    if (expanded) {
+        if (sidebar) {
+            sidebar.style.display = 'block'
+            sidebar.style.visibility = 'visible'
+            sidebar.style.width = LG_SIDEBAR_WIDTH + 'px'
+        }
+        if (hsplit) {
+            hsplit.style.display = 'block'
+            hsplit.style.visibility = 'visible'
+        }
+        if (diagramContainer) {
+            diagramContainer.style.left = LG_SIDEBAR_WIDTH + 'px'
+            diagramContainer.style.right = '0px'
+        }
+    } else {
+        if (sidebar) {
+            sidebar.style.display = 'none'
+            sidebar.style.visibility = 'hidden'
+            sidebar.style.width = '0'
+        }
+        if (hsplit) {
+            hsplit.style.display = 'none'
+            hsplit.style.visibility = 'hidden'
+        }
+        if (diagramContainer) {
+            diagramContainer.style.left = '0px'
+            diagramContainer.style.right = '0px'
+        }
+    }
+    hideLgRightFormatPanel(ui, container, false)
+    fitLgDiagramToViewport(ui)
+}
+
+/** 隐藏右侧「绘图/样式」格式面板，画布铺满剩余区域 */
+function hideLgRightFormatPanel(ui, container, refreshUi = true) {
+    if (ui) {
+        ui.formatWidth = 0
+        if (typeof ui.toggleFormatPanel === 'function') {
+            ui.toggleFormatPanel(false)
+        }
+        if (ui.toggleFormatElement) {
+            ui.toggleFormatElement.style.display = 'none'
+            ui.toggleFormatElement.style.visibility = 'hidden'
+            ui.toggleFormatElement.style.pointerEvents = 'none'
+        }
+        if (refreshUi && typeof ui.refresh === 'function') {
+            ui.refresh()
+        }
+    }
+    if (!container) return
+    const hideEl = (el) => {
+        if (!el) return
+        el.style.display = 'none'
+        el.style.visibility = 'hidden'
+        el.style.width = '0'
+        el.style.maxWidth = '0'
+        el.style.overflow = 'hidden'
+        el.style.pointerEvents = 'none'
+    }
+    hideEl(container.querySelector('.geFormatContainer'))
+    hideEl(container.querySelector('.geVsplit'))
+    const diagramContainer = container.querySelector('.geDiagramContainer')
+    if (diagramContainer) {
+        diagramContainer.style.right = '0px'
+    }
+}
+
 /** 替换 draw.io 默认「保存」图（易与下载混淆），与 .geStatusAlert 文字同色 #b62623（grapheditor.css） */
 function applyDrawioSaveStatusIcon() {
     if (typeof Editor === 'undefined') return
@@ -612,34 +769,16 @@ let initEditFun = (svgstr, lgsvgParser) => {
             // let svgTxtObj = lgsvgParser.getSvgSymbolStyle(svgstr);
 
             ui.setSvgTxtObj(svgTxtObj)
-            ui.setBackgroundColor('#000')
+            applyLgCanvasTheme(ui, getLgCanvasTheme())
 
             // 强制显示 Sidebar 和分割线
             uiEditor = ui
+            hideLgRightFormatPanel(ui, document.getElementById(conid))
             setTimeout(() => {
                 // 直接通过 DOM 查找并显示
                 const container = document.getElementById(conid)
                 if (container) {
-                    const sidebar = container.querySelector('.geSidebarContainer') ||
-                                   container.querySelector('.geSidebar')
-                    const hsplit = container.querySelector('.geHsplit')
-                    const diagramContainer = container.querySelector('.geDiagramContainer')
-
-                    if (sidebar) {
-                        sidebar.style.display = 'block'
-                        sidebar.style.visibility = 'visible'
-                        sidebar.style.width = '240px'
-                        console.log('Sidebar 显示成功')
-                    }
-                    if (hsplit) {
-                        hsplit.style.display = 'block'
-                        hsplit.style.visibility = 'visible'
-                        console.log('分割线 显示成功')
-                    }
-                    if (diagramContainer) {
-                        diagramContainer.style.left = '240px'
-                        console.log('画布调整成功')
-                    }
+                    applyLgSidebarLayout(ui, container, lgSidebarExpanded.value)
 
                     // 初始化 Sidebar，只加载「负荷」面板
                     if (ui.sidebar) {
@@ -1094,17 +1233,57 @@ onActivated(() => {
     }
 }
 
-// 强制显示 Sidebar
-::v-deep .geSidebarContainer {
-    display: block !important;
-    visibility: visible !important;
-    width: 240px !important;
+// 左侧图元侧栏：展开 / 收起
+.graphCon.lg-sidebar-expanded {
+    ::v-deep .geSidebarContainer {
+        display: block !important;
+        visibility: visible !important;
+        width: 240px !important;
+    }
+
+    ::v-deep .geSidebar {
+        display: block !important;
+        visibility: visible !important;
+        text-align: left !important;
+    }
+
+    ::v-deep .geHsplit {
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    ::v-deep .geDiagramContainer {
+        left: 240px !important;
+        right: 0 !important;
+    }
 }
 
-::v-deep .geSidebar {
-    display: block !important;
-    visibility: visible !important;
-    text-align: left !important;
+.graphCon.lg-sidebar-collapsed {
+    ::v-deep .geSidebarContainer {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+
+    ::v-deep .geSidebar {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    ::v-deep .geHsplit {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        pointer-events: none !important;
+    }
+
+    ::v-deep .geDiagramContainer {
+        left: 0 !important;
+        right: 0 !important;
+    }
 }
 
 /* 连接线面板：母线连接线与普通连接线分行展示 */
@@ -1132,13 +1311,101 @@ onActivated(() => {
     pointer-events: none;
 }
 
-::v-deep .geHsplit {
-    display: block !important;
-    visibility: visible !important;
+::v-deep .geFormatContainer,
+::v-deep .geVsplit {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
 }
 
-::v-deep .geDiagramContainer {
-    left: 240px !important;
+.lg-sidebar-toggle {
+    position: absolute;
+    /* 高于侧栏(1)，低于 mxPopupMenu(10006) 与顶部下拉菜单 */
+    z-index: 2;
+    top: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 44px;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    background: linear-gradient(90deg, rgba(245, 247, 250, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+    color: #909399;
+    cursor: pointer;
+    box-shadow:
+        1px 0 0 rgba(0, 0, 0, 0.06),
+        2px 0 8px rgba(0, 0, 0, 0.06);
+    user-select: none;
+    box-sizing: border-box;
+    pointer-events: auto;
+    transform: translateY(-50%);
+    transition:
+        width 0.2s ease,
+        color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.lg-sidebar-toggle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 0 1px 1px 0;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.lg-sidebar-toggle:hover {
+    width: 14px;
+    color: #409eff;
+    background: #fff;
+    box-shadow:
+        1px 0 0 rgba(64, 158, 255, 0.25),
+        2px 0 12px rgba(64, 158, 255, 0.12);
+}
+
+.lg-sidebar-toggle:hover::before {
+    background: #409eff;
+}
+
+.lg-sidebar-toggle__svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.lg-sidebar-toggle__svg path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.lg-sidebar-toggle--collapse {
+    left: 240px;
+    transform: translate(-100%, -50%);
+}
+
+.lg-sidebar-toggle--collapse:active {
+    transform: translate(-100%, -50%) scale(0.96);
+}
+
+.lg-sidebar-toggle--expand {
+    left: 0;
+}
+
+.lg-sidebar-toggle--expand:active {
+    transform: translateY(-50%) scale(0.96);
 }
 
 /* 顶栏右侧按钮容器：保存按钮对齐 */
@@ -1206,6 +1473,53 @@ onActivated(() => {
     margin-top: -1px;
 }
 
+/* 滚动条：侧栏（深色）/ 画布与弹窗（浅色）统一细条样式 */
+@mixin lg-thin-scrollbar($thumb, $thumb-hover) {
+    scrollbar-width: thin;
+    scrollbar-color: #{$thumb} transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: #{$thumb};
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background-clip: padding-box;
+        transition: background-color 0.2s ease;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+        background-color: #{$thumb-hover};
+    }
+
+    &::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+}
+
+.graphCon {
+    ::v-deep .geSidebarContainer,
+    ::v-deep .geSidebarContainer > div,
+    ::v-deep .geSidebarContainer .geSidebar {
+        @include lg-thin-scrollbar(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.42));
+    }
+
+    ::v-deep .geDiagramContainer,
+    ::v-deep .geDiagramContainer > div,
+    ::v-deep .lg-edit-dialog-body,
+    ::v-deep .geDialog,
+    ::v-deep .mxWindowPane {
+        @include lg-thin-scrollbar(rgba(120, 126, 134, 0.38), rgba(64, 158, 255, 0.55));
+    }
+}
+
 
 .dwControl {
     position: absolute;
@@ -1255,5 +1569,38 @@ onActivated(() => {
             }
         }
     }
+}
+</style>
+
+<style lang="scss">
+/* draw.io 右键菜单等挂载在 body 下，需全局作用域 */
+.mxPopupMenu,
+.mxWindow .mxWindowPane {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 126, 134, 0.38) transparent;
+}
+
+.mxPopupMenu::-webkit-scrollbar,
+.mxWindow .mxWindowPane::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.mxPopupMenu::-webkit-scrollbar-track,
+.mxWindow .mxWindowPane::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mxPopupMenu::-webkit-scrollbar-thumb,
+.mxWindow .mxWindowPane::-webkit-scrollbar-thumb {
+    background-color: rgba(120, 126, 134, 0.38);
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.mxPopupMenu::-webkit-scrollbar-thumb:hover,
+.mxWindow .mxWindowPane::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(64, 158, 255, 0.55);
 }
 </style>

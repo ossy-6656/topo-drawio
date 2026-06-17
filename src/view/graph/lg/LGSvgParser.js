@@ -20,7 +20,7 @@ import {
     LG_PV_ICON_VIEW_W,
     lgPvIconImageDataUri,
 } from './lgPvIconOverlay.js';
-import SvgBase from '../common/SvgBase.js';
+import { applyLgDeviceNameFontColors, getLgDeviceNameFontColor } from './lgCanvasTheme.js';
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js';
 import Line2LineUtil from '../common/Line2LineUtil.js';
 import TextBeauty from '@/plugins/tmzx/graph/TextBeauty.js';
@@ -2116,7 +2116,7 @@ export default class LGSvgParser extends SvgBase {
         if (fill) {
             sb.push(`fontColor=${fill};`); // 这种情况是a标签的情况（绿色）
         } else {
-            sb.push('fontColor=#fff;');
+            sb.push(`fontColor=${getLgDeviceNameFontColor()};`);
         }
 
         sb.push(`fontSize=${fs};`);
@@ -2619,7 +2619,7 @@ export default class LGSvgParser extends SvgBase {
             sb.push('id=' + txtId + ';');
             sb.push('flag=text;');
             sb.push('layer=Text_Layer;');
-            sb.push('fontColor=#fff;');
+            sb.push(`fontColor=${getLgDeviceNameFontColor()};`);
             sb.push('fontSize=' + fs + ';');
             sb.push('fontFamily=Microsoft YaHei;');
             sb.push('rotation=0;');
@@ -2638,6 +2638,9 @@ export default class LGSvgParser extends SvgBase {
             txtGeo.width = dim.width;
             txtGeo.height = dim.height;
             model.setGeometry(txtCell, txtGeo);
+            const fontColorKey =
+                typeof mxConstants !== 'undefined' ? mxConstants.STYLE_FONTCOLOR : 'fontColor';
+            graph.setCellStyles(fontColorKey, getLgDeviceNameFontColor(), [txtCell]);
         }
         return txtCell;
     }
@@ -3284,6 +3287,10 @@ export default class LGSvgParser extends SvgBase {
             graph.setCellStyles('noLabel', 1, txtList);
         } finally {
             model.endUpdate();
+        }
+
+        if (this.ui) {
+            applyLgDeviceNameFontColors(this.ui)
         }
     }
 

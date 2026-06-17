@@ -23,6 +23,9 @@ import {
     lgDeviceAttrUnitSuffix,
 } from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
+import { installLgCanvasThemeMenu } from '@/view/graph/lg/lgCanvasTheme.js'
+
+installLgCanvasThemeMenu()
 
 /** 0305 断路器、0110 柱上用户变：侧栏拖入后保证旋转柄与格式面板角度可用 */
 if (typeof Graph !== 'undefined' && typeof mxGraph !== 'undefined') {
