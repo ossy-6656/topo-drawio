@@ -52,17 +52,33 @@
         </button>
         <button class="toolbar-add-btn channel" type="button" :disabled="!liaisonDoc" @click="openAddChannelDialog">
           <span class="toolbar-add-icon" aria-hidden="true">━</span>
-          新增通道
+          新增线路
         </button>
-        <label class="toggle-label">
-          <input v-model="noLabelMode" type="checkbox" @change="onNoLabelModeChange" />
-          无标签模式
-        </label>
+        <div class="theme-toggle" role="group" aria-label="画布主题">
+          <button
+            type="button"
+            class="theme-toggle-btn"
+            :class="{ active: canvasTheme === 'dark' }"
+            :disabled="!liaisonDoc"
+            @click="applyCanvasTheme('dark')"
+          >
+            暗色
+          </button>
+          <button
+            type="button"
+            class="theme-toggle-btn"
+            :class="{ active: canvasTheme === 'light' }"
+            :disabled="!liaisonDoc"
+            @click="applyCanvasTheme('light')"
+          >
+            亮色
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="content-wrap">
-      <div id="graphCon" class="canvas-wrapper" :class="{ 'editor-booting': !editorReady }">
+      <div id="graphCon" class="canvas-wrapper" :class="[`canvas-theme-${canvasTheme}`, { 'editor-booting': !editorReady }]">
         <div class="geEditor liaison-drawio-root" :id="editorId"></div>
         <div v-show="loading" class="loading-mask">正在生成 draw.io 站间联络图...</div>
       </div>
@@ -79,8 +95,8 @@
             <ul class="empty-tip-list">
               <li>点击<strong>变电站</strong>、<strong>线路</strong>或<strong>开关</strong>查看属性</li>
               <li>在本面板修改字段会同步到 JSON 与图形</li>
-              <li>拖拽可微调布局；使用「保存图形与 JSON」持久化</li>
-              <li>选中<strong>变电站</strong>后可用<strong>方向键</strong>精确微移位置</li>
+              <li>拖拽<strong>变电站</strong>、<strong>开关</strong>或<strong>线路名称</strong>可微调布局；使用「保存图形与 JSON」持久化</li>
+              <li>选中<strong>变电站</strong>或<strong>线路名称</strong>后可用<strong>方向键</strong>精确微移（Shift 加大步长）</li>
             </ul>
           </div>
         </div>
@@ -155,7 +171,13 @@
             v-else-if="editSelection?.kind === 'line' && channelEditRow"
             class="info-section edit-section"
           >
-            <h4 class="section-title">编辑通道 / 线路</h4>
+            <h4 class="section-title">编辑线路</h4>
+            <p v-if="channelEditRow.channel_name" class="hint-line">
+              所属通道：{{ channelEditRow.channel_name }}（同起终点站间多条线路共用）
+            </p>
+            <p v-if="channelLineCount > 1" class="hint-line">
+              当前编辑第 {{ (editSelection.line_index ?? 0) + 1 }} / {{ channelLineCount }} 条线路
+            </p>
             <div class="edit-form">
               <label class="field">
                 <span class="field-label">起点站</span>
@@ -164,15 +186,43 @@
                 </el-select>
               </label>
               <label class="field">
+                <span class="field-label">起点母线</span>
+                <el-select
+                  v-if="selectedLineRow"
+                  v-model="selectedLineRow.from_bus_name"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入母线"
+                  @change="applyLineBusEdit"
+                >
+                  <el-option v-for="b in editFromBusOptions" :key="b" :label="b" :value="b" />
+                </el-select>
+              </label>
+              <label class="field">
                 <span class="field-label">终点站</span>
                 <el-select v-model="channelEditRow.to_station" filterable @change="applyChannelGraphEdit">
                   <el-option v-for="s in stationOptions" :key="s.id" :label="s.label" :value="s.id" />
                 </el-select>
               </label>
-              <label v-if="primaryLineRow" class="field">
+              <label class="field">
+                <span class="field-label">终点母线</span>
+                <el-select
+                  v-if="selectedLineRow"
+                  v-model="selectedLineRow.to_bus_name"
+                  filterable
+                  allow-create
+                  default-first-option
+                  placeholder="选择或输入母线"
+                  @change="applyLineBusEdit"
+                >
+                  <el-option v-for="b in editToBusOptions" :key="b" :label="b" :value="b" />
+                </el-select>
+              </label>
+              <label v-if="selectedLineRow" class="field">
                 <span class="field-label">线路名称</span>
                 <el-input
-                  v-model="primaryLineRow.name"
+                  v-model="selectedLineRow.name"
                   placeholder="线路名称"
                   clearable
                   @change="applyChannelLabelEdit"
@@ -220,7 +270,9 @@
                 <pre class="readonly-pre">{{ channelReadonlyExtra.switchJson }}</pre>
               </template>
             </div>
-            <button class="btn-danger btn-block" type="button" @click="deleteSelectedChannel">删除此通道</button>
+            <button class="btn-danger btn-block" type="button" @click="deleteSelectedChannel">
+              {{ deleteLineButtonLabel }}
+            </button>
           </section>
 
           <section
@@ -258,7 +310,7 @@
               <p v-if="!canDeleteSelectedSwitch" class="hint-line">该线路仅有一个开关时不可删除。</p>
             </div>
             <p v-else class="hint-card">
-              该开关由线路投运状态推断，无独立 switch_data 记录。请通过「新增通道」或在 JSON 中补充 switch_data。
+              该开关由线路投运状态推断，无独立 switch_data 记录。请通过「新增线路」或在 JSON 中补充 switch_data。
             </p>
           </section>
 
@@ -273,16 +325,29 @@
     <el-dialog
       v-model="stationDialogVisible"
       title="新增变电站"
-      width="440px"
+      width="480px"
       destroy-on-close
       align-center
       @closed="resetStationDialogForm"
     >
       <div class="dialog-form">
-        <label class="field">站点名称 <el-input v-model="stationDialogForm.station_name" placeholder="请输入名称" clearable /></label>
+        <label class="field"
+          >站点名称
+          <el-input
+            v-model="stationDialogForm.station_name"
+            placeholder="请输入名称"
+            clearable
+            @change="onStationDialogMetaChange"
+          />
+        </label>
         <label class="field"
           >电压等级 (kV)
-          <el-select v-model="stationDialogForm.vn_kv" placeholder="选择电压等级" style="width: 100%">
+          <el-select
+            v-model="stationDialogForm.vn_kv"
+            placeholder="选择电压等级"
+            style="width: 100%"
+            @change="onStationDialogMetaChange"
+          >
             <el-option v-for="kv in voltageOptions" :key="kv" :label="`${kv} kV`" :value="kv" />
           </el-select>
         </label>
@@ -290,6 +355,26 @@
           >站点 ID（可改）
           <el-input v-model="stationDialogForm.station_id" placeholder="自动生成" clearable
         /></label>
+        <div class="bus-list-editor">
+          <div class="field-label bus-list-title">母线列表（至少 1 条）</div>
+          <p class="hint-line dialog-hint">线路连接母线而非直连变电站；命名如「庆丰站.115.2」。</p>
+          <div v-for="(_, idx) in stationDialogForm.bus_names" :key="idx" class="bus-list-row">
+            <el-input
+              v-model="stationDialogForm.bus_names[idx]"
+              :placeholder="suggestedBusName(stationDialogForm.station_name, stationDialogForm.vn_kv, idx + 2)"
+              clearable
+            />
+            <button
+              class="bus-list-remove"
+              type="button"
+              :disabled="stationDialogForm.bus_names.length <= 1"
+              @click="removeStationDialogBus(idx)"
+            >
+              删除
+            </button>
+          </div>
+          <button class="btn-secondary btn-block" type="button" @click="addStationDialogBus">+ 新增母线</button>
+        </div>
       </div>
       <template #footer>
         <el-button @click="stationDialogVisible = false">取消</el-button>
@@ -299,23 +384,62 @@
 
     <el-dialog
       v-model="channelDialogVisible"
-      title="新增通道线路"
-      width="440px"
+      title="新增线路"
+      width="480px"
       destroy-on-close
       align-center
       @closed="resetChannelDialogForm"
     >
       <div class="dialog-form">
+        <p class="hint-line dialog-hint">线路连接变电站母线；同起终点站间多条线路归入同一通道。</p>
         <label class="field"
           >起点站
-          <el-select v-model="channelDialogForm.from_station" placeholder="起点站" filterable style="width: 100%">
+          <el-select
+            v-model="channelDialogForm.from_station"
+            placeholder="起点站"
+            filterable
+            style="width: 100%"
+            @change="onChannelDialogStationChange"
+          >
             <el-option v-for="s in stationOptions" :key="s.id" :label="s.label" :value="s.id" />
           </el-select>
         </label>
         <label class="field"
+          >起点母线
+          <el-select
+            v-model="channelDialogForm.from_bus_name"
+            placeholder="选择或输入母线"
+            filterable
+            allow-create
+            default-first-option
+            style="width: 100%"
+          >
+            <el-option v-for="b in channelDialogFromBusOptions" :key="b" :label="b" :value="b" />
+          </el-select>
+        </label>
+        <label class="field"
           >终点站
-          <el-select v-model="channelDialogForm.to_station" placeholder="终点站" filterable style="width: 100%">
+          <el-select
+            v-model="channelDialogForm.to_station"
+            placeholder="终点站"
+            filterable
+            style="width: 100%"
+            @change="onChannelDialogStationChange"
+          >
             <el-option v-for="s in stationOptions" :key="s.id" :label="s.label" :value="s.id" />
+          </el-select>
+        </label>
+        <label class="field"
+          >终点母线
+          <el-select
+            v-model="channelDialogForm.to_bus_name"
+            placeholder="选择或输入母线"
+            filterable
+            allow-create
+            default-first-option
+            style="width: 100%"
+          >
+            <el-option v-for="b in channelDialogToBusOptions" :key="b" :label="b" :value="b" />
           </el-select>
         </label>
         <label class="field">线路名称 <el-input v-model="channelDialogForm.line_name" placeholder="线路名称" clearable /></label>
@@ -343,7 +467,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
+import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import '@/plugins/tmzx/graph/graph.js'
@@ -360,6 +484,7 @@ import {
   loadLiaisonBundle,
   saveLiaisonBundle,
 } from './SvgLiaisonGraphPersistence'
+import { normalizeAndSlimLiaisonEnvelope } from './SvgLiaisonJsonSlim'
 
 const router = useRouter()
 
@@ -377,11 +502,18 @@ const sampleFiles = [
   { label: '兰湾站.json', path: '/svgLiaisonJson/兰湾站.json' },
   { label: '人民.json', path: '/svgLiaisonJson/人民.json' },
   { label: '徐庄.json', path: '/svgLiaisonJson/徐庄.json' },
+  { label: '兰湾拓扑_主网全量_精简.json', path: '/svgLiaisonJson/兰湾拓扑_主网全量_精简.json' },
+  { label: '兰湾拓扑_主网全量.json（自动精简）', path: '/svgLiaisonJson/兰湾拓扑_主网全量.json' },
 ]
 
 const selectedFile = ref(sampleFiles[0].path)
 const loading = ref(false)
-const noLabelMode = ref(false)
+const canvasTheme = ref('dark')
+
+const CANVAS_THEMES = {
+  dark: { bg: '#000000', grid: '#252525' },
+  light: { bg: '#ffffff', grid: '#e5e7eb' },
+}
 const selectedInfo = ref(null)
 const canUndo = ref(false)
 const canRedo = ref(false)
@@ -402,12 +534,14 @@ const pendingSavedGraphXml = ref(null)
 const voltageOptions = [330, 220, 230, 115, 110, 66, 35]
 
 const stationDialogVisible = ref(false)
-const stationDialogForm = ref({ station_name: '', vn_kv: 110, station_id: '' })
+const stationDialogForm = ref({ station_name: '', vn_kv: 110, station_id: '', bus_names: [''] })
 
 const channelDialogVisible = ref(false)
 const channelDialogForm = ref({
   from_station: '',
   to_station: '',
+  from_bus_name: '',
+  to_bus_name: '',
   line_name: '',
   switch_from_name: '',
   switch_to_name: '',
@@ -466,7 +600,8 @@ async function refreshGraphAfterHistoryRestore() {
   editSelection.value = null
   if (!liaisonDoc.value) return
   liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-    showLabels: !noLabelMode.value,
+    showLabels: true,
+    theme: canvasTheme.value,
   })
   liaisonParser.value.skipInitialParseSvg = false
   destroyEditor()
@@ -516,16 +651,12 @@ function handleLiaisonUndoRedoShortcut(event) {
   }
 }
 
-function normalizeLiaisonEnvelope(raw) {
-  const o = raw && typeof raw === 'object' ? raw : {}
-  const data = o.data && typeof o.data === 'object' ? { ...o.data } : {}
-  if (!Array.isArray(data.station_data)) data.station_data = []
-  if (!Array.isArray(data.channel_data)) data.channel_data = []
-  return {
-    code: o.code != null ? o.code : 1,
-    message: o.message != null ? String(o.message) : '',
-    data,
+function normalizeLiaisonEnvelope(raw, opts) {
+  const doc = normalizeAndSlimLiaisonEnvelope(raw, opts)
+  if (doc._slimmed) {
+    console.info('[liaison] 已自动精简 JSON（剔除未成图字段与 <35kV 站）')
   }
+  return markRaw(doc)
 }
 
 function destroyEditor() {
@@ -698,7 +829,8 @@ function finalizeEditorMount(ui) {
 
   parser.setGraph(graph)
   parser.setData(liaisonDoc.value)
-  parser.options.showLabels = !noLabelMode.value
+  parser.options.showLabels = true
+  parser.options.theme = canvasTheme.value
 
   if (pendingSavedGraphXml.value) {
     const xml = pendingSavedGraphXml.value
@@ -710,6 +842,7 @@ function finalizeEditorMount(ui) {
       parser.parseSvg()
       window.setTimeout(() => fitLiaisonGraphToWindow(ui), 50)
     } else {
+      parser.rebindEntityInfo()
       window.setTimeout(() => {
         fitLiaisonGraphToWindow(ui)
         applyLiaisonFlowMotionArrows(graph)
@@ -726,6 +859,7 @@ function finalizeEditorMount(ui) {
     if (ui.editor.undoManager?.clear) ui.editor.undoManager.clear()
   }
   window.setTimeout(() => applyLiaisonFlowMotionArrows(graph), 450)
+  applyCanvasTheme(canvasTheme.value)
   markEditorReady()
 }
 
@@ -739,10 +873,10 @@ function mountEditor(parser) {
     (ui) => {
       uiEditor = ui
       ui.setSvgTxtObj({})
-      ui.setBackgroundColor('#f8fafc')
+      applyCanvasTheme(canvasTheme.value, { skipParser: true })
       const graph = ui.editor?.graph
       if (graph && typeof graph.setGridEnabled === 'function') {
-        graph.setGridEnabled(false)
+        graph.setGridEnabled(true)
       }
       disableLiaisonDrawioContextMenus(graph)
       bindClickInfo(ui.editor.graph)
@@ -753,7 +887,7 @@ function mountEditor(parser) {
         hideBuiltinPanels()
         const g = ui.editor?.graph
         if (g && typeof g.setGridEnabled === 'function') {
-          g.setGridEnabled(false)
+          g.setGridEnabled(true)
         }
         finalizeEditorMount(ui)
       }
@@ -784,10 +918,31 @@ function applyChannelGraphEdit() {
   const ch = channelEditRow.value
   const parser = getParser()
   if (i == null || i < 0 || !ch || !parser) return
-  pushUndoSnapshot('编辑通道')
+  pushUndoSnapshot('编辑线路')
   const fromSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.from_station)
   const toSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.to_station)
   ch.min_vn_kv = Math.min(Number(fromSt?.vn_kv) || 0, Number(toSt?.vn_kv) || 0) || 110
+  syncChannelMeta(ch, fromSt, toSt)
+  parser.setData(liaisonDoc.value)
+  parser.updateChannelFromDoc(i)
+}
+
+function applyLineBusEdit() {
+  const i = editSelection.value?.doc_channel_index
+  const line = selectedLineRow.value
+  const ch = channelEditRow.value
+  const parser = getParser()
+  if (i == null || i < 0 || !line || !ch || !parser) return
+  if (!String(line.from_bus_name || '').trim() || !String(line.to_bus_name || '').trim()) {
+    ElMessage.warning('起点母线与终点母线不能为空')
+    return
+  }
+  line.from_bus_name = String(line.from_bus_name).trim()
+  line.to_bus_name = String(line.to_bus_name).trim()
+  pushUndoSnapshot('编辑线路母线')
+  const fromSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.from_station)
+  const toSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.to_station)
+  syncChannelMeta(ch, fromSt, toSt)
   parser.setData(liaisonDoc.value)
   parser.updateChannelFromDoc(i)
 }
@@ -798,7 +953,13 @@ function applyChannelLabelEdit() {
   if (i == null || i < 0 || !parser) return
   pushUndoSnapshot('编辑线路名称')
   parser.setData(liaisonDoc.value)
-  parser.updateChannelLabelOnly(i)
+  const ch = liaisonDoc.value?.data?.channel_data?.[i]
+  const li = editSelection.value?.line_index ?? 0
+  if ((ch?.line_data?.length || 0) > 1 || li > 0) {
+    parser.updateChannelFromDoc(i)
+  } else {
+    parser.updateChannelLabelOnly(i)
+  }
 }
 
 function applySwitchGraphEdit() {
@@ -816,7 +977,7 @@ function addSwitchToSelectedChannel() {
     ElMessage.warning('每条线路最多两个开关')
     return
   }
-  const lineName = String(ch.line_data?.[0]?.name || '').trim() || '新线'
+  const lineName = String(selectedLineRow.value?.name || ch.line_data?.[0]?.name || '').trim() || '新线'
   const isToEnd = ch.switch_data.length === 1
   const defaultName = isToEnd ? `${lineName}-受端开关` : `${lineName}-送端开关`
   pushUndoSnapshot('新增开关')
@@ -858,7 +1019,8 @@ async function regenerateFromJson() {
     lastHistoryData = cloneJson(liaisonDoc.value.data)
 
     liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-      showLabels: !noLabelMode.value,
+      showLabels: true,
+    theme: canvasTheme.value,
     })
     liaisonParser.value.skipInitialParseSvg = false
 
@@ -887,6 +1049,7 @@ function formatQFromMvar(v) {
 
 function toTypeLabel(type, info) {
   if (type === 'station') return info?.is_virtual ? '虚拟站(T10)' : '变电站'
+  if (type === 'busnode') return 'T接母线'
   if (type === 'switch') return '开关'
   if (type === 'line') return '线路'
   return '未知'
@@ -896,10 +1059,25 @@ function pickKeyFields(info) {
   if (!info) return {}
 
   if (info.type === 'station') {
+    const buses = Array.isArray(info.bus_name_list)
+      ? info.bus_name_list
+      : Array.isArray(info.raw?.bus_name_list)
+        ? info.raw.bus_name_list
+        : []
     return {
       类型: info.is_virtual ? '虚拟站(T10)' : '变电站',
       站点名称: info.station_name,
       站点ID: info.station_id,
+      电压等级_kV: info.vn_kv,
+      母线列表: buses.length ? buses.join('、') : '—',
+    }
+  }
+
+  if (info.type === 'busnode') {
+    return {
+      类型: 'T接母线',
+      所属虚拟站: info.station_name || info.raw?.station_name || '—',
+      母线名称: info.bus_name || '—',
       电压等级_kV: info.vn_kv,
     }
   }
@@ -928,21 +1106,26 @@ function pickKeyFields(info) {
   }
 
   if (info.type === 'line') {
+    const li = info.line_index ?? 0
     const line = Array.isArray(info.line_data) && info.line_data.length > 0 ? info.line_data[0] : null
     return {
       类型: '线路',
       线路名称: line?.name || info.channel_name || '-',
+      所属通道: info.channel_name || '-',
       起点站: info.from_station_name || info.from_station,
       终点站: info.to_station_name || info.to_station,
+      起点母线: info.from_bus_name || line?.from_bus_name || '-',
+      终点母线: info.to_bus_name || line?.to_bus_name || '-',
       起点站电压_kV: info.from_kv,
       终点站电压_kV: info.to_kv,
       线色: info.link_color || '-',
       线宽_px: info.link_width_px != null ? info.link_width_px : '-',
-      聚合有功_p_from_MW: formatPFromMw(info.p_from_mw),
-      聚合无功_q_from_Mvar: formatQFromMvar(info.q_from_mvar),
+      有功_p_from_MW: formatPFromMw(info.p_from_mw),
+      无功_q_from_MVar: formatQFromMvar(info.q_from_mvar),
       最小电压_kV: info.min_vn_kv,
       最大电压_kV: info.max_vn_kv,
       投运状态: line?.in_service === false ? '退出' : '在运',
+      通道内序号: li + 1,
     }
   }
 
@@ -954,6 +1137,100 @@ function ensureChannelPrimaryLine(channel) {
   if (!Array.isArray(channel.line_data)) channel.line_data = []
   if (channel.line_data.length === 0) {
     channel.line_data.push({ name: '新线', in_service: true, p_from_mw: 0, q_from_mvar: 0 })
+  }
+}
+
+function normalizeBusKv(v) {
+  const n = Number(v) || 0
+  if (n >= 225 && n <= 235) return 230
+  if (n >= 112 && n <= 118) return 115
+  return n
+}
+
+function busOptionsForStation(doc, stationId) {
+  if (!doc?.data || !stationId) return []
+  const set = new Set()
+  const st = doc.data.station_data?.find((s) => s.station_id === stationId)
+  if (Array.isArray(st?.bus_name_list)) {
+    st.bus_name_list.forEach((b) => {
+      const t = String(b || '').trim()
+      if (t) set.add(t)
+    })
+  }
+  ;(doc.data.channel_data || []).forEach((ch) => {
+    ;(ch.line_data || []).forEach((line) => {
+      if (ch.from_station === stationId && line?.from_bus_name) {
+        set.add(String(line.from_bus_name).trim())
+      }
+      if (ch.to_station === stationId && line?.to_bus_name) {
+        set.add(String(line.to_bus_name).trim())
+      }
+    })
+  })
+  return [...set].sort()
+}
+
+function defaultBusForStation(st, buses) {
+  if (Array.isArray(buses) && buses.length > 0) {
+    const kv = normalizeBusKv(st?.vn_kv)
+    const prefer = buses.find((b) => b.includes(`.${kv}.`) || b.includes(`.${Math.round(kv)}.`))
+    return prefer || buses[0]
+  }
+  return suggestedBusName(st?.station_name, st?.vn_kv, 2)
+}
+
+function suggestedBusName(stationName, kv, suffix = 2) {
+  const name = String(stationName || '新站').trim() || '新站'
+  const k = normalizeBusKv(kv) || 110
+  return `${name}.${k}.${suffix}`
+}
+
+function collectStationDialogBusNames(form) {
+  const names = (form.bus_names || []).map((b) => String(b || '').trim()).filter(Boolean)
+  if (names.length > 0) return names
+  return [suggestedBusName(form.station_name, form.vn_kv, 2)]
+}
+
+function buildChannelName(fromBusName, toBusName) {
+  return `${String(fromBusName || '').trim()}_${String(toBusName || '').trim()}`
+}
+
+function findChannelIndexBetween(doc, fromId, toId) {
+  if (!doc?.data?.channel_data) return -1
+  return doc.data.channel_data.findIndex((c) => c.from_station === fromId && c.to_station === toId)
+}
+
+function syncChannelMeta(channel, fromSt, toSt) {
+  if (!channel) return
+  channel.min_vn_kv = Math.min(Number(fromSt?.vn_kv) || 0, Number(toSt?.vn_kv) || 0) || 110
+  const first = channel.line_data?.[0]
+  if (first?.from_bus_name && first?.to_bus_name && !channel.channel_name) {
+    channel.channel_name = buildChannelName(first.from_bus_name, first.to_bus_name)
+  }
+}
+
+function createLineDataItem({ name, from_bus_name, to_bus_name }) {
+  return {
+    name: String(name || '').trim() || '新线路',
+    from_bus_name: String(from_bus_name || '').trim(),
+    to_bus_name: String(to_bus_name || '').trim(),
+    in_service: true,
+    p_from_mw: 0,
+    q_from_mvar: 0,
+  }
+}
+
+function ensureLineBusFields(channel, lineIndex, doc) {
+  if (!channel?.line_data?.length || !doc?.data) return
+  const line = channel.line_data[lineIndex] || channel.line_data[0]
+  if (!line) return
+  const fromSt = doc.data.station_data?.find((s) => s.station_id === channel.from_station)
+  const toSt = doc.data.station_data?.find((s) => s.station_id === channel.to_station)
+  if (!String(line.from_bus_name || '').trim() && fromSt) {
+    line.from_bus_name = defaultBusForStation(fromSt, busOptionsForStation(doc, channel.from_station))
+  }
+  if (!String(line.to_bus_name || '').trim() && toSt) {
+    line.to_bus_name = defaultBusForStation(toSt, busOptionsForStation(doc, channel.to_station))
   }
 }
 
@@ -1068,12 +1345,38 @@ const channelEditRow = computed(() => {
   return liaisonDoc.value.data.channel_data[i] || null
 })
 
-const primaryLineRow = computed(() => {
+const selectedLineRow = computed(() => {
   if (editSelection.value?.kind !== 'line' || !liaisonDoc.value) return null
   const ch = liaisonDoc.value.data.channel_data[editSelection.value.doc_channel_index]
   if (!ch || !Array.isArray(ch.line_data) || ch.line_data.length === 0) return null
-  return ch.line_data[0]
+  const li = editSelection.value.line_index ?? 0
+  return ch.line_data[li] || ch.line_data[0]
 })
+
+const channelLineCount = computed(() => {
+  const ch = channelEditRow.value
+  return Array.isArray(ch?.line_data) ? ch.line_data.length : 0
+})
+
+const deleteLineButtonLabel = computed(() =>
+  channelLineCount.value > 1 ? '删除此线路' : '删除此通道（最后一条线路）'
+)
+
+const channelDialogFromBusOptions = computed(() =>
+  busOptionsForStation(liaisonDoc.value, channelDialogForm.value.from_station)
+)
+
+const channelDialogToBusOptions = computed(() =>
+  busOptionsForStation(liaisonDoc.value, channelDialogForm.value.to_station)
+)
+
+const editFromBusOptions = computed(() =>
+  busOptionsForStation(liaisonDoc.value, channelEditRow.value?.from_station)
+)
+
+const editToBusOptions = computed(() =>
+  busOptionsForStation(liaisonDoc.value, channelEditRow.value?.to_station)
+)
 
 const switchEditRow = computed(() => {
   if (editSelection.value?.kind !== 'switch' || !liaisonDoc.value) return null
@@ -1235,7 +1538,11 @@ function bindClickInfo(graph) {
       if (parser) parser.rebindEntityInfo()
       info = cell.entityInfo || info
       const ch = liaisonDoc.value?.data?.channel_data?.[docIdx]
-      if (ch) ensureChannelPrimaryLine(ch)
+      if (ch) {
+        ensureChannelPrimaryLine(ch)
+        const li = info.line_index ?? 0
+        ensureLineBusFields(ch, li, liaisonDoc.value)
+      }
       if (info.type === 'switch' || cell.entityType === 'switch') {
         editSelection.value = {
           kind: 'switch',
@@ -1244,7 +1551,11 @@ function bindClickInfo(graph) {
           switch_end: info.switch_end,
         }
       } else {
-        editSelection.value = { kind: 'line', doc_channel_index: docIdx }
+        editSelection.value = {
+          kind: 'line',
+          doc_channel_index: docIdx,
+          line_index: info.line_index ?? 0,
+        }
       }
     } else {
       editSelection.value = null
@@ -1261,16 +1572,15 @@ function bindClickInfo(graph) {
   })
 }
 
-async function handleStationDoubleClick(stationInfo) {
+function handleStationDoubleClick(stationInfo) {
   if (!stationInfo?.station_id || !stationInfo?.station_name) return
-  
-    router.push({
-      path: '/in-site-svg',
-      query: {
-        id: stationInfo.station_id,
-        name: stationInfo.station_name,
-      }
-    })
+  router.push({
+    path: '/in-site-svg',
+    query: {
+      id: stationInfo.station_id,
+      name: stationInfo.station_name,
+    },
+  })
 }
 
 function bindStationDoubleClick(graph) {
@@ -1286,11 +1596,22 @@ function bindStationDoubleClick(graph) {
   })
 }
 
-function onNoLabelModeChange() {
+function applyCanvasTheme(theme, opts = {}) {
+  const next = theme === 'light' ? 'light' : 'dark'
+  canvasTheme.value = next
+  const cfg = CANVAS_THEMES[next]
+  if (uiEditor) {
+    uiEditor.setBackgroundColor(cfg.bg)
+    if (typeof uiEditor.setGridColor === 'function') {
+      uiEditor.setGridColor(cfg.grid)
+    }
+  }
+  if (opts.skipParser) return
   const parser = getParser()
-  if (!parser) return
-  parser.options.showLabels = !noLabelMode.value
-  parser.syncAllLabels()
+  if (parser) {
+    parser.options.theme = next
+    parser.applyLineTextTheme(next)
+  }
 }
 
 function saveLiaisonWork() {
@@ -1310,7 +1631,35 @@ function saveLiaisonWork() {
 }
 
 function resetStationDialogForm() {
-  stationDialogForm.value = { station_name: '', vn_kv: 110, station_id: '' }
+  stationDialogForm.value = { station_name: '', vn_kv: 110, station_id: '', bus_names: [''] }
+}
+
+function onStationDialogMetaChange() {
+  const form = stationDialogForm.value
+  if (!Array.isArray(form.bus_names) || form.bus_names.length === 0) {
+    form.bus_names = [suggestedBusName(form.station_name, form.vn_kv, 2)]
+    return
+  }
+  if (!String(form.bus_names[0] || '').trim()) {
+    form.bus_names[0] = suggestedBusName(form.station_name, form.vn_kv, 2)
+  }
+}
+
+function addStationDialogBus() {
+  const form = stationDialogForm.value
+  if (!Array.isArray(form.bus_names)) form.bus_names = ['']
+  let suffix = 2
+  form.bus_names.forEach((b) => {
+    const m = String(b || '').match(/\.(\d+)$/)
+    if (m) suffix = Math.max(suffix, Number(m[1]) + 1)
+  })
+  form.bus_names.push(suggestedBusName(form.station_name, form.vn_kv, suffix))
+}
+
+function removeStationDialogBus(idx) {
+  const list = stationDialogForm.value.bus_names
+  if (!Array.isArray(list) || list.length <= 1) return
+  list.splice(idx, 1)
 }
 
 function openAddStationDialog() {
@@ -1319,6 +1668,7 @@ function openAddStationDialog() {
     station_name: '',
     vn_kv: 110,
     station_id: genStationId(),
+    bus_names: [suggestedBusName('', 110, 2)],
   }
   stationDialogVisible.value = true
 }
@@ -1337,6 +1687,15 @@ function confirmAddStation() {
     return
   }
   const kv = Number(stationDialogForm.value.vn_kv)
+  let busNames = collectStationDialogBusNames(stationDialogForm.value)
+  const seen = new Set()
+  for (let i = 0; i < busNames.length; i++) {
+    if (seen.has(busNames[i])) {
+      ElMessage.warning('母线名称不能重复')
+      return
+    }
+    seen.add(busNames[i])
+  }
   pushUndoSnapshot('新增变电站')
   liaisonDoc.value.data.station_data.push({
     station_id: id,
@@ -1344,6 +1703,8 @@ function confirmAddStation() {
     vn_kv: Number.isNaN(kv) ? 110 : kv,
     lon: 0,
     lat: 0,
+    bus_name_list: busNames,
+    bus_id_list: [],
     trafo_display_list: [],
   })
   const idx = liaisonDoc.value.data.station_data.length - 1
@@ -1357,6 +1718,7 @@ function confirmAddStation() {
         station_name: name,
         station_id: id,
         vn_kv: stationDialogForm.value.vn_kv,
+        bus_name_list: busNames,
         is_virtual: false,
       }),
       null,
@@ -1378,9 +1740,32 @@ function resetChannelDialogForm() {
   channelDialogForm.value = {
     from_station: '',
     to_station: '',
+    from_bus_name: '',
+    to_bus_name: '',
     line_name: '',
     switch_from_name: '',
     switch_to_name: '',
+  }
+}
+
+function onChannelDialogStationChange() {
+  if (!liaisonDoc.value) return
+  const form = channelDialogForm.value
+  const fromSt = liaisonDoc.value.data.station_data.find((s) => s.station_id === form.from_station)
+  const toSt = liaisonDoc.value.data.station_data.find((s) => s.station_id === form.to_station)
+  const fromBuses = busOptionsForStation(liaisonDoc.value, form.from_station)
+  const toBuses = busOptionsForStation(liaisonDoc.value, form.to_station)
+  if (fromSt) {
+    const cur = String(form.from_bus_name || '').trim()
+    if (!cur || !fromBuses.includes(cur)) {
+      form.from_bus_name = defaultBusForStation(fromSt, fromBuses)
+    }
+  }
+  if (toSt) {
+    const cur = String(form.to_bus_name || '').trim()
+    if (!cur || !toBuses.includes(cur)) {
+      form.to_bus_name = defaultBusForStation(toSt, toBuses)
+    }
   }
 }
 
@@ -1388,13 +1773,21 @@ function openAddChannelDialog() {
   if (!liaisonDoc.value) return
   const stations = liaisonDoc.value.data.station_data
   if (stations.length < 2) {
-    ElMessage.warning('至少需要两个变电站才能添加通道')
+    ElMessage.warning('至少需要两个变电站才能添加线路')
     return
   }
+  const fromId = stations[0].station_id
+  const toId = stations[1].station_id
+  const fromSt = stations[0]
+  const toSt = stations[1]
+  const fromBuses = busOptionsForStation(liaisonDoc.value, fromId)
+  const toBuses = busOptionsForStation(liaisonDoc.value, toId)
   channelDialogForm.value = {
-    from_station: stations[0].station_id,
-    to_station: stations[1].station_id,
-    line_name: '新通道线',
+    from_station: fromId,
+    to_station: toId,
+    from_bus_name: defaultBusForStation(fromSt, fromBuses),
+    to_bus_name: defaultBusForStation(toSt, toBuses),
+    line_name: '新线路',
     switch_from_name: '',
     switch_to_name: '',
   }
@@ -1403,13 +1796,19 @@ function openAddChannelDialog() {
 
 function confirmAddChannel() {
   if (!liaisonDoc.value) return
-  const { from_station, to_station, line_name } = channelDialogForm.value
+  const { from_station, to_station, from_bus_name, to_bus_name, line_name } = channelDialogForm.value
   if (!from_station || !to_station) {
     ElMessage.warning('请选择起点站和终点站')
     return
   }
   if (from_station === to_station) {
     ElMessage.warning('起点与终点不能相同')
+    return
+  }
+  const fromBus = String(from_bus_name || '').trim()
+  const toBus = String(to_bus_name || '').trim()
+  if (!fromBus || !toBus) {
+    ElMessage.warning('请选择起点母线与终点母线')
     return
   }
   const name = String(line_name || '').trim()
@@ -1420,40 +1819,58 @@ function confirmAddChannel() {
   const fromSt = liaisonDoc.value.data.station_data.find((s) => s.station_id === from_station)
   const toSt = liaisonDoc.value.data.station_data.find((s) => s.station_id === to_station)
   const minKv = Math.min(Number(fromSt?.vn_kv) || 0, Number(toSt?.vn_kv) || 0) || 110
+  const lineItem = createLineDataItem({ name, from_bus_name: fromBus, to_bus_name: toBus })
 
-  const swBuild = buildSwitchDataFromDialogForm(channelDialogForm.value, name)
-  if (swBuild.error) {
-    ElMessage.warning(swBuild.error)
-    return
+  const existingIdx = findChannelIndexBetween(liaisonDoc.value, from_station, to_station)
+  const isNewChannel = existingIdx < 0
+
+  if (isNewChannel) {
+    const swBuild = buildSwitchDataFromDialogForm(channelDialogForm.value, name)
+    if (swBuild.error) {
+      ElMessage.warning(swBuild.error)
+      return
+    }
+    pushUndoSnapshot('新增线路')
+    liaisonDoc.value.data.channel_data.push({
+      from_station,
+      to_station,
+      min_vn_kv: minKv,
+      channel_name: buildChannelName(fromBus, toBus),
+      line_data: [lineItem],
+      switch_data: swBuild.list,
+    })
+  } else {
+    pushUndoSnapshot('新增线路')
+    const ch = liaisonDoc.value.data.channel_data[existingIdx]
+    if (!Array.isArray(ch.line_data)) ch.line_data = []
+    ch.line_data.push(lineItem)
+    syncChannelMeta(ch, fromSt, toSt)
   }
 
-  pushUndoSnapshot('新增通道')
-  liaisonDoc.value.data.channel_data.push({
-    from_station,
-    to_station,
-    min_vn_kv: minKv,
-    line_data: [{ name, in_service: true, p_from_mw: 0, q_from_mvar: 0 }],
-    switch_data: swBuild.list,
-  })
-  const idx = liaisonDoc.value.data.channel_data.length - 1
-  editSelection.value = { kind: 'line', doc_channel_index: idx }
-  const ch = liaisonDoc.value.data.channel_data[idx]
-  ensureChannelPrimaryLine(ch)
+  const docIdx = isNewChannel ? liaisonDoc.value.data.channel_data.length - 1 : existingIdx
+  const ch = liaisonDoc.value.data.channel_data[docIdx]
+  const lineIndex = isNewChannel ? 0 : ch.line_data.length - 1
+  editSelection.value = { kind: 'line', doc_channel_index: docIdx, line_index: lineIndex }
   selectedInfo.value = {
     typeLabel: '线路',
     pretty: JSON.stringify(
       pickKeyFields({
         type: 'line',
-        line_data: ch.line_data,
+        line_index: lineIndex,
+        line_data: [lineItem],
         channel_name: ch.channel_name,
         from_station,
         to_station,
         from_station_name: fromSt?.station_name,
         to_station_name: toSt?.station_name,
+        from_bus_name: fromBus,
+        to_bus_name: toBus,
         from_kv: fromSt?.vn_kv,
         to_kv: toSt?.vn_kv,
         min_vn_kv: ch.min_vn_kv,
         max_vn_kv: ch.max_vn_kv,
+        p_from_mw: lineItem.p_from_mw,
+        q_from_mvar: lineItem.q_from_mvar,
       }),
       null,
       2
@@ -1463,11 +1880,15 @@ function confirmAddChannel() {
   const parser = getParser()
   if (parser) {
     parser.setData(liaisonDoc.value)
-    parser.insertChannelAtDocIndex(idx)
+    if (isNewChannel) {
+      parser.insertChannelAtDocIndex(docIdx)
+    } else {
+      parser.updateChannelFromDoc(docIdx)
+    }
     const g = getGraph()
     if (g) applyLiaisonFlowMotionArrows(g)
   }
-  ElMessage.success('已添加通道')
+  ElMessage.success(isNewChannel ? '已添加线路' : '已添加线路至现有通道')
 }
 
 async function deleteSelectedStation() {
@@ -1485,17 +1906,14 @@ async function deleteSelectedStation() {
   }
   const id = row.station_id
   pushUndoSnapshot('删除变电站')
-  const parser = getParser()
-  if (parser) {
-    parser.setData(liaisonDoc.value)
-    parser.removeStationGraphCells(id)
-  }
   liaisonDoc.value.data.station_data.splice(i, 1)
   liaisonDoc.value.data.channel_data = liaisonDoc.value.data.channel_data.filter(
     (c) => c.from_station !== id && c.to_station !== id
   )
+  const parser = getParser()
   if (parser) {
     parser.setData(liaisonDoc.value)
+    parser.removeStationGraphCells(id)
     parser.resyncChannelCellIdsToDoc()
     const g = getGraph()
     if (g) applyLiaisonFlowMotionArrows(g)
@@ -1508,8 +1926,41 @@ async function deleteSelectedStation() {
 async function deleteSelectedChannel() {
   if (!liaisonDoc.value || editSelection.value?.kind !== 'line') return
   const i = editSelection.value.doc_channel_index
+  const ch = liaisonDoc.value.data.channel_data[i]
+  if (!ch) return
+  const li = editSelection.value.line_index ?? 0
+  const lineCount = ch.line_data?.length || 0
+
+  if (lineCount > 1) {
+    const lineName = String(ch.line_data[li]?.name || '').trim() || `第 ${li + 1} 条线路`
+    try {
+      await ElMessageBox.confirm(`确定删除线路「${lineName}」？`, '确认删除', {
+        type: 'warning',
+        ...msgboxConfirmOpts,
+      })
+    } catch {
+      return
+    }
+    pushUndoSnapshot('删除线路')
+    const parser = getParser()
+    ch.line_data.splice(li, 1)
+    if (parser) {
+      parser.setData(liaisonDoc.value)
+      parser.updateChannelFromDoc(i)
+      const g = getGraph()
+      if (g) applyLiaisonFlowMotionArrows(g)
+    }
+    const newLi = Math.min(li, ch.line_data.length - 1)
+    editSelection.value = { kind: 'line', doc_channel_index: i, line_index: Math.max(0, newLi) }
+    ElMessage.success('已删除线路')
+    return
+  }
+
   try {
-    await ElMessageBox.confirm('确定删除该通道？', '确认删除', { type: 'warning', ...msgboxConfirmOpts })
+    await ElMessageBox.confirm('确定删除该通道（含最后一条线路）？', '确认删除', {
+      type: 'warning',
+      ...msgboxConfirmOpts,
+    })
   } catch {
     return
   }
@@ -1554,7 +2005,7 @@ async function deleteSelectedSwitch() {
   ch.switch_data.splice(j, 1)
   refreshChannelGraph(ci)
   selectedInfo.value = null
-  editSelection.value = { kind: 'line', doc_channel_index: ci }
+  editSelection.value = { kind: 'line', doc_channel_index: ci, line_index: editSelection.value?.line_index ?? 0 }
   ElMessage.success('已删除开关')
 }
 
@@ -1581,13 +2032,19 @@ async function loadSelectedFile() {
     pendingSavedGraphXml.value = bundle?.graphXml || null
 
     liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-      showLabels: !noLabelMode.value,
+      showLabels: true,
+    theme: canvasTheme.value,
     })
     liaisonParser.value.skipInitialParseSvg = Boolean(pendingSavedGraphXml.value)
 
     destroyEditor()
     await nextTick()
     mountEditor(liaisonParser.value)
+    if (doc._slimmed) {
+      const st = doc.data?.station_data?.length ?? 0
+      const ch = doc.data?.channel_data?.length ?? 0
+      ElMessage.info(`全量 JSON 已自动精简为成图数据（${st} 站、${ch} 通道）`)
+    }
   } catch (error) {
     console.error(error)
     ElMessage.error(`加载联络图失败：${error.message || '未知错误'}`)
@@ -1675,24 +2132,48 @@ onBeforeUnmount(() => {
   padding: 4px 10px;
 }
 
-.toggle-label {
+.canvas-wrapper.canvas-theme-dark {
+  background: #000000;
+}
+
+.canvas-wrapper.canvas-theme-light {
+  background: #ffffff;
+}
+
+.theme-toggle {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #1e293b;
-  background: #e2e8f0;
+  align-items: stretch;
   border: 1px solid #cbd5e1;
   border-radius: 999px;
-  padding: 4px 10px;
-  user-select: none;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.theme-toggle-btn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-toggle-btn.active {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.theme-toggle-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .canvas-wrapper {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  background: #f8fafc;
 }
 
 /* 初始化完成前不显示 draw.io 容器，避免通用侧栏闪一下 */
@@ -2175,6 +2656,48 @@ onBeforeUnmount(() => {
 
 .dialog-hint {
   margin-top: -4px;
+}
+
+.bus-list-editor {
+  margin-top: 4px;
+}
+
+.bus-list-title {
+  margin-bottom: 4px;
+}
+
+.bus-list-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.bus-list-row :deep(.el-input) {
+  flex: 1;
+  min-width: 0;
+}
+
+.bus-list-remove {
+  flex: 0 0 auto;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.bus-list-remove:hover:not(:disabled) {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.bus-list-remove:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .switch-manage-block {
