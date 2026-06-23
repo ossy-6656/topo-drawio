@@ -572,6 +572,10 @@ export const LG_DEVICE_ATTR_LABELS = {
     volt: '电压',
     Ih: '额定载流量',
     length: '线路长度',
+    model_paras_r: '电阻',
+    model_paras_x: '电抗',
+    model_paras_g: '电导',
+    model_paras_b: '电纳',
 }
 
 /** 编辑弹窗输入框右侧单位块文案 */
@@ -595,6 +599,10 @@ export const LG_DEVICE_ATTR_UNIT_SUFFIX = {
     volt: 'kV',
     Ih: 'kA',
     length: 'km',
+    model_paras_r: 'Ω/km',
+    model_paras_x: 'Ω/km',
+    model_paras_g: 'Ω/km',
+    model_paras_b: 'Ω/km',
 }
 
 export function lgDeviceAttrLabel(name, fallback) {
@@ -622,6 +630,78 @@ export function lgDeviceAttrPlaceholder(name) {
     return lgDeviceAttrUnitSuffix(name) ? '请输入内容' : '请输入'
 }
 
+/** 母线连接线 model_paras 拆分为 4 个标量编辑项（顺序：电阻、电抗、电导、电纳） */
+export const LG_MODEL_PARAS_FIELD_KEYS = ['model_paras_r', 'model_paras_x', 'model_paras_g', 'model_paras_b']
+export const LG_MODEL_PARAS_FIELD_LABELS = ['电阻', '电抗', '电导', '电纳']
+export const LG_MODEL_PARAS_UNIT = 'Ω/km'
+
+export function isLgModelParasSubField(name) {
+    return LG_MODEL_PARAS_FIELD_KEYS.indexOf(name) >= 0
+}
+
+function lgModelParasEmptySlots() {
+    return ['', '', '', '']
+}
+
+/** 解析 model_paras 为 4 个编辑框字符串；无数据时返回空字符串，不填充默认值 */
+export function parseLgModelParasArray(raw) {
+    if (raw == null || raw === '') {
+        return lgModelParasEmptySlots()
+    }
+    let nums = null
+    if (Array.isArray(raw)) {
+        nums = raw
+    } else {
+        const s = String(raw).trim()
+        try {
+            if (s.startsWith('[') && s.endsWith(']')) {
+                const parsed = JSON.parse(s)
+                if (Array.isArray(parsed)) {
+                    nums = parsed
+                }
+            }
+        } catch (e) {
+            /* ignore */
+        }
+        if (!nums) {
+            const parts = s.split(/[,，;\s]+/).map((p) => p.trim())
+            if (parts.length >= 4) {
+                nums = parts
+            }
+        }
+    }
+    if (!nums || nums.length === 0) {
+        return lgModelParasEmptySlots()
+    }
+    return LG_MODEL_PARAS_FIELD_KEYS.map((_, i) => {
+        const v = nums[i]
+        if (v == null || v === '') {
+            return ''
+        }
+        const n = parseFloat(v)
+        return !isNaN(n) && isFinite(n) ? String(n) : ''
+    })
+}
+
+/** 将 4 个标量合并为 model_paras JSON 数组字符串；全空则返回空字符串，不填充默认值 */
+export function serializeLgModelParasArray(parts) {
+    const nums = LG_MODEL_PARAS_FIELD_KEYS.map((_, i) => {
+        const raw = parts[i]
+        if (raw === '' || raw == null) {
+            return null
+        }
+        const n = typeof raw === 'number' ? raw : parseFloat(String(raw).trim())
+        if (isNaN(n) || !isFinite(n)) {
+            return null
+        }
+        return n
+    })
+    if (nums.every((v) => v == null)) {
+        return ''
+    }
+    return JSON.stringify(nums)
+}
+
 /** 力光设备编辑框中应按 number 存储的标量属性（非数组、非枚举字符串） */
 export const LG_SCALAR_NUMERIC_ATTRS = new Set([
     'P',
@@ -641,6 +721,10 @@ export const LG_SCALAR_NUMERIC_ATTRS = new Set([
     'J_S',
     'Ih',
     'length',
+    'model_paras_r',
+    'model_paras_x',
+    'model_paras_g',
+    'model_paras_b',
 ])
 
 export function isLgScalarNumericAttr(name) {

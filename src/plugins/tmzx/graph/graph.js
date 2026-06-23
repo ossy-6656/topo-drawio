@@ -12,6 +12,9 @@ import {
     LG_DEVICE_ATTR_LABELS,
     lgDeviceAttrLabelWithUnit,
     lgSidebarPaletteTitleForShape,
+    LG_MODEL_PARAS_FIELD_LABELS,
+    LG_MODEL_PARAS_UNIT,
+    parseLgModelParasArray,
 } from '@/view/graph/lg/Constants.js'
 
 mxGraph.prototype.splitEnabled = false
@@ -366,7 +369,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                       : isLgSwitchDevice
                         ? ['name', 'status']
                         : isBusbarConnectorEdge
-                        ? ['name', 'model', 'model_paras', 'Ih', 'length']
+                        ? ['name', 'model', 'Ih', 'length']
                         : ['name', 'attr', 'pubprivflag', 'switchrolename', 'lineType'];
 
             // 设备类型（紧跟 ID 展示）
@@ -465,13 +468,22 @@ Graph.prototype.getTooltipForCell = function (cell) {
                     sb.push(`<tr><td>${dn}：</td><td>${attrValue}</td></tr>`)
                     return
                 }
-                if (isBusbarConnectorEdge && (attrName === 'name' || attrName === 'model' || attrName === 'model_paras' || attrName === 'Ih' || attrName === 'length')) {
+                if (isBusbarConnectorEdge && (attrName === 'name' || attrName === 'model' || attrName === 'Ih' || attrName === 'length')) {
                     attrValue = attrValue != null && attrValue !== '' ? attrValue : ''
                     let displayName = tooltipAttrNameMap[attrName] || attrName
                     if (attrName === 'name') {
                         displayName = '线路名称'
                     }
                     sb.push(`<tr><td>${displayName}：</td><td>${attrValue}</td></tr>`)
+                    if (attrName === 'model') {
+                        let parasRaw = cell['model_paras'] || cellStyle['model_paras']
+                        let parasArr = parseLgModelParasArray(parasRaw)
+                        for (let pi = 0; pi < LG_MODEL_PARAS_FIELD_LABELS.length; pi++) {
+                            sb.push(
+                                `<tr><td>${LG_MODEL_PARAS_FIELD_LABELS[pi]}(${LG_MODEL_PARAS_UNIT})：</td><td>${parasArr[pi]}</td></tr>`
+                            )
+                        }
+                    }
                     return
                 }
                 if (attrValue) {
@@ -509,6 +521,7 @@ Graph.prototype.getTooltipForCell = function (cell) {
                             (attrName === 'P' || attrName === 'Q')) &&
                         !(isLgSwitchDevice &&
                             (attrName === 'P' || attrName === 'Q' || attrName === 'status')) &&
+                        !(isBusbarConnectorEdge && attrName === 'model_paras') &&
                         fixedAttrs.indexOf(attrName) == -1 &&
                         attrName != 'label' && attrName != 'placeholders' &&
                         attrName != 'psrtype' && attrName != 'id' && attrName != 'shape';

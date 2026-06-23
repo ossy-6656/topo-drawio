@@ -21,6 +21,11 @@ import {
     lgDeviceAttrLabel,
     lgDeviceAttrPlaceholder,
     lgDeviceAttrUnitSuffix,
+    LG_MODEL_PARAS_FIELD_KEYS,
+    LG_MODEL_PARAS_FIELD_LABELS,
+    isLgModelParasSubField,
+    parseLgModelParasArray,
+    serializeLgModelParasArray,
 } from '@/view/graph/lg/Constants.js'
 import './lg-edit-dialog.css'
 import { installLgCanvasThemeMenu } from '@/view/graph/lg/lgCanvasTheme.js'
@@ -268,6 +273,9 @@ window.EditDataDialog = function(ui, cell)
         var displayName = lgDeviceAttrLabel(name, attrNameMap[name] || name);
         if (isBusbarConnector && name == 'name') {
             displayName = '线路名称';
+        }
+        if (isBusbarConnector && isLgModelParasSubField(name)) {
+            displayName = LG_MODEL_PARAS_FIELD_LABELS[LG_MODEL_PARAS_FIELD_KEYS.indexOf(name)];
         }
         if (isLgGeneratingUnit && name == 'name') {
             displayName = '机组名称';
@@ -626,10 +634,17 @@ window.EditDataDialog = function(ui, cell)
         temp = temp.filter(function(item) { return item.name != 'model'; });
         temp.push({ name: 'model', value: modelValue.toString() });
         
-        // 添加线路型号参数字段
-        var modelParasValue = cell['model_paras'] || cellStyle['model_paras'] || '';
-        temp = temp.filter(function(item) { return item.name != 'model_paras'; });
-        temp.push({ name: 'model_paras', value: modelParasValue.toString() });
+        // 线路型号参数拆分为电阻、电抗、电导、电纳，保存时合并为 model_paras 数组
+        var modelParasArr = parseLgModelParasArray(cell['model_paras'] || cellStyle['model_paras'] || '');
+        temp = temp.filter(function(item) {
+            return item.name != 'model_paras' && !isLgModelParasSubField(item.name);
+        });
+        for (var mpi = 0; mpi < LG_MODEL_PARAS_FIELD_KEYS.length; mpi++) {
+            temp.push({
+                name: LG_MODEL_PARAS_FIELD_KEYS[mpi],
+                value: modelParasArr[mpi] != null ? String(modelParasArr[mpi]) : '',
+            });
+        }
         
         // 添加额定载流量字段
         var IhValue = cell['Ih'] || cellStyle['Ih'] || '';
@@ -665,8 +680,17 @@ window.EditDataDialog = function(ui, cell)
             return 0;
         });
     } else if (isBusbarConnector) {
-        // 母线连接线字段顺序：线路名称、线路型号、线路型号参数、额定载流量、线路长度
-        var connectorOrderPref = { name: 0, model: 1, model_paras: 2, Ih: 3, length: 4 };
+        // 母线连接线字段顺序：线路名称、线路型号、电阻/电抗/电导/电纳、额定载流量、线路长度
+        var connectorOrderPref = {
+            name: 0,
+            model: 1,
+            model_paras_r: 2,
+            model_paras_x: 3,
+            model_paras_g: 4,
+            model_paras_b: 5,
+            Ih: 6,
+            length: 7,
+        };
         temp.sort(function(a, b) {
             var oa = Object.prototype.hasOwnProperty.call(connectorOrderPref, a.name) ? connectorOrderPref[a.name] : 100;
             var ob = Object.prototype.hasOwnProperty.call(connectorOrderPref, b.name) ? connectorOrderPref[b.name] : 100;
@@ -903,6 +927,10 @@ window.EditDataDialog = function(ui, cell)
                         if (isBusbar && names[i] == 'sblx') {
                             continue;
                         }
+                        // 母线连接线：电阻/电抗/电导/电纳 合并写入 model_paras，不落库为独立字段
+                        if (isBusbarConnector && isLgModelParasSubField(names[i])) {
+                            continue;
+                        }
 
                         var fieldVal = resolveLgEditFieldValue(names[i], texts[i].value);
                         value.setAttribute(names[i], fieldVal === '' ? '' : String(fieldVal));
@@ -930,7 +958,19 @@ window.EditDataDialog = function(ui, cell)
 
                 // 母线连接线：样式与 XML 双写，便于导出与 collectBusConnectorSubmitPayload 读取
                 if (isBusbarConnector) {
-                    var connectorStyleKeys = ['name', 'model', 'model_paras', 'Ih', 'length', 'AClineid'];
+                    var modelParasParts = [];
+                    for (var mpj = 0; mpj < LG_MODEL_PARAS_FIELD_KEYS.length; mpj++) {
+                        var mpKey = LG_MODEL_PARAS_FIELD_KEYS[mpj];
+                        var mpIdx = names.indexOf(mpKey);
+                        var mpRaw = mpIdx >= 0 && texts[mpIdx] != null ? texts[mpIdx].value : '';
+                        modelParasParts.push(resolveLgEditFieldValue(mpKey, mpRaw));
+                    }
+                    var modelParasSerialized = serializeLgModelParasArray(modelParasParts);
+                    value.setAttribute('model_paras', modelParasSerialized);
+                    cell['model_paras'] = modelParasSerialized;
+                    graph.setCellStyles('model_paras', modelParasSerialized, [cell]);
+
+                    var connectorStyleKeys = ['name', 'model', 'Ih', 'length', 'AClineid'];
                     for (var si = 0; si < names.length; si++) {
                         if (connectorStyleKeys.indexOf(names[si]) < 0) {
                             continue;
