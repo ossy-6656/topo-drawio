@@ -41,7 +41,7 @@
     <!-- 图形容器：包含图形编辑器和加载提示 -->
     <div
         class="graphCon"
-        :class="lgSidebarExpanded ? 'lg-sidebar-expanded' : 'lg-sidebar-collapsed'"
+        :class="isSvgFileMode || !lgSidebarExpanded ? 'lg-sidebar-collapsed' : 'lg-sidebar-expanded'"
         id="graphCon"
     >
         <!-- 图形编辑器容器：mxGraph 渲染的目标容器 -->
@@ -56,7 +56,7 @@
         </div>
 
         <button
-            v-show="lgSidebarExpanded"
+            v-show="!isSvgFileMode && lgSidebarExpanded"
             type="button"
             class="lg-sidebar-toggle lg-sidebar-toggle--collapse"
             title="收起图元面板"
@@ -68,7 +68,7 @@
             </svg>
         </button>
         <button
-            v-show="!lgSidebarExpanded"
+            v-show="!isSvgFileMode && !lgSidebarExpanded"
             type="button"
             class="lg-sidebar-toggle lg-sidebar-toggle--expand"
             title="展开图元面板"
@@ -444,6 +444,27 @@ function resolveCachedLgSwitchDragSize(parser) {
 const LG_SIDEBAR_WIDTH = 240
 const lgSidebarExpanded = ref(true)
 
+function disableLgGraphContextMenus(graph) {
+    if (!graph?.popupMenuHandler) return
+    if (typeof graph.popupMenuHandler.setEnabled === 'function') {
+        graph.popupMenuHandler.setEnabled(false)
+    }
+    graph.popupMenuHandler.factoryMethod = function () {}
+    if (graph.container && typeof mxEvent !== 'undefined' && typeof mxEvent.disableContextMenu === 'function') {
+        mxEvent.disableContextMenu(graph.container)
+    }
+}
+
+/** 区域系统图等只读 SVG 页：隐藏左侧图元面板并禁用编辑 */
+function applyLgSvgViewOnlyMode(ui, container) {
+    applyLgSidebarLayout(ui, container, false)
+    const graph = ui?.editor?.graph
+    if (graph && typeof graph.setEnabled === 'function') {
+        graph.setEnabled(false)
+    }
+    disableLgGraphContextMenus(graph)
+}
+
 function setLgSidebarExpanded(expanded) {
     applyLgSidebarLayout(uiEditor, document.getElementById(conid), expanded)
 }
@@ -687,20 +708,25 @@ window['customShape'] = true
 // 将 App 类挂载到 window 对象，方便全局访问
 window.App = App
 
-// ==================== 页面模式（dataset=/graphLg，gfile=/in-site-svg） ====================
+// ==================== 页面模式（dataset=/graphLg，gfile=/in-site-svg，svgfile=/region-system-svg） ====================
 const props = defineProps({
     mode: {
         type: String,
         default: 'dataset',
-        validator: (v) => ['dataset', 'gfile'].includes(v),
+        validator: (v) => ['dataset', 'gfile', 'svgfile'].includes(v),
     },
     gFileUrl: {
+        type: String,
+        default: '',
+    },
+    svgFileUrl: {
         type: String,
         default: '',
     },
 })
 const isDatasetMode = computed(() => props.mode === 'dataset')
 const isGFileMode = computed(() => props.mode === 'gfile')
+const isSvgFileMode = computed(() => props.mode === 'svgfile')
 
 // ==================== 路由参数获取 ====================
 const route = useRoute()
@@ -753,6 +779,32 @@ async function loadGFromBuffer(arrayBuffer) {
     }
     loadSvgIntoEditor(svgStr)
     return svgStr
+}
+
+/** 从 URL 加载预设 SVG 文件（/region-system-svg 使用） */
+async function loadPresetSvgFile() {
+    const url = props.svgFileUrl
+    if (!url) {
+        ElMessage.error('未配置 SVG 文件路径')
+        return
+    }
+    const statusEl = document.getElementById('geStatus')
+    if (statusEl) {
+        statusEl.textContent = '正在加载 SVG…'
+    }
+    try {
+        const response = await fetch(url)
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+        }
+        loadSvgIntoEditor(await response.text())
+    } catch (e) {
+        console.error('SVG 文件加载失败:', e)
+        if (statusEl) {
+            statusEl.textContent = 'SVG 文件加载失败'
+        }
+        ElMessage.error('SVG 文件加载失败: ' + (e.message || e))
+    }
 }
 
 /** 从 URL 加载预设 G 文件（/in-site-svg 使用） */
@@ -852,8 +904,15 @@ let initEditFun = (svgstr, lgsvgParser) => {
             uiEditor = ui
             hideLgRightFormatPanel(ui, document.getElementById(conid))
             setTimeout(() => {
-                // 直接通过 DOM 查找并显示
                 const container = document.getElementById(conid)
+                if (!container) return
+
+                if (isSvgFileMode.value) {
+                    applyLgSvgViewOnlyMode(ui, container)
+                    return
+                }
+
+                // 直接通过 DOM 查找并显示
                 if (container) {
                     applyLgSidebarLayout(ui, container, lgSidebarExpanded.value)
 
@@ -1173,6 +1232,10 @@ onMounted(() => {
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = true
     }
+    if (isSvgFileMode.value) {
+        window['disableOper'] = true
+        window['customShape'] = false
+    }
 
     applyDrawioSaveStatusIcon()
 
@@ -1233,6 +1296,10 @@ window.initGraphWithSvg = (_svg, themecut) => {
                         loadPresetGFile()
                         return
                     }
+                    if (isSvgFileMode.value) {
+                        loadPresetSvgFile()
+                        return
+                    }
                     const firstSvg = dataSources[selectedData.value]
                     console.log('graphLg init', selectedData.value, firstSvg && firstSvg.length)
                     window.initGraphWithSvg(firstSvg, undefined)
@@ -1260,6 +1327,10 @@ onBeforeUnmount(() => {
     $bus.off('multiScale_zjt')
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = false
+    }
+    if (isSvgFileMode.value) {
+        window['disableOper'] = false
+        window['customShape'] = true
     }
     delete window.navigateToGraphLgWithFeeder
     try {

@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import LOGIN from "../view/login.vue";
 import graphLg from "../view/graph/graphLg.vue";
 import inSiteSvg from "../view/graph/inSiteSvg.vue";
+import regionSystemSvg from "../view/graph/regionSystemSvg.vue";
 import SvgLiaisonDrawio from "../view/liaison/SvgLiaisonDrawio.vue";
  
 const routes = [
@@ -24,6 +25,11 @@ const routes = [
     path: "/in-site-svg",
     name: "inSiteSvg",
     component: inSiteSvg,
+  },
+  {
+    path: "/region-system-svg",
+    name: "regionSystemSvg",
+    component: regionSystemSvg,
   },
   {
     path: "/svg-liaison-drawio",
