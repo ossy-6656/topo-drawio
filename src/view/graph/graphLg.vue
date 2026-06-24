@@ -857,7 +857,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                 if (container) {
                     applyLgSidebarLayout(ui, container, lgSidebarExpanded.value)
 
-                    // 初始化 Sidebar，只加载「负荷」面板
+                    // 初始化 Sidebar：按页面模式加载对应图元面板
                     if (ui.sidebar) {
                         try {
                             // Sidebar 构造时已 init；勿重复 init，避免默认面板重复插入导致顺序漂移
@@ -900,52 +900,6 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 inSiteSizing ??
                                 resolveLgLoadSidebarSizing(lgsvgParser, selectedData.value)
                             const { gScale: loadGScale, dragDef: loadDragDef } = loadSizing
-                            // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸（避免 xb 走 symbol 回退而 substation 走图中位数导致拖入/导出不一致）
-                            const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
-                                const symbolId = entry[0]
-                                const label = entry[1]
-                                const fw = entry[2]
-                                const fh = entry[3]
-                                const styleExtra =
-                                    entry.length > 4 && entry[4] ? String(entry[4]) : ''
-                                const key = String(symbolId).toLowerCase()
-                                const fromGraph = loadDragDef[key]
-                                const { w, h } = resolveLgSidebarDragWh(
-                                    key,
-                                    fw,
-                                    fh,
-                                    fromGraph,
-                                    symbolMapForTpl,
-                                    loadGScale
-                                )
-                                return { symbolId, label, key, w, h, styleExtra }
-                            })
-                            const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
-                            if (pdSize && pdSize.w > 0 && pdSize.h > 0) {
-                                for (const row of lgDeviceSizes) {
-                                    if (row.key === 'xb') {
-                                        row.w = pdSize.w
-                                        row.h = pdSize.h
-                                    }
-                                }
-                            }
-                            const lgDeviceFns = lgDeviceSizes.map(
-                                ({ symbolId, label, w, h, styleExtra }) => {
-                                    const style =
-                                        `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` +
-                                        styleExtra
-                                    return ui.sidebar.createVertexTemplateEntry(
-                                        style,
-                                        w,
-                                        h,
-                                        '',
-                                        label,
-                                        null,
-                                        null,
-                                        label
-                                    )
-                                }
-                            )
 
                             // ── 辅助：解析 mxlibrary XML，返回图元 DOM 节点数组（与 addLibraryEntries 逻辑一致）──
                             const parseScratchpadXml = (xml) => {
@@ -1056,27 +1010,31 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 ...lgNormalLineFns,
                             ]
 
-                            // 侧栏分类顺序：母线、连接线、变压器、机组、开关、负荷（便笺本仍追加到「负荷」）
+                            // 侧栏分类：/in-site-svg → 母线、连接线、变压器、开关；/graphLg → 母线、连接线、机组、开关、负荷
                             ui.sidebar.addPaletteFunctions('lg-busbar', '母线', true, lgBusbarFns)
                             ui.sidebar.addPaletteFunctions('lg-lines', '连接线', true, lgLineFns)
 
-                            const lgTransformerFns = createLgVertexPaletteFns(
-                                ui,
-                                LG_SIDEBAR_TRANSFORMER_ENTRIES,
-                                symbolMapForTpl,
-                                dragDef,
-                                gScale
-                            )
-                            ui.sidebar.addPaletteFunctions('lg-transformer', '变压器', true, lgTransformerFns)
+                            if (gfileMode) {
+                                const lgTransformerFns = createLgVertexPaletteFns(
+                                    ui,
+                                    LG_SIDEBAR_TRANSFORMER_ENTRIES,
+                                    symbolMapForTpl,
+                                    dragDef,
+                                    gScale
+                                )
+                                ui.sidebar.addPaletteFunctions('lg-transformer', '变压器', true, lgTransformerFns)
+                            }
 
-                            const lgUnitFns = createLgVertexPaletteFns(
-                                ui,
-                                LG_SIDEBAR_UNIT_ENTRIES,
-                                symbolMapForTpl,
-                                dragDef,
-                                gScale
-                            )
-                            ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
+                            if (!gfileMode) {
+                                const lgUnitFns = createLgVertexPaletteFns(
+                                    ui,
+                                    LG_SIDEBAR_UNIT_ENTRIES,
+                                    symbolMapForTpl,
+                                    dragDef,
+                                    gScale
+                                )
+                                ui.sidebar.addPaletteFunctions('lg-unit', '机组', true, lgUnitFns)
+                            }
 
                             const buildLgSwitchPaletteFns = () => {
                                 const size = resolveCachedLgSwitchDragSize(lgsvgParser)
@@ -1108,44 +1066,87 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                 buildLgSwitchPaletteFns()
                             )
 
-                            ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
-
-                            // ── 辅助：将解析出的图元节点追加到「负荷」面板 ──
-                            const appendScratchNodes = (scratchNodes) => {
-                                if (!scratchNodes || scratchNodes.length === 0) return
-                                // palettes['lg-devices'] = [titleEl, outerDiv]
-                                // outerDiv.firstChild 是 .geSidebar content div
-                                const palette = ui.sidebar.palettes['lg-devices']
-                                const contentDiv = palette && palette[1] && palette[1].firstChild
-                                if (contentDiv) {
-                                    scratchNodes.forEach(node => contentDiv.appendChild(node))
-                                    console.log('便笺本图元已追加到「负荷」面板，共', scratchNodes.length, '个')
-                                } else {
-                                    console.warn('未找到「负荷」面板 content div，palettes:', ui.sidebar.palettes['lg-devices'])
-                                }
-                            }
-
-                            // 异步追加便笺本图元
-                            const loadScratchpad = () => {
-                                if (typeof StorageFile !== 'undefined') {
-                                    StorageFile.getFileContent(ui, '.scratchpad', (xml) => {
-                                        console.log('StorageFile.getFileContent 回调，xml长度:', xml ? xml.length : 0)
-                                        if (xml && xml !== ui.emptyLibraryXml) {
-                                            appendScratchNodes(parseScratchpadXml(xml))
-                                        } else {
-                                            // 降级：从 localStorage 尝试
-                                            const lsXml = localStorage.getItem('.scratchpad')
-                                            console.log('localStorage .scratchpad 长度:', lsXml ? lsXml.length : 0)
-                                            if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                            if (!gfileMode) {
+                                // 先算出各负荷图元宽高；箱式变(zf08) 与配电站(zf06) 强制同尺寸
+                                const lgDeviceSizes = LG_SIDEBAR_DEVICE_ENTRIES.map((entry) => {
+                                    const symbolId = entry[0]
+                                    const label = entry[1]
+                                    const fw = entry[2]
+                                    const fh = entry[3]
+                                    const styleExtra =
+                                        entry.length > 4 && entry[4] ? String(entry[4]) : ''
+                                    const key = String(symbolId).toLowerCase()
+                                    const fromGraph = loadDragDef[key]
+                                    const { w, h } = resolveLgSidebarDragWh(
+                                        key,
+                                        fw,
+                                        fh,
+                                        fromGraph,
+                                        symbolMapForTpl,
+                                        loadGScale
+                                    )
+                                    return { symbolId, label, key, w, h, styleExtra }
+                                })
+                                const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
+                                if (pdSize && pdSize.w > 0 && pdSize.h > 0) {
+                                    for (const row of lgDeviceSizes) {
+                                        if (row.key === 'xb') {
+                                            row.w = pdSize.w
+                                            row.h = pdSize.h
                                         }
-                                    })
-                                } else {
-                                    // StorageFile 未定义，直接读 localStorage
-                                    const lsXml = localStorage.getItem('.scratchpad')
-                                    if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                                    }
                                 }
+                                const lgDeviceFns = lgDeviceSizes.map(
+                                    ({ symbolId, label, w, h, styleExtra }) => {
+                                        const style =
+                                            `shape=${symbolId};whiteSpace=wrap;aspect=fixed;` +
+                                            styleExtra
+                                        return ui.sidebar.createVertexTemplateEntry(
+                                            style,
+                                            w,
+                                            h,
+                                            '',
+                                            label,
+                                            null,
+                                            null,
+                                            label
+                                        )
+                                    }
+                                )
+                                ui.sidebar.addPaletteFunctions('lg-devices', '负荷', true, lgDeviceFns)
+
+                                // ── 辅助：将解析出的图元节点追加到「负荷」面板 ──
+                                const appendScratchNodes = (scratchNodes) => {
+                                    if (!scratchNodes || scratchNodes.length === 0) return
+                                    const palette = ui.sidebar.palettes['lg-devices']
+                                    const contentDiv = palette && palette[1] && palette[1].firstChild
+                                    if (contentDiv) {
+                                        scratchNodes.forEach(node => contentDiv.appendChild(node))
+                                        console.log('便笺本图元已追加到「负荷」面板，共', scratchNodes.length, '个')
+                                    } else {
+                                        console.warn('未找到「负荷」面板 content div，palettes:', ui.sidebar.palettes['lg-devices'])
+                                    }
+                                }
+
+                                const loadScratchpad = () => {
+                                    if (typeof StorageFile !== 'undefined') {
+                                        StorageFile.getFileContent(ui, '.scratchpad', (xml) => {
+                                            console.log('StorageFile.getFileContent 回调，xml长度:', xml ? xml.length : 0)
+                                            if (xml && xml !== ui.emptyLibraryXml) {
+                                                appendScratchNodes(parseScratchpadXml(xml))
+                                            } else {
+                                                const lsXml = localStorage.getItem('.scratchpad')
+                                                console.log('localStorage .scratchpad 长度:', lsXml ? lsXml.length : 0)
+                                                if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                                            }
+                                        })
+                                    } else {
+                                        const lsXml = localStorage.getItem('.scratchpad')
+                                        if (lsXml) appendScratchNodes(parseScratchpadXml(lsXml))
+                                    }
+                                }
+                                loadScratchpad()
                             }
-                            loadScratchpad()
 
                         } catch (e) {
                             console.error('初始化 Sidebar 失败:', e)
