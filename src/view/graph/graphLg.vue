@@ -450,34 +450,104 @@ function setLgSidebarExpanded(expanded) {
     applyLgSidebarLayout(uiEditor, document.getElementById(conid), expanded)
 }
 
-/** 侧栏展开/收起后，按当前可视区域重新居中并适配 SVG 内容 */
+function isLgGraphDragActive(graph) {
+    if (!graph) return false
+    if (typeof graph.isMouseDown === 'function' && graph.isMouseDown()) return true
+    const gh = graph.graphHandler
+    return gh != null && gh.first != null
+}
+
+/** 全图内容边界（图坐标，忽略当前选中项，避免拖入的开关/变压器单独撑满视口） */
+function getLgDiagramFitBounds(graph) {
+    const bounds = graph.getGraphBounds()
+    if (!bounds || bounds.width <= 0 || bounds.height <= 0) return null
+    const t = graph.view.translate
+    const s = graph.view.scale
+    return {
+        x: bounds.x / s - t.x,
+        y: bounds.y / s - t.y,
+        width: bounds.width / s,
+        height: bounds.height / s,
+    }
+}
+
+/** 内容过小时按视口等比扩展边界，避免 fit 时过度放大 */
+function expandLgFitBounds(bounds, minW, minH) {
+    if (bounds.width >= minW && bounds.height >= minH) return bounds
+    const cx = bounds.x + bounds.width / 2
+    const cy = bounds.y + bounds.height / 2
+    const w = Math.max(bounds.width, minW)
+    const h = Math.max(bounds.height, minH)
+    return { x: cx - w / 2, y: cy - h / 2, width: w, height: h }
+}
+
+/** 侧栏展开/收起后：按全图居中适配，限制放大倍数，避免单个图元占满全屏 */
 function fitLgDiagramToViewport(ui) {
     if (!ui?.editor?.graph) return
     if (window['drawflag']) return
 
     const graph = ui.editor.graph
     if (typeof graph.isEditing === 'function' && graph.isEditing()) return
+    if (isLgGraphDragActive(graph)) return
+
+    const LG_SIDEBAR_FIT_MAX_SCALE = 2
 
     const doFit = () => {
         try {
-            if (typeof ui.fitDiagramToWindow === 'function') {
-                ui.fitDiagramToWindow()
-            } else {
-                const action = ui.actions?.get('fitWindow')
-                if (action?.funct) {
-                    action.funct()
-                }
+            if (isLgGraphDragActive(graph)) return
+
+            const border = 10
+            const cw = graph.container.clientWidth - border
+            const ch = graph.container.clientHeight - border
+            if (cw <= 0 || ch <= 0) return
+
+            const prevScale = graph.view.scale
+            let bounds = getLgDiagramFitBounds(graph)
+            if (!bounds) {
+                graph.zoomTo(1)
+                if (typeof ui.resetScrollbars === 'function') ui.resetScrollbars()
+                return
             }
-            ui.scrollLeft = graph.container.scrollLeft
-            ui.scrollTop = graph.container.scrollTop
+
+            // 内容小于当前视口时扩展虚拟边界，配合缩放上限防止单开关/变压器撑满画布
+            const minW = cw / Math.max(prevScale, 1)
+            const minH = ch / Math.max(prevScale, 1)
+            bounds = expandLgFitBounds(bounds, minW, minH)
+
+            let scale =
+                Math.floor(20 * Math.min(cw / bounds.width, ch / bounds.height)) / 20
+            scale = Math.min(scale, prevScale, LG_SIDEBAR_FIT_MAX_SCALE)
+            scale = Math.max(scale, 0.01)
+
+            graph.zoomTo(scale)
+
+            const t = graph.view.translate
+            const scrollLeft =
+                (bounds.x + t.x) * scale -
+                Math.max((cw - bounds.width * scale) / 2 + border / 2, 0)
+            const scrollTop =
+                (bounds.y + t.y) * scale -
+                Math.max((ch - bounds.height * scale) / 2 + border / 2, 0)
+
+            window.setTimeout(() => {
+                graph.container.scrollLeft = Math.max(0, scrollLeft)
+                graph.container.scrollTop = Math.max(0, scrollTop)
+                ui.scrollLeft = graph.container.scrollLeft
+                ui.scrollTop = graph.container.scrollTop
+                if (typeof graph.sizeDidChange === 'function') {
+                    graph.sizeDidChange()
+                }
+                if (ui.toolbar?.updateZoom) ui.toolbar.updateZoom()
+            }, 0)
         } catch (e) {
             console.warn('侧栏切换后画布适配失败', e)
         }
     }
 
-    // 等待 refresh / DOM 布局完成后再读取新的 container 尺寸
     window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(doFit)
+        window.requestAnimationFrame(() => {
+            window.setTimeout(doFit, 50)
+        })
     })
 }
 
@@ -533,6 +603,13 @@ function applyLgSidebarLayout(ui, container, expanded) {
         }
     }
     hideLgRightFormatPanel(ui, container, false)
+    const graph = ui?.editor?.graph
+    if (ui && typeof ui.refresh === 'function') {
+        ui.refresh()
+    }
+    if (graph && typeof graph.sizeDidChange === 'function') {
+        graph.sizeDidChange()
+    }
     fitLgDiagramToViewport(ui)
 }
 
