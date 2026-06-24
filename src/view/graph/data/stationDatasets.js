@@ -9,6 +9,10 @@ import { jinyiSvg } from './jinyi.js'
 import { yongqiuSvg } from './yongqiu.js'
 import { longtanSvg } from './longtan.js'
 import { fulongSvg } from './fulong.js'
+import { fucheng09Svg } from './fucheng09.js'
+import { fucheng19Svg } from './fucheng19.js'
+import { fucheng22Svg } from './fucheng22.js'
+import { fucheng23Svg } from './fucheng23.js'
 
 export const STATION_DATA_OPTIONS = [
     { value: 'changcun', label: '常村变电站', svg: changcunSvg },
@@ -17,7 +21,11 @@ export const STATION_DATA_OPTIONS = [
     { value: 'jinyi', label: '锦艺变电站', svg: jinyiSvg },
     { value: 'yongqiu', label: '雍丘变电站', svg: yongqiuSvg },
     { value: 'longtan', label: '龙潭变电站', svg: longtanSvg },
-    { value: 'fulong', label: '浮龙变电站', svg: fulongSvg }
+    { value: 'fulong', label: '浮龙变电站', svg: fulongSvg },
+    { value: 'fucheng09', label: '府城变09板府东线', svg: fucheng09Svg },
+    { value: 'fucheng19', label: '府城变19板府美线', svg: fucheng19Svg },
+    { value: 'fucheng22', label: '府城变22板II府正线', svg: fucheng22Svg },
+    { value: 'fucheng23', label: '府城变23板府馨线', svg: fucheng23Svg }
 ]
 
 export const STATION_DATA_MAP = Object.fromEntries(

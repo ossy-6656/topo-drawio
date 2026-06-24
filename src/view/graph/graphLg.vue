@@ -30,8 +30,6 @@
     >
         <span style="font-size: 14px; font-weight: 500; color: #333;">选择数据源：</span>
         <select id="dataSelect" v-model="selectedData" @change="handleDataChange" style="padding: 6px 12px; font-size: 14px; border: 1px solid #dcdfe6; border-radius: 4px; background: #fff; cursor: pointer; outline: none; min-width: 150px;">
-            <option value="zjtSvg">lgdata (示例数据)</option>
-            <option value="svg2">svg2</option>
             <option
                 v-for="opt in stationDataOptions"
                 :key="opt.value"
@@ -734,9 +732,11 @@ if (feederFromRoute?.feeder) {
 // ==================== 组件状态变量 ====================
 let uiEditor                       // 编辑器 UI 实例（App 类的实例）
 let poleEle = ref()                 // 柱上辅助复选框的引用
-const selectedData = ref(feederFromRoute ? 'changcun' : 'zjtSvg')  // 站内馈线跳转时默认常村变电站
+const selectedData = ref('fucheng23')  // /graphLg 及站内馈线跳转默认府城变23板府馨线
 
-const stationDataOptions = STATION_DATA_OPTIONS
+/** /graphLg 数据源下拉框可见项（仅府城变四条线路） */
+const VISIBLE_DATASET_KEYS = ['fucheng09', 'fucheng19', 'fucheng22', 'fucheng23']
+const stationDataOptions = STATION_DATA_OPTIONS.filter((o) => VISIBLE_DATASET_KEYS.includes(o.value))
 
 // 数据源映射
 const dataSources = {
@@ -1237,7 +1237,7 @@ window.initGraphWithSvg = (_svg, themecut) => {
                     window.initGraphWithSvg(firstSvg, undefined)
                     if (feederFromRoute) {
                         const stationLabel =
-                            stationDataOptions.find((o) => o.value === selectedData.value)?.label || '常村变电站'
+                            stationDataOptions.find((o) => o.value === selectedData.value)?.label || '府城变23板府馨线'
                         ElMessage.success(
                             `已打开馈线：${feederFromRoute.feeder || feederFromRoute.feederKey}（${stationLabel}）`
                         )

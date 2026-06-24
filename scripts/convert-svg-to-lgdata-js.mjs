@@ -18,6 +18,10 @@ const STATION_SVG_MAP = [
     { file: '雍丘变电站.svg', exportName: 'yongqiuSvg', key: 'yongqiu' },
     { file: '龙潭变电站.svg', exportName: 'longtanSvg', key: 'longtan' },
     { file: '浮龙变电站.svg', exportName: 'fulongSvg', key: 'fulong' },
+    { file: '府城变09板府东线.svg', exportName: 'fucheng09Svg', key: 'fucheng09' },
+    { file: '府城变19板府美线.svg', exportName: 'fucheng19Svg', key: 'fucheng19' },
+    { file: '府城变22板II府正线.svg', exportName: 'fucheng22Svg', key: 'fucheng22' },
+    { file: '府城变23板府馨线.svg', exportName: 'fucheng23Svg', key: 'fucheng23' },
 ]
 
 function normalizeSvgForLgdata(svg) {
