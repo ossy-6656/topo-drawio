@@ -800,6 +800,7 @@ text=文本
 textAlignment=文本对齐
 textOpacity=字体不透明度
 theme=主题
+simulation=仿真
 timeout=超时
 title=标题
 to=至

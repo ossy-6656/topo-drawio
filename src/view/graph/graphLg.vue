@@ -723,6 +723,10 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    flowDataUrl: {
+        type: String,
+        default: '',
+    },
 })
 const isDatasetMode = computed(() => props.mode === 'dataset')
 const isGFileMode = computed(() => props.mode === 'gfile')
@@ -1232,6 +1236,10 @@ onMounted(() => {
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = true
     }
+    if (isDatasetMode.value || isGFileMode.value) {
+        window.__lgSimulationMenuEnabled = true
+        window.__lgRegionFlowDataUrl = props.flowDataUrl || ''
+    }
     if (isSvgFileMode.value) {
         window['disableOper'] = true
         window['customShape'] = false
@@ -1327,6 +1335,10 @@ onBeforeUnmount(() => {
     $bus.off('multiScale_zjt')
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = false
+    }
+    if (isDatasetMode.value || isGFileMode.value) {
+        window.__lgSimulationMenuEnabled = false
+        window.__lgRegionFlowDataUrl = ''
     }
     if (isSvgFileMode.value) {
         window['disableOper'] = false

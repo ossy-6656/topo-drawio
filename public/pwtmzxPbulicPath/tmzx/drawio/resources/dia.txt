@@ -767,6 +767,7 @@ text=Text
 textAlignment=Text Alignment
 textOpacity=Text Opacity
 theme=Theme
+simulation=Simulation
 timeout=Timeout
 title=Title
 to=to
