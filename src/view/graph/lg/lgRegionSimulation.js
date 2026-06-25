@@ -1,12 +1,25 @@
 /**
  * 区域系统图仿真菜单：潮流数据上图、越限设备高亮
+ * 潮流匹配：SVG 图元 metadata 中 cge:PSR_Ref.GlobeID ↔ JSON 的 busid/lineid/trafoid
  */
 import { ElMessage } from 'element-plus'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
-import { isLgLoadShapeOrPsr } from '@/view/graph/lg/Constants.js'
+import TextUtil from '@/plugins/tmzx/graph/TextUtil.js'
+import {
+    isLgLoadShapeOrPsr,
+    isLgSwitchShapeOrPsr,
+    lgSwitchStatusLabel,
+} from '@/view/graph/lg/Constants.js'
 
 const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
+const OVERLAY_FONT_SIZE = 9
+const OVERLAY_GAP = 2
+const FLOW_P_EPS = 1e-9
+const FLOW_MOTION_DUR_SEC = 5.5
+const FLOW_MOTION_ARROW_COLOR = '#00e5ff'
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const LG_FLOW_MOTION_ATTR = 'data-lg-flow-motion'
 const WARN_HIGHLIGHT_STROKE = '#ffcc00'
 const HIGHLIGHT_STROKE_WIDTH = 4
 const BLINK_INTERVAL_MS = 600
@@ -28,6 +41,9 @@ let warnBlinkTimer = null
 let warnBlinkGraph = null
 let warnBlinkPhaseOn = true
 let warnBlinkSyncHandler = null
+/** @type {{ graph: object, items: Array<{ edge: object, record: object }>, parser: object, indexes: object } | null} */
+let lgFlowMotionContext = null
+let lgFlowMotionRefreshTimer = null
 
 /** /graphLg、/in-site-svg 显示仿真菜单；/region-system-svg 不显示 */
 function isLgSimulationMenuEnabled() {
@@ -133,23 +149,425 @@ function buildFlowIndexes(data) {
     const lineByName = new Map()
     const busById = new Map()
     const busByName = new Map()
+    const busByIndex = new Map()
     const trafoById = new Map()
     const trafoByName = new Map()
+    const genById = new Map()
+    const genByName = new Map()
+    const loadById = new Map()
+    const loadByName = new Map()
+    const switchById = new Map()
+    const switchByName = new Map()
+    const recordByGlobeId = new Map()
+
+    const indexGlobe = (rawId, record, type) => {
+        for (const key of flowIdVariants(rawId)) {
+            if (!recordByGlobeId.has(key)) {
+                recordByGlobeId.set(key, { record, type })
+            }
+        }
+    }
 
     for (const line of data.res_line || []) {
-        if (line.lineid) indexFlowRecord(lineById, line.lineid, line)
+        if (line.lineid) {
+            indexFlowRecord(lineById, line.lineid, line)
+            indexGlobe(line.lineid, line, 'line')
+        }
         if (line.name) lineByName.set(normalizeName(line.name), line)
     }
     for (const bus of data.res_bus || []) {
-        if (bus.busid) indexFlowRecord(busById, bus.busid, bus)
+        if (bus.busid) {
+            indexFlowRecord(busById, bus.busid, bus)
+            indexGlobe(bus.busid, bus, 'bus')
+        }
         if (bus.name) busByName.set(normalizeName(bus.name), bus)
+        if (bus.index != null) busByIndex.set(bus.index, bus)
     }
     for (const trafo of data.res_trafo || []) {
-        if (trafo.trafoid) indexFlowRecord(trafoById, trafo.trafoid, trafo)
+        if (trafo.trafoid) {
+            indexFlowRecord(trafoById, trafo.trafoid, trafo)
+            indexGlobe(trafo.trafoid, trafo, 'trafo')
+        }
         if (trafo.name) trafoByName.set(normalizeName(trafo.name), trafo)
     }
+    for (const gen of data.res_gen || []) {
+        if (gen.genid) {
+            indexFlowRecord(genById, gen.genid, gen)
+            indexGlobe(gen.genid, gen, 'gen')
+        }
+        if (gen.name) genByName.set(normalizeName(gen.name), gen)
+    }
+    for (const load of data.res_load || []) {
+        if (load.loadid) {
+            indexFlowRecord(loadById, load.loadid, load)
+            indexGlobe(load.loadid, load, 'load')
+        }
+        if (load.name) loadByName.set(normalizeName(load.name), load)
+    }
+    for (const sw of data.res_switch || []) {
+        const switchId = sw.switchid || sw.breakerid || sw.busid
+        if (switchId) {
+            indexFlowRecord(switchById, switchId, sw)
+            indexGlobe(switchId, sw, 'switch')
+        }
+        if (sw.name) switchByName.set(normalizeName(sw.name), sw)
+    }
 
-    return { lineById, lineByName, busById, busByName, trafoById, trafoByName }
+    return {
+        lineById,
+        lineByName,
+        busById,
+        busByName,
+        busByIndex,
+        trafoById,
+        trafoByName,
+        genById,
+        genByName,
+        loadById,
+        loadByName,
+        switchById,
+        switchByName,
+        recordByGlobeId,
+    }
+}
+
+/** 从图元 metadata 提取 GlobeID（与 JSON 中 busid/lineid/trafoid 对应） */
+function getCellGlobeIds(cell, parser) {
+    const ids = []
+    const seen = new Set()
+    const push = (raw) => {
+        const n = normalizeId(raw)
+        if (!raw || seen.has(n)) return
+        seen.add(n)
+        ids.push(String(raw))
+    }
+
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref']
+    if (psr?.GlobeID) push(psr.GlobeID)
+    if (psr?.GeoPsrid) push(psr.GeoPsrid)
+
+    const fromObjectId = extractGlobeIdFromObjectId(cell.id)
+    if (fromObjectId && (fromObjectId.length > 12 || /^sbid/i.test(fromObjectId))) {
+        push(fromObjectId)
+    }
+
+    return ids
+}
+
+function getPreferredRecordTypes(cell, graph) {
+    const category = getFlowOverlayDeviceCategory(cell, graph)
+    if (category === 'line') return ['line', 'bus', 'trafo']
+    if (category === 'bus') return ['bus', 'line', 'trafo']
+    if (category === 'gen') return ['gen', 'bus', 'line']
+    if (category === 'load') return ['load', 'bus', 'line']
+    if (category === 'switch') return ['switch', 'bus', 'line']
+    if (isTrafoOrLoadDevice(cell, graph)) return ['trafo', 'line', 'bus']
+    return ['bus', 'line', 'trafo', 'gen', 'load', 'switch']
+}
+
+/** 潮流上图支持的设备类型 */
+function getFlowOverlayDeviceCategory(cell, graph) {
+    const model = graph.getModel()
+    const { shape, psrtype } = getCellShapeInfo(cell, graph)
+    if (model.isEdge(cell)) return 'line'
+    if (DeviceCategoryUtil?.isBusCell?.(cell)) return 'bus'
+    if (isLgSwitchShapeOrPsr(shape, psrtype)) return 'switch'
+    if (shape === 'generatingunit') return 'gen'
+    if (psrtype === '370000' || shape.startsWith('energyconsumer_')) return 'load'
+    return null
+}
+
+function getCellDisplayName(cell, parser, record) {
+    const psrName = getCellPropMap(cell, parser)?.['cge:PSR_Ref']?.ObjectName
+    return String(psrName || cell.name || record?.name || '').trim()
+}
+
+function calcBusRmsVoltage(record) {
+    if (record?.rms_voltage != null && record.rms_voltage !== '') {
+        return Number(record.rms_voltage)
+    }
+    if (record?.vm_pu != null && record?.vn_kv != null) {
+        return Number(record.vm_pu) * Number(record.vn_kv)
+    }
+    return null
+}
+
+function resolveLineVnKv(record, indexes) {
+    if (record?.vn_kv != null) return Number(record.vn_kv)
+    const fromBus = indexes.busByIndex?.get(record?.from_bus)
+    if (fromBus?.vn_kv != null) return Number(fromBus.vn_kv)
+    const toBus = indexes.busByIndex?.get(record?.to_bus)
+    if (toBus?.vn_kv != null) return Number(toBus.vn_kv)
+    return null
+}
+
+function lineHasFlow(record) {
+    const p = Number(record?.p_from_mw)
+    if (record?.p_from_mw == null || Number.isNaN(p)) return false
+    return Math.abs(p) >= FLOW_P_EPS
+}
+
+function terminalMatchesBus(terminal, busRecord, parser) {
+    if (!terminal || !busRecord?.busid) return false
+    if (!DeviceCategoryUtil?.isBusCell?.(terminal)) return false
+
+    for (const gid of getCellGlobeIds(terminal, parser)) {
+        for (const v of flowIdVariants(gid)) {
+            for (const bv of flowIdVariants(busRecord.busid)) {
+                if (v === bv) return true
+            }
+        }
+    }
+
+    const cellName = normalizeName(getCellDisplayName(terminal, parser, busRecord))
+    return Boolean(cellName && normalizeName(busRecord.name) === cellName)
+}
+
+/** 判断线路运动箭头是否应沿 absolutePoints 反向（结合 p_from_mw 与 from/to 母线端子） */
+function shouldReverseLineFlowPath(edge, graph, parser, record, indexes) {
+    const p = Number(record.p_from_mw)
+    const model = graph.getModel()
+    const src = model.getTerminal(edge, true)
+    const tgt = model.getTerminal(edge, false)
+    const fromBus = indexes.busByIndex?.get(record.from_bus)
+    const toBus = indexes.busByIndex?.get(record.to_bus)
+
+    if (fromBus && terminalMatchesBus(src, fromBus, parser)) {
+        return p < 0
+    }
+    if (fromBus && terminalMatchesBus(tgt, fromBus, parser)) {
+        return p > 0
+    }
+    if (toBus && terminalMatchesBus(src, toBus, parser)) {
+        return p > 0
+    }
+    if (toBus && terminalMatchesBus(tgt, toBus, parser)) {
+        return p < 0
+    }
+    return p < 0
+}
+
+function createSvgEl(name) {
+    return document.createElementNS(SVG_NS, name)
+}
+
+function roundPathCoord(v) {
+    return Math.round(Number(v) * 10) / 10
+}
+
+function buildPolylineMotionPathD(pts) {
+    if (!pts || pts.length < 2) return null
+    const chunks = []
+    let pen = 0
+    for (let i = 0; i < pts.length; i++) {
+        const p = pts[i]
+        if (p == null || Number.isNaN(p.x) || Number.isNaN(p.y)) return null
+        const x = roundPathCoord(p.x)
+        const y = roundPathCoord(p.y)
+        if (i > 0) {
+            const q = pts[i - 1]
+            if (q && Math.abs(q.x - p.x) < 1e-3 && Math.abs(q.y - p.y) < 1e-3) continue
+        }
+        chunks.push(pen === 0 ? `M${x} ${y}` : `L${x} ${y}`)
+        pen++
+    }
+    return chunks.length >= 2 ? chunks.join(' ') : null
+}
+
+function lgFlowMotionPathIdForCell(cell, batchId, seq) {
+    const raw = String(cell?.id ?? 'e').replace(/[^a-zA-Z0-9_-]+/g, '_')
+    return `lg_mpath_${batchId}_${seq}_${raw}`
+}
+
+function removeLgFlowMotionArrowsFromOverlay(graph) {
+    const overlay = graph?.view?.getOverlayPane?.()
+    if (!overlay || typeof overlay.querySelectorAll !== 'function') return
+    overlay.querySelectorAll(`g[${LG_FLOW_MOTION_ATTR}="1"]`).forEach((g) => g.remove())
+}
+
+function clearLgFlowMotionArrows(graph) {
+    removeLgFlowMotionArrowsFromOverlay(graph)
+    lgFlowMotionContext = null
+    if (graph) {
+        delete graph._lgFlowMotionContext
+    }
+}
+
+function scheduleLgFlowMotionArrowsRefresh(graph) {
+    if (typeof window === 'undefined' || !graph || !lgFlowMotionContext) return
+    if (lgFlowMotionRefreshTimer != null) {
+        window.clearTimeout(lgFlowMotionRefreshTimer)
+    }
+    lgFlowMotionRefreshTimer = window.setTimeout(() => {
+        lgFlowMotionRefreshTimer = null
+        applyLgFlowMotionArrows(graph)
+    }, 90)
+}
+
+function ensureLgFlowMotionViewListeners(graph) {
+    if (!graph?.view || graph._lgFlowMotionViewListeners || typeof mxEvent === 'undefined') return
+
+    const schedule = () => scheduleLgFlowMotionArrowsRefresh(graph)
+    graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, schedule)
+    graph.view.addListener(mxEvent.SCALE, schedule)
+    graph.view.addListener(mxEvent.TRANSLATE, schedule)
+    graph.addListener('cssTransformChanged', schedule)
+    graph.addListener(mxEvent.SIZE, schedule)
+    graph._lgFlowMotionViewListeners = true
+}
+
+function appendLgFlowMotionArrow(graph, edge, record, parser, indexes, batchId, seq) {
+    if (!lineHasFlow(record)) return
+
+    const st = graph.view.getState(edge)
+    let pts = st?.absolutePoints
+    if (!pts || pts.length < 2) return
+
+    if (shouldReverseLineFlowPath(edge, graph, parser, record, indexes)) {
+        pts = pts.slice().reverse()
+    }
+
+    const d = buildPolylineMotionPathD(pts)
+    if (!d) return
+
+    const overlay = graph.view.getOverlayPane?.()
+    if (!overlay) return
+
+    const edgeStyle = graph.getCurrentCellStyle(edge) || {}
+    const strokeColor = String(edgeStyle.strokeColor || FLOW_MOTION_ARROW_COLOR)
+    const lineW = Math.max(1.5, Number(edgeStyle.strokewidth || edgeStyle.strokeWidth || 2))
+    const scale = graph.view.scale || 1
+    const pathId = lgFlowMotionPathIdForCell(edge, batchId, seq)
+    const h = Math.max(7, lineW * 3.2) * scale
+    const L = Math.max(14, lineW * 6.4) * scale
+
+    const wrap = createSvgEl('g')
+    wrap.setAttribute(LG_FLOW_MOTION_ATTR, '1')
+    wrap.setAttribute('pointer-events', 'none')
+
+    const defs = createSvgEl('defs')
+    const path = createSvgEl('path')
+    path.setAttribute('id', pathId)
+    path.setAttribute('d', d)
+    path.setAttribute('fill', 'none')
+    path.setAttribute('stroke', 'none')
+    path.setAttribute('stroke-width', '0')
+    defs.appendChild(path)
+    wrap.appendChild(defs)
+
+    const poly = createSvgEl('polygon')
+    poly.setAttribute('points', `0,${-h} ${L},0 0,${h}`)
+    poly.setAttribute('fill', strokeColor)
+    poly.setAttribute('stroke', 'none')
+
+    const anim = createSvgEl('animateMotion')
+    anim.setAttribute('dur', `${FLOW_MOTION_DUR_SEC}s`)
+    anim.setAttribute('repeatCount', 'indefinite')
+    anim.setAttribute('rotate', 'auto')
+    anim.setAttribute('calcMode', 'linear')
+    const mpath = createSvgEl('mpath')
+    mpath.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#${pathId}`)
+    mpath.setAttribute('href', `#${pathId}`)
+    anim.appendChild(mpath)
+    poly.appendChild(anim)
+    wrap.appendChild(poly)
+
+    overlay.appendChild(wrap)
+}
+
+function applyLgFlowMotionArrows(graph) {
+    if (typeof document === 'undefined' || !graph?.view?.getOverlayPane || !lgFlowMotionContext) return
+
+    const { items, parser, indexes } = lgFlowMotionContext
+    removeLgFlowMotionArrowsFromOverlay(graph)
+    graph.view.validate()
+
+    const batchId = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+    items.forEach(({ edge, record }, seq) => {
+        if (!graph.view.getState(edge)) return
+        appendLgFlowMotionArrow(graph, edge, record, parser, indexes, batchId, seq)
+    })
+}
+
+function storeLgFlowMotionContext(graph, items, parser, indexes) {
+    lgFlowMotionContext = { graph, items, parser, indexes }
+    graph._lgFlowMotionContext = lgFlowMotionContext
+    ensureLgFlowMotionViewListeners(graph)
+    applyLgFlowMotionArrows(graph)
+    if (typeof window !== 'undefined') {
+        window.requestAnimationFrame(() => applyLgFlowMotionArrows(graph))
+        window.setTimeout(() => applyLgFlowMotionArrows(graph), 100)
+    }
+}
+function formatSwitchClosedValue(record, cell, graph) {
+    if (record?.closed != null) {
+        return record.closed === true || record.closed === 'true' || record.closed === 1 ? '闭合' : '断开'
+    }
+    const st = graph.getCurrentCellStyle(cell) || {}
+    if (st.status != null) {
+        return lgSwitchStatusLabel(st.status)
+    }
+    const shape = String(st.shape || cell.symbol || '').toLowerCase()
+    if (shape === 'cbreaker_open' || shape.includes('@0')) {
+        return '断开'
+    }
+    return '闭合'
+}
+
+function matchFlowRecordByName(cell, graph, parser, indexes) {
+    const category = getFlowOverlayDeviceCategory(cell, graph)
+    if (!category) return null
+
+    const name = normalizeName(getCellDisplayName(cell, parser, null))
+    if (!name) return null
+
+    if (category === 'gen' && indexes.genByName.has(name)) return indexes.genByName.get(name)
+    if (category === 'load' && indexes.loadByName.has(name)) return indexes.loadByName.get(name)
+    if (category === 'switch' && indexes.switchByName.has(name)) return indexes.switchByName.get(name)
+    if (category === 'bus' && indexes.busByName.has(name)) return indexes.busByName.get(name)
+    if (category === 'line' && indexes.lineByName.has(name)) return indexes.lineByName.get(name)
+    return null
+}
+
+function lookupRecordsByGlobeId(globeId, recordByGlobeId) {
+    const hits = []
+    const seenRecord = new Set()
+    for (const key of flowIdVariants(globeId)) {
+        const hit = recordByGlobeId.get(key)
+        if (hit && !seenRecord.has(hit.record)) {
+            seenRecord.add(hit.record)
+            hits.push(hit)
+        }
+    }
+    return hits
+}
+
+/** 优先按 GlobeID 匹配 JSON 中的 bus / line / trafo 记录 */
+function matchFlowRecordByGlobeId(cell, graph, parser, recordByGlobeId) {
+    const globeIds = getCellGlobeIds(cell, parser)
+    if (!globeIds.length) return null
+
+    const typeOrder = getPreferredRecordTypes(cell, graph)
+    const allHits = []
+    for (const globeId of globeIds) {
+        allHits.push(...lookupRecordsByGlobeId(globeId, recordByGlobeId))
+    }
+    if (!allHits.length) return null
+
+    for (const preferType of typeOrder) {
+        for (const hit of allHits) {
+            if (hit.type === preferType && acceptsTrafoRecord(cell, graph, parser, hit.record)) {
+                return hit.record
+            }
+        }
+    }
+    for (const hit of allHits) {
+        if (acceptsTrafoRecord(cell, graph, parser, hit.record)) {
+            return hit.record
+        }
+    }
+    return null
 }
 
 function addGlobeIdKeys(keys, rawGlobeId) {
@@ -213,22 +631,48 @@ function isTrafoOrLoadDevice(cell, graph) {
 
 function getFlowMatchMaps(cell, graph, indexes) {
     const model = graph.getModel()
+    const category = getFlowOverlayDeviceCategory(cell, graph)
     const maps = []
 
-    if (model.isEdge(cell)) {
+    if (category === 'line' || model.isEdge(cell)) {
         maps.push(indexes.lineById, indexes.lineByName, indexes.busById, indexes.busByName)
-    } else if (DeviceCategoryUtil?.isBusCell?.(cell)) {
+    } else if (category === 'bus' || DeviceCategoryUtil?.isBusCell?.(cell)) {
         maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
+    } else if (category === 'gen') {
+        maps.push(indexes.genById, indexes.genByName, indexes.busById, indexes.busByName)
+    } else if (category === 'load') {
+        maps.push(indexes.loadById, indexes.loadByName, indexes.busById, indexes.busByName)
+    } else if (category === 'switch') {
+        maps.push(indexes.switchById, indexes.switchByName)
     } else if (isTrafoOrLoadDevice(cell, graph)) {
         maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
     } else {
-        maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName, indexes.trafoById, indexes.trafoByName)
+        maps.push(
+            indexes.busById,
+            indexes.busByName,
+            indexes.lineById,
+            indexes.lineByName,
+            indexes.trafoById,
+            indexes.trafoByName,
+            indexes.genById,
+            indexes.genByName,
+            indexes.loadById,
+            indexes.loadByName,
+            indexes.switchById,
+            indexes.switchByName,
+        )
     }
 
     return maps
 }
 
 function matchFlowRecord(cell, graph, parser, indexes) {
+    const byGlobe = matchFlowRecordByGlobeId(cell, graph, parser, indexes.recordByGlobeId)
+    if (byGlobe) return byGlobe
+
+    const byName = matchFlowRecordByName(cell, graph, parser, indexes)
+    if (byName) return byName
+
     const keys = getCellMatchKeys(cell, parser)
     if (keys.size === 0) return null
 
@@ -270,50 +714,133 @@ function shouldHighlightOverLimitCell(cell, graph, parser, record) {
     return true
 }
 
-function buildFlowLabel(record, graph, cell) {
-    if (!record) return ''
-    const model = graph.getModel()
-    if (model.isEdge(cell) && record.p_from_mw != null) {
-        return [
-            `P:${formatNumber(record.p_from_mw)}MW`,
-            `Q:${formatNumber(record.q_from_mvar)}MVar`,
-            `负载:${formatNumber(record.loading_percent, 1)}%`,
-        ].join('\n')
+function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
+    const category = getFlowOverlayDeviceCategory(cell, graph)
+    if (!category) return ''
+
+    const lines = []
+    const displayName = getCellDisplayName(cell, parser, record)
+
+    if (category === 'bus') {
+        if (!record) return ''
+        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
+        if (record.vn_kv != null) lines.push(`额定电压:${formatNumber(record.vn_kv, 0)}kV`)
+        const rms = calcBusRmsVoltage(record)
+        if (rms != null) lines.push(`计算电压:${formatNumber(rms, 3)}kV`)
+    } else if (category === 'line') {
+        if (!record) return ''
+        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
+        const vn = resolveLineVnKv(record, indexes)
+        if (vn != null) lines.push(`电压:${formatNumber(vn, 0)}kV`)
+        if (record.i_from_ka != null) lines.push(`电流:${formatNumber(record.i_from_ka, 4)}kA`)
+        if (record.p_from_mw != null) lines.push(`有功:${formatNumber(record.p_from_mw)}MW`)
+        if (record.q_from_mvar != null) lines.push(`无功:${formatNumber(record.q_from_mvar)}MVar`)
+        if (record.loading_percent != null) lines.push(`负载:${formatNumber(record.loading_percent, 1)}%`)
+    } else if (category === 'gen') {
+        if (!record) return ''
+        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
+        if (record.p_mw != null) lines.push(`有功:${formatNumber(record.p_mw)}MW`)
+        if (record.q_mvar != null) lines.push(`无功:${formatNumber(record.q_mvar)}MVar`)
+    } else if (category === 'load') {
+        if (!record) return ''
+        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
+        if (record.p_mw != null) lines.push(`功率:${formatNumber(record.p_mw)}MW`)
+    } else if (category === 'switch') {
+        if (displayName) lines.push(`名称:${displayName}`)
+        else if (record?.name) lines.push(`名称:${record.name}`)
+        lines.push(`状态:${formatSwitchClosedValue(record, cell, graph)}`)
     }
-    if (record.vm_pu != null && record.p_mw != null && record.q_mvar != null && record.loading_percent == null) {
-        return [
-            `U:${formatNumber(record.vm_pu, 3)}pu`,
-            `P:${formatNumber(record.p_mw)}MW`,
-            `Q:${formatNumber(record.q_mvar)}MVar`,
-        ].join('\n')
-    }
-    if (record.loading_percent != null) {
-        return [
-            `P:${formatNumber(record.p_hv_mw ?? record.p_lv_mw)}MW`,
-            `负载:${formatNumber(record.loading_percent, 1)}%`,
-        ].join('\n')
-    }
-    return ''
+
+    return lines.join('\n')
 }
 
-function getOverlayPosition(graph, cell) {
-    const geo = graph.getCellGeometry(cell)
-    if (!geo) {
-        return { x: 0, y: 0, width: 80, height: 36 }
+/** @deprecated 保留供越限高亮等场景；潮流上图请用 buildFlowOverlayLabel */
+function buildFlowLabel(record, graph, cell) {
+    return buildFlowOverlayLabel(cell, graph, null, record, { busByIndex: new Map() })
+}
+
+function getOverlaySize(label, fontSize = OVERLAY_FONT_SIZE) {
+    const lines = String(label || '').split('\n').filter(Boolean)
+    if (!lines.length) {
+        return { width: 48, height: fontSize + 2 }
     }
-    if (typeof geo.getCenterPoint === 'function') {
-        const p = geo.getCenterPoint()
-        return { x: p.x - 40, y: p.y - 42, width: 80, height: 36 }
-    }
+    const dim = TextUtil.getTextDimensionFromTxtList(fontSize, lines)
     return {
-        x: geo.x + Math.max(0, geo.width / 2 - 40),
-        y: geo.y - 42,
-        width: 80,
-        height: 36,
+        width: Math.max(dim.width + 4, 24),
+        height: Math.max(dim.height + 2, fontSize + 2),
     }
+}
+
+function viewPointToModel(graph, viewX, viewY) {
+    const view = graph.view
+    return {
+        x: (viewX - view.translate.x) / view.scale,
+        y: (viewY - view.translate.y) / view.scale,
+    }
+}
+
+/** 顶点图元：子节点相对定位；线路：模型坐标居中贴线 */
+function createFlowOverlayPlacement(graph, cell, width, height) {
+    const model = graph.getModel()
+    const gap = OVERLAY_GAP
+
+    if (!model.isEdge(cell)) {
+        const geo = new mxGeometry(0.5, 0, width, height)
+        geo.relative = true
+        geo.offset = new mxPoint(-width / 2, -height - gap)
+        return { parent: cell, geo, relative: true }
+    }
+
+    let cx
+    let cy
+    const bbox = typeof graph.getBoundingBoxFromGeometry === 'function'
+        ? graph.getBoundingBoxFromGeometry([cell], true)
+        : null
+
+    if (bbox && (bbox.width > 0 || bbox.height > 0)) {
+        cx = bbox.x + bbox.width / 2
+        cy = bbox.y + bbox.height / 2
+    } else {
+        const state = graph.view.getState(cell)
+        if (state?.absolutePoints?.length) {
+            const pts = state.absolutePoints
+            const mid = pts[Math.floor(pts.length / 2)] || pts[0]
+            const p = viewPointToModel(graph, mid.x, mid.y)
+            cx = p.x
+            cy = p.y
+        } else {
+            const edgeGeo = graph.getCellGeometry(cell)
+            if (edgeGeo && typeof edgeGeo.getCenterPoint === 'function') {
+                const p = edgeGeo.getCenterPoint()
+                cx = p.x
+                cy = p.y
+            } else {
+                cx = edgeGeo?.x ?? 0
+                cy = edgeGeo?.y ?? 0
+            }
+        }
+    }
+
+    return {
+        parent: graph.getDefaultParent(),
+        x: cx - width / 2,
+        y: cy - height / 2 - gap,
+        width,
+        height,
+        relative: false,
+    }
+}
+
+function shouldSkipFlowOverlayCell(cell) {
+    const id = String(cell.id || '')
+    if (id.startsWith(OVERLAY_PREFIX) || cell.lgFlowOverlay) return true
+    if (DeviceCategoryUtil?.isTextCell?.(cell)) return true
+    if (cell.flag === 'virtualCell' || cell.flag === 'pointline') return true
+    return false
 }
 
 function clearFlowOverlays(graph) {
+    clearLgFlowMotionArrows(graph)
     if (!graph || overlayCellIds.size === 0) return
     const model = graph.getModel()
     const cells = Array.from(overlayCellIds)
@@ -558,18 +1085,28 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
         const cells = Object.values(model.cells || {}).filter((c) => c && c.id && c.id !== '0')
 
         clearFlowOverlays(graph)
+        graph.view.validate()
 
         let matched = 0
+        const flowLineItems = []
         model.beginUpdate()
         try {
-            const parent = graph.getDefaultParent()
             for (const cell of cells) {
-                if (String(cell.id).startsWith(OVERLAY_PREFIX)) continue
-                const record = matchFlowRecord(cell, graph, parser, indexes)
-                const label = buildFlowLabel(record, graph, cell)
-                if (!record || !label) continue
+                if (shouldSkipFlowOverlayCell(cell)) continue
 
-                const pos = getOverlayPosition(graph, cell)
+                const category = getFlowOverlayDeviceCategory(cell, graph)
+                if (!category) continue
+
+                const record = matchFlowRecord(cell, graph, parser, indexes)
+                if (category === 'line' && record && lineHasFlow(record)) {
+                    flowLineItems.push({ edge: cell, record })
+                }
+
+                const label = buildFlowOverlayLabel(cell, graph, parser, record, indexes)
+                if (!label) continue
+
+                const { width, height } = getOverlaySize(label)
+                const placement = createFlowOverlayPlacement(graph, cell, width, height)
                 const overlayId = `${OVERLAY_PREFIX}${cell.id}`
                 const style = [
                     'text',
@@ -579,12 +1116,38 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                     'align=center',
                     'verticalAlign=middle',
                     'fontColor=#00e5ff',
-                    'fontSize=10',
+                    `fontSize=${OVERLAY_FONT_SIZE}`,
                     'fontFamily=SimSun',
+                    'whiteSpace=wrap',
                     'lgFlowOverlay=1',
                 ].join(';')
 
-                const overlay = graph.insertVertex(parent, overlayId, label, pos.x, pos.y, pos.width, pos.height, style)
+                let overlay
+                if (placement.relative) {
+                    overlay = graph.insertVertex(
+                        placement.parent,
+                        overlayId,
+                        label,
+                        placement.geo.x,
+                        placement.geo.y,
+                        width,
+                        height,
+                        style,
+                        true,
+                    )
+                    model.setGeometry(overlay, placement.geo)
+                } else {
+                    overlay = graph.insertVertex(
+                        placement.parent,
+                        overlayId,
+                        label,
+                        placement.x,
+                        placement.y,
+                        width,
+                        height,
+                        style,
+                    )
+                }
                 overlay.setConnectable(false)
                 overlay.lgFlowOverlay = true
                 overlayCellIds.add(overlayId)
@@ -595,7 +1158,10 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
         }
 
         graph.view.invalidate()
-        ElMessage.success(`潮流数据已上图，匹配 ${matched} 处`)
+        if (flowLineItems.length) {
+            storeLgFlowMotionContext(graph, flowLineItems, parser, indexes)
+        }
+        ElMessage.success(`潮流数据已上图，匹配 ${matched} 处${flowLineItems.length ? `，${flowLineItems.length} 条线路显示潮流箭头` : ''}`)
     } catch (e) {
         console.error('[lgRegionSimulation] 潮流数据上图失败', e)
         ElMessage.error('潮流数据加载失败: ' + (e.message || e))
