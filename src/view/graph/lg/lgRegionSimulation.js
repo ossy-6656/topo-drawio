@@ -303,10 +303,29 @@ function resolveLineVnKv(record, indexes) {
     return null
 }
 
+/** 线路潮流方向量：loading_percent 正负表示流向；若仅为正幅度则结合 p_from_mw 符号 */
+function getLineFlowDirectionValue(record) {
+    const lpRaw = record?.loading_percent
+    const pRaw = record?.p_from_mw
+    const lp = lpRaw != null && !Number.isNaN(Number(lpRaw)) ? Number(lpRaw) : null
+    const p = pRaw != null && !Number.isNaN(Number(pRaw)) ? Number(pRaw) : null
+
+    if (lp != null) {
+        if (lp < -FLOW_P_EPS) return lp
+        if (lp > FLOW_P_EPS) {
+            if (p != null && p < -FLOW_P_EPS) return -lp
+            if (p != null && p > FLOW_P_EPS) return lp
+        }
+        return lp
+    }
+    if (p != null) return p
+    return null
+}
+
 function lineHasFlow(record) {
-    const p = Number(record?.p_from_mw)
-    if (record?.p_from_mw == null || Number.isNaN(p)) return false
-    return Math.abs(p) >= FLOW_P_EPS
+    const v = getLineFlowDirectionValue(record)
+    if (v == null) return false
+    return Math.abs(v) >= FLOW_P_EPS
 }
 
 function terminalMatchesBus(terminal, busRecord, parser) {
@@ -325,9 +344,9 @@ function terminalMatchesBus(terminal, busRecord, parser) {
     return Boolean(cellName && normalizeName(busRecord.name) === cellName)
 }
 
-/** 判断线路运动箭头是否应沿 absolutePoints 反向（结合 p_from_mw 与 from/to 母线端子） */
+/** 判断线路运动箭头是否应沿 absolutePoints 反向（结合 loading_percent 正负与 from/to 母线端子） */
 function shouldReverseLineFlowPath(edge, graph, parser, record, indexes) {
-    const p = Number(record.p_from_mw)
+    const p = getLineFlowDirectionValue(record) ?? 0
     const model = graph.getModel()
     const src = model.getTerminal(edge, true)
     const tgt = model.getTerminal(edge, false)
@@ -730,7 +749,6 @@ function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
         if (rms != null) lines.push(`计算电压:${formatNumber(rms, 3)}kV`)
     } else if (category === 'line') {
         if (!record) return ''
-        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
         const vn = resolveLineVnKv(record, indexes)
         if (vn != null) lines.push(`电压:${formatNumber(vn, 0)}kV`)
         if (record.i_from_ka != null) lines.push(`电流:${formatNumber(record.i_from_ka, 4)}kA`)
@@ -1167,7 +1185,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                 if (shouldSkipFlowOverlayCell(cell)) continue
 
                 const category = getFlowOverlayDeviceCategory(cell, graph)
-                if (!category) continue
+                if (!category || category === 'switch') continue
 
                 const record = matchFlowRecord(cell, graph, parser, indexes)
                 if (category === 'line' && record && lineHasFlow(record)) {

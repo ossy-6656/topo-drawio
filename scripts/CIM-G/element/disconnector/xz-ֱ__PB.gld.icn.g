@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="GBK"?>
+<G>
+    <Disconnector w="50" h="36" HasSensitiveRegion="0" AlignCenter="25,18" id="xz-直流PB" state="2" >
+        <Layer>
+            <circlearc cx="25" fm="0" cy="17.9" r="15" id="9000001" LevelStart="1" a1="90" a2="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" af="36959" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+            <line fm="0" id="1000002" LevelStart="1" StartArrowType="0" x1="25" x2="25" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3" y2="18" af="36959" d="25,3 25,18" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" lw="1" />
+            <line fm="0" id="1000003" LevelStart="1" StartArrowType="0" x1="25" x2="6" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="18" y2="18" af="36959" d="25,18 6,18" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" lw="1" />
+            <line fm="0" id="1000004" LevelStart="1" StartArrowType="0" x1="40" x2="43" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="18" y2="18" af="36959" d="40,18 43,18" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" lw="1" />
+            <pin cx="4.2" fm="0" cy="17.9" r="2" id="18000005" LevelStart="1" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" index="2" af="36959" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" lw="1" />
+            <pin cx="44.7" fm="0" cy="18" r="2" id="18000006" LevelStart="1" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="1" switchapp="1" p_DyColorFlag="0" p_NameString="" index="3" af="36959" tfr="rotate(0)" fc="0,255,0" LevelEnd="1" ls="1" lw="1" />
+            <line fm="0" id="1000009" LevelStart="0" StartArrowType="0" x1="40.1" x2="43.1" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="18.1" y2="18.1" af="36959" d="40.1,18.1 43.1,18.1" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000008" LevelStart="0" StartArrowType="0" x1="25.1" x2="6.1" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="18.1" y2="18.1" af="36959" d="25.1,18.1 6.1,18.1" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <line fm="0" id="1000007" LevelStart="0" StartArrowType="0" x1="25.1" x2="25.1" StartArrowSize="4" p_AssFlag="128" lc="0,0,255" EndArrowSize="4" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" EndArrowType="0" y1="3.1" y2="18.1" af="36959" d="25.1,3.1 25.1,18.1" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" lw="1" />
+            <circlearc cx="25.1" fm="0" cy="18" r="15" id="9000010" LevelStart="0" a1="90" a2="0" p_AssFlag="128" lc="0,0,255" p_ShowModeMask="3" sta="0" switchapp="1" p_DyColorFlag="0" p_NameString="" af="36959" tfr="rotate(0)" fc="0,255,0" LevelEnd="0" ls="1" DrawFlag="0" lw="1" ArcShape="65" />
+        </Layer>
+    </Disconnector>
+</G>

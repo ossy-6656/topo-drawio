@@ -7,19 +7,34 @@ export function normalizeKV(value) {
   return Math.round(Number(value || 0))
 }
 
+/** 外市边界联络节点（如竹贤、祥符），不成站展示 */
+export function isExternalBoundaryStation(stationName) {
+  const raw = String(stationName || '').trim()
+  if (!raw) return false
+  return /^竹贤站(?:\.|$)/.test(raw) || /^祥符站(?:\.|$)/.test(raw)
+}
+
 function slimTrafoDisplayRow(row) {
   const o = {}
-  if (row.name != null && String(row.name).trim() !== '') o.name = String(row.name).trim()
-  else if (row.trafo_name != null && String(row.trafo_name).trim() !== '') o.name = String(row.trafo_name).trim()
   if (row.p_mw != null && !Number.isNaN(Number(row.p_mw))) o.p_mw = Number(row.p_mw)
   if (row.q_mvar != null && !Number.isNaN(Number(row.q_mvar))) o.q_mvar = Number(row.q_mvar)
   return o
+}
+
+function slimStringList(list) {
+  if (!Array.isArray(list) || list.length === 0) return null
+  const out = list.map((n) => String(n ?? '').trim()).filter(Boolean)
+  return out.length > 0 ? out : null
 }
 
 function slimStation(s) {
   const o = { station_id: s.station_id, station_name: s.station_name, vn_kv: s.vn_kv }
   if (s.lon != null && s.lon !== '') o.lon = Number(s.lon)
   if (s.lat != null && s.lat !== '') o.lat = Number(s.lat)
+  const busNames = slimStringList(s.bus_name_list)
+  if (busNames) o.bus_name_list = busNames
+  const trafoNames = slimStringList(s.trafo_name_list)
+  if (trafoNames) o.trafo_name_list = trafoNames
   if (Array.isArray(s.trafo_display_list) && s.trafo_display_list.length > 0) {
     o.trafo_display_list = s.trafo_display_list.map(slimTrafoDisplayRow).filter((r) => Object.keys(r).length > 0)
   }
@@ -38,6 +53,19 @@ function slimLine(ld) {
   if (ld.in_service != null) o.in_service = ld.in_service
   if (ld.p_from_mw != null && !Number.isNaN(Number(ld.p_from_mw))) o.p_from_mw = Number(ld.p_from_mw)
   if (ld.q_from_mvar != null && !Number.isNaN(Number(ld.q_from_mvar))) o.q_from_mvar = Number(ld.q_from_mvar)
+  if (ld.type != null && String(ld.type).trim() !== '') o.type = String(ld.type).trim()
+  const numericKeys = [
+    'r_ohm_per_km',
+    'x_ohm_per_km',
+    'g_us_per_km',
+    'c_nf_per_km',
+    'max_i_ka',
+    'length_km',
+  ]
+  numericKeys.forEach((key) => {
+    const v = ld[key]
+    if (v != null && v !== '' && !Number.isNaN(Number(v))) o[key] = Number(v)
+  })
   return o
 }
 
@@ -90,7 +118,9 @@ export function slimLiaisonDataPayload(data) {
   const d = data && typeof data === 'object' ? data : {}
   const rawStations = Array.isArray(d.station_data) ? d.station_data : []
   const slimStationsAll = rawStations.map(slimStation)
-  const stationsDraw = slimStationsAll.filter((s) => s.station_id && normalizeKV(s.vn_kv) >= 35)
+  const stationsDraw = slimStationsAll.filter(
+    (s) => s.station_id && normalizeKV(s.vn_kv) >= 35 && !isExternalBoundaryStation(s.station_name)
+  )
   const keptIds = new Set(stationsDraw.map((s) => s.station_id))
 
   const rawChannels = Array.isArray(d.channel_data) ? d.channel_data : []

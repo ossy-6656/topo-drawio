@@ -260,6 +260,18 @@ window.EditDataDialog = function(ui, cell)
         'hv_paras': '高-中压侧参数',
         'mv_paras': '中-低压侧参数',
         'lv_paras': '高-低压侧参数',
+        'hv_ks': '高-中:空载损耗',
+        'hv_kd': '高-中:空载电流',
+        'hv_fs': '高-中:负载损耗',
+        'hv_kz': '高-中:阻抗电压百分比',
+        'mv_ks': '中-低:空载损耗',
+        'mv_kd': '中-低:空载电流',
+        'mv_fs': '中-低:负载损耗',
+        'mv_kz': '中-低:阻抗电压百分比',
+        'lv_ks': '高-低:空载损耗',
+        'lv_kd': '高-低:空载电流',
+        'lv_fs': '高-低:负载损耗',
+        'lv_kz': '高-低:阻抗电压百分比'
     };
     for (var labelKey in LG_DEVICE_ATTR_LABELS) {
         if (Object.prototype.hasOwnProperty.call(LG_DEVICE_ATTR_LABELS, labelKey)) {
@@ -557,9 +569,21 @@ window.EditDataDialog = function(ui, cell)
             'K_Vol',
             'J_Vol',
             'model',
-            'hv_paras',
-            'mv_paras',
-            'lv_paras',
+            // 'hv_paras',
+            // 'mv_paras',
+            // 'lv_paras',
+            'hv_ks',
+            'hv_kd',
+            'hv_fs',
+            'hv_kz',
+            'mv_ks',
+            'mv_kd',
+            'mv_fs',
+            'mv_kz',
+            'lv_ks',
+            'lv_kd',
+            'lv_fs',
+            'lv_kz',
             'I_S',
             'K_S',
             'J_S',
@@ -1004,18 +1028,33 @@ window.EditDataDialog = function(ui, cell)
                     }
                 }
                 if (isLgTransformer) {
+                    let hv_paras = ['hv_ks', 'hv_kd', 'hv_fs', 'hv_kz',]
+                    let mv_paras = ['mv_ks', 'mv_kd', 'mv_fs', 'mv_kz',]
+                    let lv_paras = ['lv_ks', 'lv_kd', 'lv_fs', 'lv_kz',]
                     var xfStyleKeys = [
                         'name',
                         'I_Vol',
                         'K_Vol',
                         'J_Vol',
                         'model',
-                        'hv_paras',
-                        'mv_paras',
-                        'lv_paras',
+                        // 'hv_paras',
+                        // 'mv_paras',
+                        // 'lv_paras',
                         'I_S',
                         'K_S',
                         'J_S',
+                        'hv_ks',
+                        'hv_kd',
+                        'hv_fs',
+                        'hv_kz',
+                        'mv_ks',
+                        'mv_kd',
+                        'mv_fs',
+                        'mv_kz',
+                        'lv_ks',
+                        'lv_kd',
+                        'lv_fs',
+                        'lv_kz'
                     ]
                     for (var xix = 0; xix < names.length; xix++) {
                         if (xfStyleKeys.indexOf(names[xix]) < 0) {
@@ -1023,8 +1062,28 @@ window.EditDataDialog = function(ui, cell)
                         }
                         var xsv = texts[xix] != null ? resolveLgEditFieldValue(names[xix], texts[xix].value) : ''
                         graph.setCellStyles(names[xix], xsv === '' ? '' : String(xsv), [cell])
+                        // 将组合字段封装一下重新赋值
+                        hv_paras.forEach((it,index) => {
+                            if (it == names[xix]) {
+                                hv_paras[index] = xsv
+                            }
+                        })
+                        mv_paras.forEach((it,index) => {
+                            if (it == names[xix]) {
+                                mv_paras[index] = xsv
+                            }
+                        })
+                        lv_paras.forEach((it,index) => {
+                            if (it == names[xix]) {
+                                lv_paras[index] = xsv
+                            }
+                        })
                         cell[names[xix]] = xsv
                     }
+                    cell['hv_paras'] = hv_paras
+                    cell['mv_paras'] = mv_paras
+                    cell['lv_paras'] = lv_paras
+                    console.log('-----',cell)
                 }
                 if (isLgLoadDevice) {
                     var loadStyleKeys = ['name', 'P', 'Q']

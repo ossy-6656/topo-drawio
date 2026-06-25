@@ -11,18 +11,83 @@ export function liaisonStorageKey(filePath) {
   return `liaison_bundle_v1:${filePath || 'default'}`
 }
 
+function parseLiaisonBundleObject(o) {
+  if (!o || o.version !== LIAISON_BUNDLE_VERSION) return null
+  if (!o.json || typeof o.graphXml !== 'string' || !o.graphXml.trim()) return null
+  return o
+}
+
 export function loadLiaisonBundle(filePath) {
   if (typeof localStorage === 'undefined') return null
   try {
     const raw = localStorage.getItem(liaisonStorageKey(filePath))
     if (!raw) return null
-    const o = JSON.parse(raw)
-    if (!o || o.version !== LIAISON_BUNDLE_VERSION) return null
-    if (!o.json || typeof o.graphXml !== 'string' || !o.graphXml.trim()) return null
-    return o
+    return parseLiaisonBundleObject(JSON.parse(raw))
   } catch {
     return null
   }
+}
+
+/** 与 downloadLiaisonBundle 命名一致：同目录下 bundles/xxx-liaison-bundle.json */
+export function resolveStaticLiaisonBundlePath(filePath) {
+  if (!filePath) return null
+  const base = filePath.split('/').pop() || ''
+  if (!base) return null
+  const bundleName = `${base.replace(/\.json$/i, '')}-liaison-bundle.json`
+  const dir = filePath.replace(/\/[^/]+$/, '')
+  return `${dir}/bundles/${bundleName}`
+}
+
+function parseLiaisonBundleSavedAt(bundle) {
+  if (!bundle?.savedAt) return 0
+  const t = Date.parse(bundle.savedAt)
+  return Number.isNaN(t) ? 0 : t
+}
+
+/** 在 localStorage 与静态 bundle 之间取 savedAt 较新者（演示机拷贝 bundle 后不被旧缓存挡住） */
+export function pickNewerLiaisonBundle(localBundle, staticBundle) {
+  if (!localBundle) return staticBundle || null
+  if (!staticBundle) return localBundle
+  return parseLiaisonBundleSavedAt(staticBundle) >= parseLiaisonBundleSavedAt(localBundle)
+    ? staticBundle
+    : localBundle
+}
+
+export async function fetchStaticLiaisonBundle(filePath) {
+  const staticPath = resolveStaticLiaisonBundlePath(filePath)
+  if (!staticPath) return null
+
+  try {
+    const response = await fetch(encodeURI(staticPath))
+    if (!response.ok) return null
+    return parseLiaisonBundleObject(await response.json())
+  } catch {
+    return null
+  }
+}
+
+/**
+ * 合并 localStorage 与 public/bundles 静态 bundle，取 savedAt 较新者。
+ * 静态 bundle 较新时会覆盖 localStorage（便于拷贝 bundle 到演示机）。
+ */
+export async function loadLiaisonBundleWithFallback(filePath, options = {}) {
+  const { preferStatic = false } = options
+  const cached = loadLiaisonBundle(filePath)
+  const staticBundle = await fetchStaticLiaisonBundle(filePath)
+
+  let bundle = preferStatic && staticBundle ? staticBundle : pickNewerLiaisonBundle(cached, staticBundle)
+  if (!bundle) return null
+
+  const source =
+    bundle === staticBundle ? 'static' : bundle === cached ? 'localStorage' : 'unknown'
+  if (typeof console !== 'undefined' && console.info) {
+    console.info('[liaison] bundle loaded from', source, filePath, bundle.savedAt || '')
+  }
+
+  if (bundle === staticBundle || bundle !== cached) {
+    saveLiaisonBundle(filePath, bundle.json, bundle.graphXml, bundle.viewState)
+  }
+  return bundle
 }
 
 /** 捕获当前画布缩放与平移（setGraphXml 会重置 scale=1，须单独保存） */
@@ -64,13 +129,15 @@ export function applyGraphViewState(graph, ui, viewState) {
 /** 与首次成图一致：自适应窗口并居中（fitWindow / fitDiagramToWindow） */
 export function fitLiaisonGraphToWindow(ui) {
   if (!ui) return
+  const graph = ui.editor?.graph
+  if (!graph) return
+  if (graph.view?.validate) graph.view.validate()
   const action = ui.actions?.get?.('fitWindow')
   if (action?.funct && !window.drawflag) {
     action.funct()
     return
   }
-  const graph = ui.editor?.graph
-  if (graph?.fitWindow && graph.getGraphBounds) {
+  if (graph.fitWindow && graph.getGraphBounds) {
     const bounds = graph.getGraphBounds()
     if (bounds && bounds.width > 0 && bounds.height > 0) {
       graph.fitWindow(bounds)

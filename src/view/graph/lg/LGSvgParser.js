@@ -30,6 +30,7 @@ import Line2LineUtil from '../common/Line2LineUtil.js';
 import TextBeauty from '@/plugins/tmzx/graph/TextBeauty.js';
 import TextHandler from '@/plugins/tmzx/graph/TextHandler.js';
 import $ from 'jquery';
+import { refreshLgRegionFeederCellIndex } from './lgRegionFeederClick.js';
 
 // symbol：对应draw io中的图元；symbolId：对应svg中的图元
 let pathReg = /[MLAH]([^MLAH])+/gi;
@@ -113,6 +114,110 @@ function applyLgDakuixianMark(cell, objectId, psrType) {
         cell.lgDakuixian = true;
         cell.sbzlx = LG_SBZLX_DAKUIXIAN;
     }
+}
+
+/** 区域系统图可跳转 /graphLg 的府城站馈线（feeder id → dataset） */
+const LG_REGION_FEEDER_ID_TO_DATASET = {
+    '17DKX-297601': { key: 'fucheng09', label: '府城变09板府东线' },
+    '17DKX-296881': { key: 'fucheng19', label: '府城变19板府美线' },
+    '17DKX-450641': { key: 'fucheng22', label: '府城变22板II府正线' },
+    '17DKX-296897': { key: 'fucheng23', label: '府城变23板府馨线' },
+};
+
+function normalizeFeederLabelText(parts) {
+    if (Array.isArray(parts)) {
+        return parts.map((s) => String(s).trim()).join('').replace(/\s+/g, '');
+    }
+    return String(parts || '')
+        .replace(/\n/g, '')
+        .replace(/\s+/g, '');
+}
+
+function resolveRegionFeederDatasetByLabel(label) {
+    const norm = normalizeFeederLabelText(label);
+    if (!norm) {
+        return null;
+    }
+    for (const item of Object.values(LG_REGION_FEEDER_ID_TO_DATASET)) {
+        const itemNorm = normalizeFeederLabelText(item.label);
+        if (norm === itemNorm) {
+            return item;
+        }
+    }
+    if (!/府城变.*板.*线/.test(norm)) {
+        return null;
+    }
+    for (const item of Object.values(LG_REGION_FEEDER_ID_TO_DATASET)) {
+        const tail = item.label.replace(/^府城变\d+板/, '').replace(/线$/, '');
+        const tailNorm = tail.replace(/II/g, 'Ⅱ');
+        if (norm.includes(tail) || norm.includes(tailNorm)) {
+            return item;
+        }
+    }
+    return null;
+}
+
+function applyLgRegionFeederEdgeMark(cell, propMap) {
+    if (cell == null || propMap == null) {
+        return;
+    }
+    const psr = propMap['cge:PSR_Ref'];
+    if (!psr || !psr.feeder) {
+        return;
+    }
+    const feederId = String(psr.feeder);
+    const info = LG_REGION_FEEDER_ID_TO_DATASET[feederId];
+    if (!info) {
+        return;
+    }
+    const linetype = String(psr.linetype || '');
+    if (linetype !== 'dx' && linetype !== 'dl') {
+        return;
+    }
+    cell.lgRegionFeeder = true;
+    cell.lgRegionFeederDataset = info.key;
+    cell.lgRegionFeederLabel = info.label;
+    cell.lgRegionFeederId = feederId;
+    if (!cell.name) {
+        cell.name = info.label;
+    }
+}
+
+function applyLgRegionFeederTextMark(cell, dataList) {
+    if (cell == null) {
+        return;
+    }
+    const info = resolveRegionFeederDatasetByLabel(dataList);
+    if (!info) {
+        return;
+    }
+    cell.lgRegionFeeder = true;
+    cell.lgRegionFeederDataset = info.key;
+    cell.lgRegionFeederLabel = info.label;
+    cell.name = info.label;
+}
+
+/** parseSvg 结束后补标馈线文字，并缓存可点击图元列表 */
+function markAllLgRegionFeederCells(graph) {
+    const model = graph.getModel();
+    const visit = parent => {
+        const count = model.getChildCount(parent);
+        for (let i = 0; i < count; i++) {
+            const cell = model.getChildAt(parent, i);
+            if (!cell) {
+                continue;
+            }
+            if (!cell.lgRegionFeeder && model.isVertex(cell)) {
+                const val = cell.value;
+                if (typeof val === 'string' && val.trim()) {
+                    applyLgRegionFeederTextMark(cell, val.split('\n'));
+                }
+            }
+            visit(cell);
+        }
+    };
+    visit(model.getRoot());
+    refreshLgRegionFeederCellIndex(graph);
 }
 
 /** parseSvg 结束后遍历全图，确保所有站外-大馈线图元带 lgDakuixian（覆盖各解析分支） */
@@ -1285,6 +1390,7 @@ export default class LGSvgParser extends SvgBase {
         applyLgInSiteFeederMark(cell, ObjectName, PSRType, propMap);
         applyLgPeiXianMark(cell, propMap, ObjectName, PSRType);
         applyLgDakuixianMark(cell, ObjectID, PSRType);
+        applyLgRegionFeederEdgeMark(cell, propMap);
 
         attrMap.set(ObjectID, propMap);
         return cell;
@@ -1581,6 +1687,7 @@ export default class LGSvgParser extends SvgBase {
         cell.name = ObjectName;
         applyLgPeiXianMark(cell, propMap, ObjectName, PSRType);
         applyLgDakuixianMark(cell, ObjectID, PSRType);
+        applyLgRegionFeederEdgeMark(cell, propMap);
 
         attrMap.set(ObjectID, propMap);
         return cell;
@@ -2142,6 +2249,7 @@ export default class LGSvgParser extends SvgBase {
             cell.lgPeiXian = true;
             applyLgDakuixianMark(cell, sbid, null);
         }
+        applyLgRegionFeederTextMark(cell, dataList);
 
         cell.setVertex(true);
         cell.setConnectable(false);
@@ -3145,6 +3253,7 @@ export default class LGSvgParser extends SvgBase {
         this.collectShapeDragDefaultsFromGraph();
 
         markAllLgDakuixianCells(graph);
+        markAllLgRegionFeederCells(graph);
 
         if (this.pvDeviceList && this.pvDeviceList.length) {
             applyPvDeviceIcons(graph, this.pvDeviceList);

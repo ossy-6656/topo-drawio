@@ -263,7 +263,7 @@ function get_best_voltype(voltype_list){
         '1005': {color: '192,0,192',lv: 5},   // 220kV 紫
         '1006': {color: '185,72,66',lv: 4},   // 110kV 红
         '1008': {color: '255,255,0',lv: 3},   // 35kV 黄
-        '1009': {color: '185,72,66',lv: 2}   // 10kV 红
+        '1010': {color: '159,62,56',lv: 2}   // 10kV 红
     }
     for (const vt of voltype_list) {
       // 判断key是否存在配置里（对应python in）
@@ -309,7 +309,7 @@ function buildLgCompatibleBody(children, onWarn) {
         '1005': {color: '192,0,192',lv: 5},   // 220kV 紫
         '1006': {color: '185,72,66',lv: 4},   // 110kV 红
         '1008': {color: '255,255,0',lv: 3},   // 35kV 黄
-        '1009': {color: '185,72,66',lv: 2}   // 10kV 红
+        '1010': {color: '159,62,56',lv: 2}   // 10kV 红
     }
     let id_to_voltage = {}
     for (let i = 0; i < children.length; i++) {
@@ -447,6 +447,7 @@ function buildLgCompatibleBody(children, onWarn) {
             case 'Gzp':
             case 'EnergyConsumer':
             case 'Transformer3':
+            case 'DollyBreaker':
             case 'poke': {
                 const inner = SymbolParse.parseDev(dom);
                 if (inner) deviceParts.push(wrapDeviceUseGroup(dom, inner));

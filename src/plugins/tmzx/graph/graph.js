@@ -16,6 +16,11 @@ import {
     LG_MODEL_PARAS_UNIT,
     parseLgModelParasArray,
 } from '@/view/graph/lg/Constants.js'
+import {
+    getLgRegionFeederLinkForCell,
+    isLgRegionFeederCustomLink,
+    resolveLgRegionFeederCellAt,
+} from '@/view/graph/lg/lgRegionFeederClick.js'
 
 mxGraph.prototype.splitEnabled = false
 
@@ -136,6 +141,29 @@ function handleInSiteFeederCellClick(cell) {
     return true;
 }
 
+/** 区域系统图馈线（/region-system-svg 页点击跳转 /graphLg） */
+function isRegionFeederCell(cell) {
+    return cell != null && cell.lgRegionFeeder === true;
+}
+
+function handleRegionFeederCellClick(cell) {
+    if (!isRegionFeederCell(cell) || !window.__lgRegionSystemSvgMode) {
+        return false;
+    }
+    const payload = {
+        feeder: cell.lgRegionFeederLabel || cell.name || '',
+        feederKey: cell.lgRegionFeederId || '',
+        dataset: cell.lgRegionFeederDataset || '',
+        keyid: cell.keyid || cell.id || '',
+        rtkeyid: cell.rtkeyid || '',
+    };
+    console.log('[区域馈线点击] handleRegionFeederCellClick', payload);
+    if (typeof window.navigateToGraphLgWithFeeder === 'function') {
+        window.navigateToGraphLgWithFeeder(payload);
+    }
+    return true;
+}
+
 function feederShortNameFromKey(keyName) {
     if (!keyName) return '';
     const s = String(keyName);
@@ -194,9 +222,21 @@ Graph.prototype.init = function (container) {
     }
     this._lgPeiXianClickBound = true
     this.addListener(mxEvent.CLICK, function (sender, evt) {
-        const cell = evt.getProperty('cell')
+        let cell = evt.getProperty('cell')
+        if (window.__lgRegionSystemSvgMode) {
+            const rawEvt = evt.getProperty('event')
+            if (rawEvt && sender?.container) {
+                const pt = mxUtils.convertPoint(sender.container, mxEvent.getClientX(rawEvt), mxEvent.getClientY(rawEvt))
+                const resolved = resolveLgRegionFeederCellAt(sender, pt.x, pt.y)
+                if (resolved) {
+                    cell = resolved
+                }
+            }
+        }
         let handled = false
-        if (handleInSiteFeederCellClick(cell)) {
+        if (handleRegionFeederCellClick(cell)) {
+            handled = true
+        } else if (handleInSiteFeederCellClick(cell)) {
             handled = true
         } else if (handleDakuixianCellClick(cell, sender)) {
             handled = true
@@ -213,9 +253,27 @@ Graph.prototype.init = function (container) {
     })
 }
 
+var graphGetLinkForCellPre = Graph.prototype.getLinkForCell
+Graph.prototype.getLinkForCell = function (cell, allowUnsafe) {
+    const regionLink = getLgRegionFeederLinkForCell(cell)
+    if (regionLink) {
+        return regionLink
+    }
+    return graphGetLinkForCellPre.apply(this, arguments)
+}
+
+var graphCustomLinkClickedPre = Graph.prototype.customLinkClicked
+Graph.prototype.customLinkClicked = function (link, associatedCell) {
+    if (isLgRegionFeederCustomLink(link) && handleRegionFeederCellClick(associatedCell)) {
+        return true
+    }
+    return graphCustomLinkClickedPre.apply(this, arguments)
+}
+
 var graphGetCursorForCellPre = Graph.prototype.getCursorForCell
 Graph.prototype.getCursorForCell = function (cell) {
     if (
+        (isRegionFeederCell(cell) && window.__lgRegionSystemSvgMode) ||
         (isInSiteFeederCell(cell) && window.__lgInSiteSvgMode) ||
         isZhanWaiDakuixianCell(cell) ||
         isPeiXianLinkCell(cell, this)
@@ -256,6 +314,18 @@ var tooltipAttrNameMap = {
     'hv_paras': '高-中压侧参数',
     'mv_paras': '中-低压侧参数',
     'lv_paras': '高-低压侧参数',
+    'hv_ks': '高-中:空载损耗',
+    'hv_kd': '高-中:空载电流',
+    'hv_fs': '高-中:负载损耗',
+    'hv_kz': '高-中:阻抗电压百分比',
+    'mv_ks': '中-低:空载损耗',
+    'mv_kd': '中-低:空载电流',
+    'mv_fs': '中-低:负载损耗',
+    'mv_kz': '中-低:阻抗电压百分比',
+    'lv_ks': '高-低:空载损耗',
+    'lv_kd': '高-低:空载电流',
+    'lv_fs': '高-低:负载损耗',
+    'lv_kz': '高-低:阻抗电压百分比'
 };
 for (const labelKey of Object.keys(LG_DEVICE_ATTR_LABELS)) {
     tooltipAttrNameMap[labelKey] = lgDeviceAttrLabelWithUnit(labelKey);
@@ -321,12 +391,24 @@ Graph.prototype.getTooltipForCell = function (cell) {
                 'K_Vol',
                 'J_Vol',
                 'model',
-                'hv_paras',
-                'mv_paras',
-                'lv_paras',
+                // 'hv_paras',
+                // 'mv_paras',
+                // 'lv_paras',
                 'I_S',
                 'K_S',
                 'J_S',
+                'hv_ks',
+                'hv_kd',
+                'hv_fs',
+                'hv_kz',
+                'mv_ks',
+                'mv_kd',
+                'mv_fs',
+                'mv_kz',
+                'lv_ks',
+                'lv_kd',
+                'lv_fs',
+                'lv_kz'
             ]
             let lgGenUnitTooltipAttrs = [
                 'name',

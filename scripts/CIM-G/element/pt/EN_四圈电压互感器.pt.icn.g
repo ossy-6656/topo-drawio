@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="GBK"?>
-<G>
-    <PT id="EN_锟斤拷圈锟斤拷压锟斤拷锟斤拷锟斤拷" w="34" h="34" HasSensitiveRegion="0" state="1" p_AlignCenter="16,4">
+<sgd p_HasSensitiveRegion="0" state="1" p_AlignCenter="16,4" >
+    <PT id="EN_四圈电压互感器" >
         <Layer w="34" x="0" y="0" h="34" id="0" >
             <ellipse fm="0" cx="23" cy="21" p_Plane="0" id="4000000" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="14,14,16,12" p_DyColorFlag="0" rx="7" ry="5" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="39231" fc="0,255,0" tfr="rotate(0)" ls="1" lw="2" />
             <ellipse fm="0" cx="9" cy="21" p_Plane="0" id="4000002" p_AssFlag="128" lc="93,92,88" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="0,14,16,12" p_DyColorFlag="0" rx="7" ry="5" p_LevelEnd="0" p_NameString="" p_LevelStart="0" af="39231" fc="0,255,0" tfr="rotate(0)" ls="1" lw="2" />
@@ -10,4 +10,4 @@
             <pin fm="0" cx="16" cy="4" r="2" p_Plane="0" id="18000007" p_AssFlag="128" lc="255,0,0" p_ShowModeMask="3" sta="0" switchapp="1" p_RoundBox="13,1,5,5" p_DyColorFlag="0" p_LevelEnd="0" p_NameString="" index="1" p_LevelStart="0" af="39231" fc="0,255,0" tfr="rotate(0)" ls="1" lw="1" />
         </Layer>
     </PT>
-</G>
+</sgd>

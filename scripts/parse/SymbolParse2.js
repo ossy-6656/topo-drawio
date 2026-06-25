@@ -577,7 +577,7 @@ export default {
 
 		sb.push('>');
         // 排除显示的号码相关内容
-        if(ts.indexOf('号码') == -1) {
+        if(ts.indexOf('号码') == -1&&ts.indexOf('电话') == -1) {
             sb.push(ts);
         }
 		sb.push('</text>');

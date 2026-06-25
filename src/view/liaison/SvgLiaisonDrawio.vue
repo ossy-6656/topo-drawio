@@ -23,6 +23,7 @@
           :disabled="!canUndo || loading"
           title="撤销 JSON 编辑（Ctrl+Z）"
           @click="undoLiaisonEdit"
+          v-if="false"
         >
           撤销
         </button>
@@ -32,6 +33,7 @@
           :disabled="!canRedo || loading"
           title="重做 JSON 编辑（Ctrl+Shift+Z）"
           @click="redoLiaisonEdit"
+           v-if="false"
         >
           重做
         </button>
@@ -151,6 +153,62 @@
                 />
               </label>
             </div>
+            <div class="bus-list-editor station-edit-bus">
+              <div class="field-label bus-list-title">母线列表（至少 1 条）</div>
+              <p class="hint-line">线路连接母线；重命名会同步到相关线路。</p>
+              <div
+                v-for="(_, idx) in stationEditRow.bus_name_list"
+                :key="`station-bus-${idx}`"
+                class="bus-list-row"
+              >
+                <el-input
+                  v-model="stationEditRow.bus_name_list[idx]"
+                  :placeholder="suggestedBusName(stationEditRow.station_name, stationEditRow.vn_kv, idx + 2)"
+                  clearable
+                  @change="applyStationBusListEdit(idx)"
+                />
+                <button
+                  class="bus-list-remove"
+                  type="button"
+                  :disabled="stationEditRow.bus_name_list.length <= 1"
+                  @click="removeStationEditBus(idx)"
+                >
+                  删除
+                </button>
+              </div>
+              <button class="btn-secondary btn-block" type="button" @click="addStationEditBus">+ 新增母线</button>
+            </div>
+            <div class="trafo-list-editor">
+              <div class="field-label trafo-list-title">主变列表</div>
+              <p class="hint-line">名称取自 trafo_name_list（仅编辑展示，图上不显示）；P/Q 对应 trafo_display_list。</p>
+              <div
+                v-for="idx in stationTrafoEditCount"
+                :key="`station-trafo-${idx - 1}`"
+                class="trafo-list-row"
+              >
+                <span class="trafo-list-index">#{{ idx }}</span>
+                <el-input
+                  v-model="stationEditRow.trafo_name_list[idx - 1]"
+                  placeholder="主变名称"
+                  clearable
+                  @change="applyStationTrafoEdit"
+                />
+                <el-input
+                  v-model="stationEditRow.trafo_display_list[idx - 1].p_mw"
+                  placeholder="P (MW)"
+                  clearable
+                  @change="applyStationTrafoEdit"
+                />
+                <el-input
+                  v-model="stationEditRow.trafo_display_list[idx - 1].q_mvar"
+                  placeholder="Q (Mvar)"
+                  clearable
+                  @change="applyStationTrafoEdit"
+                />
+                <button class="bus-list-remove" type="button" @click="removeStationEditTrafo(idx - 1)">删除</button>
+              </div>
+              <button class="btn-secondary btn-block" type="button" @click="addStationEditTrafo">+ 新增主变</button>
+            </div>
             <div class="readonly-block">
               <h5 class="readonly-title">其它数据（只读）</h5>
               <dl class="kv-list kv-list-compact">
@@ -159,10 +217,6 @@
                 <dt>纬度 lat</dt>
                 <dd>{{ stationReadonlyExtra.lat }}</dd>
               </dl>
-              <template v-if="stationReadonlyExtra.trafoText !== '—'">
-                <p class="readonly-subtitle">主变 trafo_display_list</p>
-                <pre class="readonly-pre">{{ stationReadonlyExtra.trafoText }}</pre>
-              </template>
             </div>
             <button class="btn-danger btn-block" type="button" @click="deleteSelectedStation">删除此站</button>
           </section>
@@ -219,6 +273,22 @@
                   <el-option v-for="b in editToBusOptions" :key="b" :label="b" :value="b" />
                 </el-select>
               </label>
+              <div v-if="selectedLineRow" class="line-metrics-block">
+                <dl class="kv-list kv-list-compact">
+                  <dt>额定电压 vn_kv (kV)</dt>
+                  <dd>{{ channelReadonlyExtra.ratedVn }}</dd>
+                  <dt>有功 p_from_MW</dt>
+                  <dd>{{ channelReadonlyExtra.pMw }}</dd>
+                  <dt>无功 q_from_MVar</dt>
+                  <dd>{{ channelReadonlyExtra.qMvar }}</dd>
+                  <dt>线路总负载率 loading_percent (%)</dt>
+                  <dd>{{ channelReadonlyExtra.loadingPercent }}</dd>
+                  <dt>线路总电流 i_ka (kA)</dt>
+                  <dd>{{ channelReadonlyExtra.iKa }}</dd>
+                  <dt>在运 in_service</dt>
+                  <dd>{{ channelReadonlyExtra.inService }}</dd>
+                </dl>
+              </div>
               <label v-if="selectedLineRow" class="field">
                 <span class="field-label">线路名称</span>
                 <el-input
@@ -228,6 +298,73 @@
                   @change="applyChannelLabelEdit"
                 />
               </label>
+              <template v-if="selectedLineRow">
+                <h5 class="line-params-title">线路参数</h5>
+                <p class="hint-line">不参与成图，写入 line_data 供编辑与导出。</p>
+                <label class="field">
+                  <span class="field-label">型号 (type)</span>
+                  <el-input
+                    v-model="selectedLineRow.type"
+                    placeholder="如 ac_line"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">电阻 r_ohm_per_km (Ω/km)</span>
+                  <el-input
+                    v-model="selectedLineRow.r_ohm_per_km"
+                    placeholder="Ω/km"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">电抗 x_ohm_per_km (Ω/km)</span>
+                  <el-input
+                    v-model="selectedLineRow.x_ohm_per_km"
+                    placeholder="Ω/km"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">电导 g_us_per_km (μS/km)</span>
+                  <el-input
+                    v-model="selectedLineRow.g_us_per_km"
+                    placeholder="μS/km"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">电纳 c_nf_per_km (nF/km)</span>
+                  <el-input
+                    v-model="selectedLineRow.c_nf_per_km"
+                    placeholder="nF/km"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">额定载流量 max_i_ka (kA)</span>
+                  <el-input
+                    v-model="selectedLineRow.max_i_ka"
+                    placeholder="kA"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field-label">长度 length_km (km)</span>
+                  <el-input
+                    v-model="selectedLineRow.length_km"
+                    placeholder="km"
+                    clearable
+                    @change="applyLineParamsEdit"
+                  />
+                </label>
+              </template>
             </div>
             <div class="switch-manage-block">
               <h5 class="readonly-title">开关</h5>
@@ -249,18 +386,11 @@
                 新增开关
               </button>
             </div>
-            <div class="readonly-block">
+            <div
+              v-if="channelReadonlyExtra.extraLineDataJson || channelReadonlyExtra.switchJson"
+              class="readonly-block"
+            >
               <h5 class="readonly-title">其它数据（只读）</h5>
-              <dl class="kv-list kv-list-compact">
-                <dt>最小电压 min_vn_kV</dt>
-                <dd>{{ channelReadonlyExtra.minVn }}</dd>
-                <dt>有功 p_from_MW</dt>
-                <dd>{{ channelReadonlyExtra.pMw }}</dd>
-                <dt>无功 q_from_MVar</dt>
-                <dd>{{ channelReadonlyExtra.qMvar }}</dd>
-                <dt>在运 in_service</dt>
-                <dd>{{ channelReadonlyExtra.inService }}</dd>
-              </dl>
               <template v-if="channelReadonlyExtra.extraLineDataJson">
                 <p class="readonly-subtitle">其它 line_data 条目</p>
                 <pre class="readonly-pre">{{ channelReadonlyExtra.extraLineDataJson }}</pre>
@@ -463,12 +593,32 @@
         <el-button type="primary" @click="confirmAddChannel">确定</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="stationNavDialogVisible"
+      title="请选择跳转目标"
+      width="380px"
+      append-to-body
+      align-center
+      :close-on-click-modal="false"
+      class="station-nav-dialog"
+      :show-close="true"
+    >
+      <div class="station-nav-options">
+        <button type="button" class="station-nav-option primary" @click="goStationNavLv2">
+          区域级高压配网联络图
+        </button>
+        <button type="button" class="station-nav-option" @click="goStationNavPgrsd">
+          区域级中压配网系统图
+        </button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import '@/plugins/tmzx/graph/graph.js'
 import '@/view/graph/lg/override.js'
@@ -481,12 +631,13 @@ import {
   exportEditorGraphXml,
   fitLiaisonGraphToWindow,
   importEditorGraphXml,
-  loadLiaisonBundle,
+  loadLiaisonBundleWithFallback,
   saveLiaisonBundle,
 } from './SvgLiaisonGraphPersistence'
 import { normalizeAndSlimLiaisonEnvelope } from './SvgLiaisonJsonSlim'
 
 const router = useRouter()
+const route = useRoute()
 
 /** Element Plus 确认框按钮中文 */
 const msgboxConfirmOpts = {
@@ -494,19 +645,44 @@ const msgboxConfirmOpts = {
   cancelButtonText: '取消',
 }
 
+/** 两级站间图示例：lv1 区域概览，lv2 站内展开 */
+const LIAISON_LEVEL_FILES = {
+  lv1: '/svgLiaisonJson/新乡220-500.json',
+  lv2: '/svgLiaisonJson/府城站.json',
+}
+
+function resolveLiaisonLevelFromRoute(r = route) {
+  const type = String(r.query?.type || 'lv1').toLowerCase()
+  return type === 'lv2' ? 'lv2' : 'lv1'
+}
+
+function resolveLiaisonFileFromRoute(r = route) {
+  return LIAISON_LEVEL_FILES[resolveLiaisonLevelFromRoute(r)]
+}
+
+const liaisonDemoLevel = computed(() => resolveLiaisonLevelFromRoute())
+
+/** Parser 选项：演示默认不展示量测与潮流箭头，点「刷新量测」后再开 */
+function liaisonParserOptions() {
+  return {
+    showLabels: true,
+    showMeasurements: false,
+    theme: canvasTheme.value,
+  }
+}
+
 const sampleFiles = [
+  { label: '新乡220-500.json', path: LIAISON_LEVEL_FILES.lv1 },
+  { label: '府城站.json', path: LIAISON_LEVEL_FILES.lv2 },
   { label: '庆丰站.json', path: '/svgLiaisonJson/庆丰站.json' },
-  { label: '庆丰站_精简.json', path: '/svgLiaisonJson/庆丰站_精简.json' },
   { label: '滨河站.json', path: '/svgLiaisonJson/滨河站.json' },
   { label: '原武站.json', path: '/svgLiaisonJson/原武站.json' },
   { label: '兰湾站.json', path: '/svgLiaisonJson/兰湾站.json' },
   { label: '人民.json', path: '/svgLiaisonJson/人民.json' },
   { label: '徐庄.json', path: '/svgLiaisonJson/徐庄.json' },
-  { label: '兰湾拓扑_主网全量_精简.json', path: '/svgLiaisonJson/兰湾拓扑_主网全量_精简.json' },
-  { label: '兰湾拓扑_主网全量.json（自动精简）', path: '/svgLiaisonJson/兰湾拓扑_主网全量.json' },
 ]
 
-const selectedFile = ref(sampleFiles[0].path)
+const selectedFile = ref(resolveLiaisonFileFromRoute())
 const loading = ref(false)
 const canvasTheme = ref('dark')
 
@@ -529,14 +705,21 @@ const liaisonDoc = ref(null)
 const liaisonParser = shallowRef(null)
 /** 待载入的已保存图形 XML（有则跳过首次 parseSvg） */
 const pendingSavedGraphXml = ref(null)
+/** 与 graphXml 配套的缩放/平移（setGraphXml 会重置视口） */
+const pendingSavedViewState = ref(null)
 
 /** 成图常用电压（kV），与解析器 ≥35kV 过滤一致 */
 const voltageOptions = [330, 220, 230, 115, 110, 66, 35]
 
 const stationDialogVisible = ref(false)
 const stationDialogForm = ref({ station_name: '', vn_kv: 110, station_id: '', bus_names: [''] })
+/** 选中变电站时母线列表快照，用于重命名时同步通道 */
+const stationBusEditSnapshot = ref([])
 
 const channelDialogVisible = ref(false)
+const stationNavDialogVisible = ref(false)
+/** @type {import('vue').Ref<{ station_id: string, station_name: string } | null>} */
+const stationNavTarget = ref(null)
 const channelDialogForm = ref({
   from_station: '',
   to_station: '',
@@ -599,10 +782,7 @@ async function refreshGraphAfterHistoryRestore() {
   selectedInfo.value = null
   editSelection.value = null
   if (!liaisonDoc.value) return
-  liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-    showLabels: true,
-    theme: canvasTheme.value,
-  })
+  liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, liaisonParserOptions())
   liaisonParser.value.skipInitialParseSvg = false
   destroyEditor()
   await nextTick()
@@ -656,11 +836,12 @@ function normalizeLiaisonEnvelope(raw, opts) {
   if (doc._slimmed) {
     console.info('[liaison] 已自动精简 JSON（剔除未成图字段与 <35kV 站）')
   }
-  return markRaw(doc)
+  return doc
 }
 
 function destroyEditor() {
   App.isMainCalled = false
+  panelHideObserverPaused = false
   if (panelHideObserver) {
     panelHideObserver.disconnect()
     panelHideObserver = null
@@ -782,8 +963,25 @@ function hideBuiltinPanels() {
   }
 }
 
+/** 成图/导入 XML 期间暂停：避免数千次 DOM 变更各触发一次 hideBuiltinPanels */
+let panelHideObserverPaused = false
+
+function pauseBuiltinPanelHideObserver() {
+  panelHideObserverPaused = true
+  if (panelHideObserver) {
+    panelHideObserver.disconnect()
+    panelHideObserver = null
+  }
+}
+
+function resumeBuiltinPanelHideObserver() {
+  panelHideObserverPaused = false
+  installBuiltinPanelHideObserver()
+}
+
 /** draw.io 异步插入侧栏时持续压制，避免首屏闪烁 */
 function installBuiltinPanelHideObserver() {
+  if (panelHideObserverPaused) return
   if (panelHideObserver) {
     panelHideObserver.disconnect()
     panelHideObserver = null
@@ -797,6 +995,7 @@ function installBuiltinPanelHideObserver() {
 
 function markEditorReady() {
   hideBuiltinPanels()
+  resumeBuiltinPanelHideObserver()
   editorReady.value = true
   loading.value = false
 }
@@ -821,6 +1020,38 @@ function getGraph() {
   return uiEditor?.editor?.graph
 }
 
+/**
+ * 视口稳定后再居中并刷新量测/运动箭头（setGraphXml 会重置 scale；保存的 translate 在 remount 后易偏位）。
+ */
+function finishLiaisonEditorAfterGraphReady(
+  ui,
+  graph,
+  parser,
+  { loadedFromSavedLayout = false } = {}
+) {
+  parser.enableManualEdit()
+
+  const finalize = () => {
+    disableLiaisonDrawioContextMenus(graph)
+    if (ui.editor) {
+      ui.editor.setModified(false)
+      if (ui.editor.undoManager?.clear) ui.editor.undoManager.clear()
+    }
+    applyCanvasTheme(canvasTheme.value)
+    markEditorReady()
+
+    requestAnimationFrame(() => {
+      fitLiaisonGraphToWindow(ui)
+      if (graph.view?.validate) graph.view.validate()
+      parser.syncMeasurementsFromDoc()
+    })
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(finalize)
+  })
+}
+
 /** 编辑器就绪：载入已保存图形，或沿用 App 已执行的首次算法成图 */
 function finalizeEditorMount(ui) {
   const graph = ui.editor?.graph
@@ -835,39 +1066,30 @@ function finalizeEditorMount(ui) {
   if (pendingSavedGraphXml.value) {
     const xml = pendingSavedGraphXml.value
     pendingSavedGraphXml.value = null
+    pendingSavedViewState.value = null
     const ok = importEditorGraphXml(ui.editor, xml)
     if (!ok) {
       ElMessage.warning('已保存图形无法解析，将按 JSON 重新算法成图')
       parser.skipInitialParseSvg = false
       parser.parseSvg()
-      window.setTimeout(() => fitLiaisonGraphToWindow(ui), 50)
+      finishLiaisonEditorAfterGraphReady(ui, graph, parser, { loadedFromSavedLayout: false })
     } else {
       parser.rebindEntityInfo()
-      window.setTimeout(() => {
-        fitLiaisonGraphToWindow(ui)
-        applyLiaisonFlowMotionArrows(graph)
-      }, 50)
+      finishLiaisonEditorAfterGraphReady(ui, graph, parser, {
+        loadedFromSavedLayout: true,
+      })
     }
+    return
   }
-  parser.enableManualEdit()
-  parser.syncMeasurementsFromDoc()
-  if (graph.view?.invalidate) graph.view.invalidate()
 
-  disableLiaisonDrawioContextMenus(graph)
-  if (ui.editor) {
-    ui.editor.setModified(false)
-    if (ui.editor.undoManager?.clear) ui.editor.undoManager.clear()
-  }
-  window.setTimeout(() => applyLiaisonFlowMotionArrows(graph), 450)
-  applyCanvasTheme(canvasTheme.value)
-  markEditorReady()
+  finishLiaisonEditorAfterGraphReady(ui, graph, parser, { loadedFromSavedLayout: false })
 }
 
 function mountEditor(parser) {
   editorReady.value = false
   loading.value = true
+  pauseBuiltinPanelHideObserver()
   hideBuiltinPanels()
-  installBuiltinPanelHideObserver()
 
   App.main(
     (ui) => {
@@ -913,6 +1135,218 @@ function applyStationGraphEdit() {
   parser.updateStationFromDoc(i)
 }
 
+function ensureStationEditLists(row) {
+  if (!row) return
+  if (!Array.isArray(row.bus_name_list) || row.bus_name_list.length === 0) {
+    row.bus_name_list = [suggestedBusName(row.station_name, row.vn_kv, 2)]
+  }
+  if (!Array.isArray(row.trafo_display_list)) {
+    row.trafo_display_list = []
+  }
+  if (!Array.isArray(row.trafo_name_list)) {
+    row.trafo_name_list = []
+  }
+  migrateTrafoNamesFromDisplayList(row)
+  syncStationTrafoRowSlots(row)
+}
+
+function migrateTrafoNamesFromDisplayList(row) {
+  if (!row || row.trafo_name_list.length > 0) return
+  const display = row.trafo_display_list || []
+  if (!display.length) return
+  const fromDisplay = display.map((t) => String(t?.name || t?.trafo_name || '').trim())
+  if (fromDisplay.some(Boolean)) {
+    row.trafo_name_list = fromDisplay
+  }
+}
+
+function stationTrafoRowCount(row) {
+  if (!row) return 0
+  const dl = Array.isArray(row.trafo_display_list) ? row.trafo_display_list.length : 0
+  const nl = Array.isArray(row.trafo_name_list) ? row.trafo_name_list.length : 0
+  return Math.max(dl, nl)
+}
+
+function syncStationTrafoRowSlots(row) {
+  if (!row) return
+  const n = stationTrafoRowCount(row)
+  for (let i = 0; i < n; i++) {
+    if (row.trafo_name_list[i] == null) row.trafo_name_list[i] = ''
+    if (!row.trafo_display_list[i]) {
+      row.trafo_display_list[i] = { p_mw: null, q_mvar: null }
+    }
+  }
+}
+
+function syncStationBusEditSnapshot() {
+  const row = stationEditRow.value
+  stationBusEditSnapshot.value = Array.isArray(row?.bus_name_list)
+    ? row.bus_name_list.map((b) => String(b || '').trim())
+    : []
+}
+
+function isBusUsedByStation(stationId, busName) {
+  const name = String(busName || '').trim()
+  if (!stationId || !name) return false
+  return (liaisonDoc.value?.data?.channel_data || []).some((ch) =>
+    (ch.line_data || []).some(
+      (line) =>
+        (ch.from_station === stationId && String(line.from_bus_name || '').trim() === name) ||
+        (ch.to_station === stationId && String(line.to_bus_name || '').trim() === name)
+    )
+  )
+}
+
+function renameBusInChannels(stationId, oldName, newName) {
+  const oldN = String(oldName || '').trim()
+  const newN = String(newName || '').trim()
+  if (!oldN || !newN || oldN === newN) return []
+  const affected = []
+  ;(liaisonDoc.value?.data?.channel_data || []).forEach((ch, idx) => {
+    let changed = false
+    ;(ch.line_data || []).forEach((line) => {
+      if (ch.from_station === stationId && String(line.from_bus_name || '').trim() === oldN) {
+        line.from_bus_name = newN
+        changed = true
+      }
+      if (ch.to_station === stationId && String(line.to_bus_name || '').trim() === oldN) {
+        line.to_bus_name = newN
+        changed = true
+      }
+    })
+    if (changed) affected.push(idx)
+  })
+  return affected
+}
+
+function applyStationBusListEdit(changedIdx) {
+  const i = editSelection.value?.doc_station_index
+  const row = stationEditRow.value
+  const parser = getParser()
+  if (i == null || i < 0 || !row || !parser) return
+
+  ensureStationEditLists(row)
+  const snapshot = stationBusEditSnapshot.value
+  const busNames = row.bus_name_list.map((b) => String(b || '').trim()).filter(Boolean)
+
+  if (busNames.length === 0) {
+    const fallback = snapshot[changedIdx] || suggestedBusName(row.station_name, row.vn_kv, 2)
+    row.bus_name_list[changedIdx ?? 0] = fallback
+    ElMessage.warning('母线名称不能为空')
+    return
+  }
+
+  const seen = new Set()
+  for (const name of busNames) {
+    if (seen.has(name)) {
+      if (changedIdx != null && snapshot[changedIdx]) {
+        row.bus_name_list[changedIdx] = snapshot[changedIdx]
+      }
+      ElMessage.warning('母线名称不能重复')
+      return
+    }
+    seen.add(name)
+  }
+
+  row.bus_name_list = busNames
+
+  const affectedChannels = new Set()
+  for (let j = 0; j < Math.max(snapshot.length, busNames.length); j++) {
+    const oldName = String(snapshot[j] || '').trim()
+    const newName = String(busNames[j] || '').trim()
+    if (oldName && newName && oldName !== newName) {
+      renameBusInChannels(row.station_id, oldName, newName).forEach((ci) => affectedChannels.add(ci))
+    }
+  }
+
+  stationBusEditSnapshot.value = [...busNames]
+  pushUndoSnapshot('编辑母线')
+  parser.setData(liaisonDoc.value)
+  affectedChannels.forEach((ci) => parser.updateChannelFromDoc(ci))
+}
+
+function addStationEditBus() {
+  const row = stationEditRow.value
+  if (!row) return
+  ensureStationEditLists(row)
+  let suffix = 2
+  row.bus_name_list.forEach((b) => {
+    const m = String(b || '').match(/\.(\d+)$/)
+    if (m) suffix = Math.max(suffix, Number(m[1]) + 1)
+  })
+  row.bus_name_list = [...row.bus_name_list, suggestedBusName(row.station_name, row.vn_kv, suffix)]
+  stationBusEditSnapshot.value = [...row.bus_name_list]
+}
+
+function removeStationEditBus(idx) {
+  const row = stationEditRow.value
+  if (!row || !Array.isArray(row.bus_name_list) || row.bus_name_list.length <= 1) return
+  const name = String(row.bus_name_list[idx] || '').trim()
+  if (isBusUsedByStation(row.station_id, name)) {
+    ElMessage.warning('该母线已被线路引用，无法删除')
+    return
+  }
+  pushUndoSnapshot('删除母线')
+  row.bus_name_list.splice(idx, 1)
+  stationBusEditSnapshot.value = [...row.bus_name_list]
+  const parser = getParser()
+  if (parser) parser.setData(liaisonDoc.value)
+}
+
+function applyStationTrafoEdit(opts = {}) {
+  const i = editSelection.value?.doc_station_index
+  const row = stationEditRow.value
+  const parser = getParser()
+  if (i == null || i < 0 || !row || !parser) return
+
+  ensureStationEditLists(row)
+  row.trafo_name_list = (row.trafo_name_list || []).map((n) => String(n ?? '').trim())
+  row.trafo_display_list = (row.trafo_display_list || []).map((t) => {
+    const p = t?.p_mw
+    const q = t?.q_mvar
+    const pNum = p === '' || p == null || Number.isNaN(Number(p)) ? null : Number(p)
+    const qNum = q === '' || q == null || Number.isNaN(Number(q)) ? null : Number(q)
+    return { p_mw: pNum, q_mvar: qNum }
+  })
+
+  if (opts.trimEmpty !== false) {
+    while (row.trafo_name_list.length > 0 && row.trafo_display_list.length > 0) {
+      const li = row.trafo_name_list.length - 1
+      const lastName = row.trafo_name_list[li]
+      const lastD = row.trafo_display_list[li]
+      const pEmpty = lastD?.p_mw == null && lastD?.q_mvar == null
+      if (!lastName && pEmpty && row.trafo_name_list.length === row.trafo_display_list.length) {
+        row.trafo_name_list.pop()
+        row.trafo_display_list.pop()
+      } else {
+        break
+      }
+    }
+  }
+
+  syncStationTrafoRowSlots(row)
+
+  pushUndoSnapshot('编辑主变')
+  parser.setData(liaisonDoc.value)
+  parser.updateStationFromDoc(i)
+}
+
+function addStationEditTrafo() {
+  const row = stationEditRow.value
+  if (!row) return
+  ensureStationEditLists(row)
+  row.trafo_name_list = [...row.trafo_name_list, '']
+  row.trafo_display_list = [...row.trafo_display_list, { p_mw: null, q_mvar: null }]
+}
+
+function removeStationEditTrafo(idx) {
+  const row = stationEditRow.value
+  if (!row || !Array.isArray(row.trafo_display_list)) return
+  if (row.trafo_name_list) row.trafo_name_list.splice(idx, 1)
+  row.trafo_display_list.splice(idx, 1)
+  applyStationTrafoEdit()
+}
+
 function applyChannelGraphEdit() {
   const i = editSelection.value?.doc_channel_index
   const ch = channelEditRow.value
@@ -945,6 +1379,74 @@ function applyLineBusEdit() {
   syncChannelMeta(ch, fromSt, toSt)
   parser.setData(liaisonDoc.value)
   parser.updateChannelFromDoc(i)
+}
+
+const LINE_PARAM_NUMERIC_KEYS = [
+  'r_ohm_per_km',
+  'x_ohm_per_km',
+  'g_us_per_km',
+  'c_nf_per_km',
+  'max_i_ka',
+  'length_km',
+]
+
+function normalizeLineParamFields(line) {
+  if (!line) return
+  if (line.type != null) {
+    const t = String(line.type).trim()
+    if (t) line.type = t
+    else delete line.type
+  }
+  LINE_PARAM_NUMERIC_KEYS.forEach((key) => {
+    const v = line[key]
+    if (v === '' || v == null) {
+      delete line[key]
+      return
+    }
+    const n = Number(v)
+    if (!Number.isNaN(n)) line[key] = n
+  })
+}
+
+function applyLineParamsEdit() {
+  const line = selectedLineRow.value
+  if (!line || editSelection.value?.kind !== 'line') return
+  normalizeLineParamFields(line)
+  pushUndoSnapshot('编辑线路参数')
+  const parser = getParser()
+  if (parser) parser.setData(liaisonDoc.value)
+  refreshSelectedLineSummary()
+}
+
+function refreshSelectedLineSummary() {
+  if (editSelection.value?.kind !== 'line' || !selectedInfo.value) return
+  const ch = channelEditRow.value
+  if (!ch) return
+  const li = editSelection.value.line_index ?? 0
+  const line = ch.line_data?.[li]
+  const fromSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.from_station)
+  const toSt = liaisonDoc.value?.data?.station_data?.find((s) => s.station_id === ch.to_station)
+  const info = {
+    type: 'line',
+    line_index: li,
+    line_data: ch.line_data,
+    channel_name: ch.channel_name,
+    from_station: ch.from_station,
+    to_station: ch.to_station,
+    from_station_name: fromSt?.station_name,
+    to_station_name: toSt?.station_name,
+    from_bus_name: line?.from_bus_name,
+    to_bus_name: line?.to_bus_name,
+    p_from_mw: line?.p_from_mw,
+    q_from_mvar: line?.q_from_mvar,
+    raw: ch,
+  }
+  const data = pickKeyFields(info)
+  selectedInfo.value = {
+    ...selectedInfo.value,
+    fields: data,
+    pretty: JSON.stringify(data, null, 2),
+  }
 }
 
 function applyChannelLabelEdit() {
@@ -1006,6 +1508,7 @@ async function regenerateFromJson() {
   clearLiaisonBundle(selectedFile.value)
   clearUndoRedoHistory()
   pendingSavedGraphXml.value = null
+  pendingSavedViewState.value = null
   selectedInfo.value = null
   editSelection.value = null
 
@@ -1018,10 +1521,7 @@ async function regenerateFromJson() {
     liaisonDoc.value = normalizeLiaisonEnvelope(await response.json())
     lastHistoryData = cloneJson(liaisonDoc.value.data)
 
-    liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-      showLabels: true,
-    theme: canvasTheme.value,
-    })
+    liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, liaisonParserOptions())
     liaisonParser.value.skipInitialParseSvg = false
 
     destroyEditor()
@@ -1045,6 +1545,47 @@ function formatPFromMw(v) {
 
 function formatQFromMvar(v) {
   return formatPFromMw(v)
+}
+
+function formatLineIKa(v) {
+  if (v == null || Number.isNaN(Number(v))) return '—'
+  const n = Number(v)
+  const t = Math.round(n * 10000) / 10000
+  return String(t)
+}
+
+function formatLineLoadingPercent(v) {
+  if (v == null || Number.isNaN(Number(v))) return '—'
+  const n = Number(v)
+  const t = Math.round(n * 1000) / 1000
+  return String(t)
+}
+
+function pickLineRatedVnKv(line, channel) {
+  if (line?.vn_kv != null && !Number.isNaN(Number(line.vn_kv))) return Number(line.vn_kv)
+  if (channel?.min_vn_kv != null && !Number.isNaN(Number(channel.min_vn_kv))) return Number(channel.min_vn_kv)
+  return null
+}
+
+function pickLineIKa(line, channel) {
+  if (line?.i_ka != null && !Number.isNaN(Number(line.i_ka))) return Number(line.i_ka)
+  if (channel?.res_line_sum_i_ka != null && !Number.isNaN(Number(channel.res_line_sum_i_ka))) {
+    return Number(channel.res_line_sum_i_ka)
+  }
+  return null
+}
+
+function pickLineLoadingPercent(line, channel) {
+  if (line?.loading_percent != null && !Number.isNaN(Number(line.loading_percent))) {
+    return Number(line.loading_percent)
+  }
+  if (
+    channel?.res_line_sum_loading_percent != null &&
+    !Number.isNaN(Number(channel.res_line_sum_loading_percent))
+  ) {
+    return Number(channel.res_line_sum_loading_percent)
+  }
+  return null
 }
 
 function toTypeLabel(type, info) {
@@ -1107,26 +1648,33 @@ function pickKeyFields(info) {
 
   if (info.type === 'line') {
     const li = info.line_index ?? 0
-    const line = Array.isArray(info.line_data) && info.line_data.length > 0 ? info.line_data[0] : null
-    return {
+    const lines = Array.isArray(info.line_data) ? info.line_data : []
+    const line = lines[li] || lines[0] || null
+    const channel = info.raw || null
+    const fields = {
       类型: '线路',
-      线路名称: line?.name || info.channel_name || '-',
-      所属通道: info.channel_name || '-',
       起点站: info.from_station_name || info.from_station,
       终点站: info.to_station_name || info.to_station,
       起点母线: info.from_bus_name || line?.from_bus_name || '-',
       终点母线: info.to_bus_name || line?.to_bus_name || '-',
-      起点站电压_kV: info.from_kv,
-      终点站电压_kV: info.to_kv,
-      线色: info.link_color || '-',
-      线宽_px: info.link_width_px != null ? info.link_width_px : '-',
-      有功_p_from_MW: formatPFromMw(info.p_from_mw),
-      无功_q_from_MVar: formatQFromMvar(info.q_from_mvar),
-      最小电压_kV: info.min_vn_kv,
-      最大电压_kV: info.max_vn_kv,
+      额定电压_kV: formatPFromMw(pickLineRatedVnKv(line, channel)),
+      有功_p_from_MW: formatPFromMw(info.p_from_mw ?? line?.p_from_mw),
+      无功_q_from_MVar: formatQFromMvar(info.q_from_mvar ?? line?.q_from_mvar),
+      线路总负载率_percent: formatLineLoadingPercent(pickLineLoadingPercent(line, channel)),
+      线路总电流_kA: formatLineIKa(pickLineIKa(line, channel)),
+      线路名称: line?.name || info.channel_name || '-',
+      所属通道: info.channel_name || '-',
       投运状态: line?.in_service === false ? '退出' : '在运',
       通道内序号: li + 1,
     }
+    if (line?.type) fields['型号'] = line.type
+    if (line?.r_ohm_per_km != null) fields['电阻_Ω_per_km'] = String(line.r_ohm_per_km)
+    if (line?.x_ohm_per_km != null) fields['电抗_Ω_per_km'] = String(line.x_ohm_per_km)
+    if (line?.g_us_per_km != null) fields['电导_μS_per_km'] = String(line.g_us_per_km)
+    if (line?.c_nf_per_km != null) fields['电纳_nF_per_km'] = String(line.c_nf_per_km)
+    if (line?.max_i_ka != null) fields['额定载流量_kA'] = String(line.max_i_ka)
+    if (line?.length_km != null) fields['长度_km'] = String(line.length_km)
+    return fields
   }
 
   return info
@@ -1212,6 +1760,7 @@ function syncChannelMeta(channel, fromSt, toSt) {
 function createLineDataItem({ name, from_bus_name, to_bus_name }) {
   return {
     name: String(name || '').trim() || '新线路',
+    type: 'ac_line',
     from_bus_name: String(from_bus_name || '').trim(),
     to_bus_name: String(to_bus_name || '').trim(),
     in_service: true,
@@ -1287,6 +1836,7 @@ async function refreshMeasurementsFromJson() {
     const remote = normalizeLiaisonEnvelope(await response.json())
     mergeMeasurementFieldsIntoDoc(liaisonDoc.value, remote)
     parser.setData(liaisonDoc.value)
+    parser.options.showMeasurements = true
     parser.syncMeasurementsFromDoc()
     ElMessage.success('已刷新量测（布局未改）')
   } catch (error) {
@@ -1336,6 +1886,8 @@ const stationEditRow = computed(() => {
   if (i == null || i < 0) return null
   return liaisonDoc.value.data.station_data[i] || null
 })
+
+const stationTrafoEditCount = computed(() => stationTrafoRowCount(stationEditRow.value))
 
 const channelEditRow = computed(() => {
   if (!liaisonDoc.value) return null
@@ -1431,23 +1983,41 @@ const stationOptions = computed(() => {
 
 const stationReadonlyExtra = computed(() => {
   const row = stationEditRow.value
-  if (!row) return { lon: '—', lat: '—', trafoText: '—' }
+  if (!row) return { lon: '—', lat: '—' }
   const lon = row.lon != null && row.lon !== '' && !Number.isNaN(Number(row.lon)) ? String(row.lon) : '—'
   const lat = row.lat != null && row.lat !== '' && !Number.isNaN(Number(row.lat)) ? String(row.lat) : '—'
-  const list = row.trafo_display_list
-  const trafoText =
-    Array.isArray(list) && list.length > 0 ? JSON.stringify(list, null, 2) : '—'
-  return { lon, lat, trafoText }
+  return { lon, lat }
 })
+
+watch(
+  () => [editSelection.value?.kind, editSelection.value?.doc_station_index],
+  () => {
+    if (editSelection.value?.kind !== 'station') return
+    const row = stationEditRow.value
+    if (!row) return
+    ensureStationEditLists(row)
+    syncStationBusEditSnapshot()
+  }
+)
 
 const channelReadonlyExtra = computed(() => {
   const ch = channelEditRow.value
   if (!ch || editSelection.value?.kind !== 'line') {
-    return { minVn: '—', pMw: '—', qMvar: '—', inService: '—', extraLineDataJson: '', switchJson: '' }
+    return {
+      ratedVn: '—',
+      pMw: '—',
+      qMvar: '—',
+      inService: '—',
+      loadingPercent: '—',
+      iKa: '—',
+      extraLineDataJson: '',
+      switchJson: '',
+    }
   }
   const lines = ch.line_data || []
-  const first = lines[0]
-  const rest = lines.slice(1)
+  const li = editSelection.value.line_index ?? 0
+  const line = lines[li] || lines[0]
+  const rest = lines.filter((_, idx) => idx !== li)
   let pSum = 0
   let qSum = 0
   let anyP = false
@@ -1464,10 +2034,12 @@ const channelReadonlyExtra = computed(() => {
     }
   }
   return {
-    minVn: ch.min_vn_kv != null ? String(ch.min_vn_kv) : '—',
+    ratedVn: formatPFromMw(pickLineRatedVnKv(line, ch)),
     pMw: anyP ? formatPFromMw(pSum) : '—',
     qMvar: anyQ ? formatQFromMvar(qSum) : '—',
-    inService: first?.in_service === false ? '否' : '是',
+    inService: line?.in_service === false ? '否' : '是',
+    loadingPercent: formatLineLoadingPercent(pickLineLoadingPercent(line, ch)),
+    iKa: formatLineIKa(pickLineIKa(line, ch)),
     extraLineDataJson: rest.length ? JSON.stringify(rest, null, 2) : '',
     switchJson:
       Array.isArray(ch.switch_data) && ch.switch_data.length > 0 ? JSON.stringify(ch.switch_data, null, 2) : '',
@@ -1529,7 +2101,8 @@ function bindClickInfo(graph) {
       cell.entityType === 'junction'
     ) {
       const parser = getParser()
-      const docIdx = parser?.resolveDocChannelIndexFromCell(cell) ?? info.doc_channel_index
+      const resolved = parser?.resolveDocChannelFromCell(cell)
+      const docIdx = resolved?.docChannelIndex ?? parser?.resolveDocChannelIndexFromCell(cell) ?? info.doc_channel_index
       if (docIdx == null || docIdx < 0) {
         editSelection.value = null
         selectedInfo.value = null
@@ -1540,7 +2113,7 @@ function bindClickInfo(graph) {
       const ch = liaisonDoc.value?.data?.channel_data?.[docIdx]
       if (ch) {
         ensureChannelPrimaryLine(ch)
-        const li = info.line_index ?? 0
+        const li = resolved?.lineIndex ?? info.line_index ?? 0
         ensureLineBusFields(ch, li, liaisonDoc.value)
       }
       if (info.type === 'switch' || cell.entityType === 'switch') {
@@ -1554,7 +2127,7 @@ function bindClickInfo(graph) {
         editSelection.value = {
           kind: 'line',
           doc_channel_index: docIdx,
-          line_index: info.line_index ?? 0,
+          line_index: resolved?.lineIndex ?? info.line_index ?? 0,
         }
       }
     } else {
@@ -1574,6 +2147,14 @@ function bindClickInfo(graph) {
 
 function handleStationDoubleClick(stationInfo) {
   if (!stationInfo?.station_id || !stationInfo?.station_name) return
+  if (liaisonDemoLevel.value === 'lv1') {
+    stationNavTarget.value = {
+      station_id: stationInfo.station_id,
+      station_name: stationInfo.station_name,
+    }
+    stationNavDialogVisible.value = true
+    return
+  }
   router.push({
     path: '/in-site-svg',
     query: {
@@ -1581,6 +2162,25 @@ function handleStationDoubleClick(stationInfo) {
       name: stationInfo.station_name,
     },
   })
+}
+
+function goStationNavLv2() {
+  const target = stationNavTarget.value
+  if (!target) return
+  stationNavDialogVisible.value = false
+  router.push({
+    path: '/svg-liaison-drawio',
+    query: {
+      type: 'lv2',
+      id: target.station_id,
+      name: target.station_name,
+    },
+  })
+}
+
+function goStationNavPgrsd() {
+  stationNavDialogVisible.value = false
+  router.push({ path: '/region-system-svg' })
 }
 
 function bindStationDoubleClick(graph) {
@@ -1706,6 +2306,7 @@ function confirmAddStation() {
     bus_name_list: busNames,
     bus_id_list: [],
     trafo_display_list: [],
+    trafo_name_list: [],
   })
   const idx = liaisonDoc.value.data.station_data.length - 1
   editSelection.value = { kind: 'station', doc_station_index: idx }
@@ -1905,16 +2506,30 @@ async function deleteSelectedStation() {
     return
   }
   const id = row.station_id
+  const channels = liaisonDoc.value.data.channel_data
+  const removeChannelIndices = []
+  for (let ci = 0; ci < channels.length; ci++) {
+    const ch = channels[ci]
+    if (ch.from_station === id || ch.to_station === id) removeChannelIndices.push(ci)
+  }
+
   pushUndoSnapshot('删除变电站')
-  liaisonDoc.value.data.station_data.splice(i, 1)
-  liaisonDoc.value.data.channel_data = liaisonDoc.value.data.channel_data.filter(
-    (c) => c.from_station !== id && c.to_station !== id
-  )
+
   const parser = getParser()
   if (parser) {
+    parser.removeStationAndChannelsFromGraph(id, removeChannelIndices)
+  }
+
+  liaisonDoc.value.data.station_data.splice(i, 1)
+  liaisonDoc.value.data.channel_data = channels.filter(
+    (c) => c.from_station !== id && c.to_station !== id
+  )
+
+  if (parser) {
     parser.setData(liaisonDoc.value)
-    parser.removeStationGraphCells(id)
     parser.resyncChannelCellIdsToDoc()
+    parser.purgeOrphanChannelGraphCells()
+    parser.enableManualEdit()
     const g = getGraph()
     if (g) applyLiaisonFlowMotionArrows(g)
   }
@@ -1974,6 +2589,8 @@ async function deleteSelectedChannel() {
   if (parser) {
     parser.setData(liaisonDoc.value)
     parser.reindexChannelCellIdsAfterDelete()
+    parser.purgeOrphanChannelGraphCells()
+    parser.enableManualEdit()
     const g = getGraph()
     if (g) applyLiaisonFlowMotionArrows(g)
   }
@@ -2015,6 +2632,7 @@ async function loadSelectedFile() {
   editSelection.value = null
   clearUndoRedoHistory()
   pendingSavedGraphXml.value = null
+  pendingSavedViewState.value = null
   try {
     const response = await fetch(encodeURI(selectedFile.value))
     if (!response.ok) {
@@ -2023,18 +2641,17 @@ async function loadSelectedFile() {
 
     const jsonData = await response.json()
     let doc = normalizeLiaisonEnvelope(jsonData)
-    const bundle = loadLiaisonBundle(selectedFile.value)
+    const preferStatic = String(route.query?.bundle || '').toLowerCase() === 'static'
+    const bundle = await loadLiaisonBundleWithFallback(selectedFile.value, { preferStatic })
     if (bundle?.json) {
       doc = normalizeLiaisonEnvelope(bundle.json)
     }
     liaisonDoc.value = doc
     lastHistoryData = cloneJson(liaisonDoc.value.data)
     pendingSavedGraphXml.value = bundle?.graphXml || null
+    pendingSavedViewState.value = bundle?.viewState || null
 
-    liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, {
-      showLabels: true,
-    theme: canvasTheme.value,
-    })
+    liaisonParser.value = new SvgLiaisonDrawioParser(liaisonDoc.value, liaisonParserOptions())
     liaisonParser.value.skipInitialParseSvg = Boolean(pendingSavedGraphXml.value)
 
     destroyEditor()
@@ -2053,8 +2670,19 @@ async function loadSelectedFile() {
   }
 }
 
+watch(
+  () => route.query.type,
+  () => {
+    const nextFile = resolveLiaisonFileFromRoute()
+    if (nextFile === selectedFile.value) return
+    selectedFile.value = nextFile
+    loadSelectedFile()
+  }
+)
+
 onMounted(() => {
   window.addEventListener('keydown', handleLiaisonUndoRedoShortcut)
+  selectedFile.value = resolveLiaisonFileFromRoute()
   loadSelectedFile()
 })
 
@@ -2658,6 +3286,65 @@ onBeforeUnmount(() => {
   margin-top: -4px;
 }
 
+.station-nav-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.station-nav-option {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  }
+
+  &.primary {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+
+    &:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.24);
+    }
+  }
+}
+
+:deep(.station-nav-dialog .el-dialog__header) {
+  margin-right: 0;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
+:deep(.station-nav-dialog .el-dialog__title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+:deep(.station-nav-dialog .el-dialog__body) {
+  padding-top: 8px;
+  padding-bottom: 20px;
+}
+
 .bus-list-editor {
   margin-top: 4px;
 }
@@ -2698,6 +3385,58 @@ onBeforeUnmount(() => {
 .bus-list-remove:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.station-edit-bus {
+  margin-top: 12px;
+}
+
+.trafo-list-editor {
+  margin-top: 12px;
+}
+
+.trafo-list-title {
+  margin-bottom: 4px;
+}
+
+.trafo-list-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.trafo-list-index {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: #64748b;
+  min-width: 20px;
+}
+
+.trafo-list-row :deep(.el-input) {
+  flex: 1 1 72px;
+  min-width: 72px;
+}
+
+.trafo-list-row :deep(.el-input:first-of-type) {
+  flex: 2 1 120px;
+  min-width: 100px;
+}
+
+.line-metrics-block {
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.line-params-title {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
 }
 
 .switch-manage-block {

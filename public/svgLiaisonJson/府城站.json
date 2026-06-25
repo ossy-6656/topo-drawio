@@ -1,0 +1,721 @@
+{
+  "code": 1,
+  "message": "成功",
+  "data": {
+    "max_lat": 8.010453063943174,
+    "min_lat": 1.817785512012718,
+    "max_lon": 47.062393099051846,
+    "min_lon": 26.41330563605166,
+    "show_station_list": [
+      399,
+      496,
+      594,
+      692,
+      862,
+      887,
+      150,
+      151,
+      152,
+      153,
+      259,
+      261,
+      262,
+      263,
+      264,
+      265,
+      266,
+      267,
+      248,
+      250,
+      251,
+      252,
+      253,
+      274,
+      275
+    ],
+    "station_data": [
+      {
+        "station_id": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "station_type": "station",
+        "station_name": "新乡.府城站",
+        "vn_kv": 230,
+        "bus_name_list": [
+          "府城站.230.2",
+          "府城站.115.2",
+          "府城站.10.2",
+          "府城站.10.3",
+          "府城站.1.1",
+          "府城站.1.2"
+        ],
+        "color": "",
+        "lat": 1.817785512012718,
+        "lon": 38.19044969463331,
+        "bus_id_list": [
+          399,
+          496,
+          594,
+          692,
+          862,
+          887
+        ],
+        "trafo_id_list": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "trafo_name_list": [
+          "府城站.府#2主变_高",
+          "府城站.府#3主变_高",
+          "府城站.府#2主变_中",
+          "府城站.府#3主变_低",
+          "府城站.府#2主变_低",
+          "府城站.府#3主变_中"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 2.2611285937099113,
+            "q_mvar": -6.510760366189673
+          },
+          {
+            "p_mw": 3.2545544805287783,
+            "q_mvar": -9.542690509744173
+          },
+          {
+            "p_mw": -2.2335665129406252,
+            "q_mvar": 5.4778250603891125
+          },
+          {
+            "p_mw": -0.036323864355358025,
+            "q_mvar": 0.2696315751108134
+          },
+          {
+            "p_mw": -0.015754685009664298,
+            "q_mvar": 0.23121689451300775
+          },
+          {
+            "p_mw": -3.196580374299824,
+            "q_mvar": 8.172030528976157
+          }
+        ]
+      },
+      {
+        "station_id": "535e50c5-d534-45da-a271-381d7fc3627b",
+        "station_type": "station",
+        "station_name": "新乡.新乡.牧野站",
+        "vn_kv": 115,
+        "bus_name_list": [
+          "新乡.牧野站.115.2",
+          "新乡.牧野站.115.3",
+          "新乡.牧野站.10.2",
+          "新乡.牧野站.10.3"
+        ],
+        "color": "",
+        "lat": 8.010453063943174,
+        "lon": 47.062393099051846,
+        "bus_id_list": [
+          150,
+          151,
+          152,
+          153
+        ],
+        "trafo_id_list": [
+          248,
+          486
+        ],
+        "trafo_name_list": [
+          "新乡.牧野站.牧#1主变",
+          "新乡.牧野站.牧#2主变"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 17.974736526890666,
+            "q_mvar": 4.259589251709796
+          },
+          {
+            "p_mw": 14.905439498996769,
+            "q_mvar": 5.242794063140241
+          }
+        ]
+      },
+      {
+        "station_id": "cf4cc7fa-ed3e-471f-abe7-08222ecc09af",
+        "station_type": "station",
+        "station_name": "新乡.新乡.园区站",
+        "vn_kv": 115,
+        "bus_name_list": [
+          "新乡.园区站.115.2",
+          "新乡.园区站.115.3",
+          "新乡.园区站.115.4",
+          "新乡.园区站.10.2"
+        ],
+        "color": "",
+        "lat": 4.250796239498903,
+        "lon": 27.5505358039497,
+        "bus_id_list": [
+          259,
+          261,
+          262,
+          263
+        ],
+        "trafo_id_list": [
+          492
+        ],
+        "trafo_name_list": [
+          "新乡.园区站.区#3主变"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 0.03003782328910822,
+            "q_mvar": -2.639911364042444
+          }
+        ]
+      },
+      {
+        "station_id": "006b1079-35cd-460c-bd2b-4b07d4ad9df2",
+        "station_type": "station",
+        "station_name": "新乡.新乡.东干站",
+        "vn_kv": 115,
+        "bus_name_list": [
+          "新乡.东干站.115.2",
+          "新乡.东干站.115.3",
+          "新乡.东干站.10.2",
+          "新乡.东干站.10.3"
+        ],
+        "color": "",
+        "lat": 4.262637770979869,
+        "lon": 26.41330563605166,
+        "bus_id_list": [
+          264,
+          265,
+          266,
+          267
+        ],
+        "trafo_id_list": [
+          499,
+          534
+        ],
+        "trafo_name_list": [
+          "新乡.东干站.干#2主变",
+          "新乡.东干站.干#1主变"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 3.6380476516444373,
+            "q_mvar": -2.369930419483588
+          },
+          {
+            "p_mw": 0.13288170339079314,
+            "q_mvar": -2.7429138334475227
+          }
+        ]
+      },
+      {
+        "station_id": "4962ece7-710f-4f77-86ba-de690cd37250",
+        "station_type": "station",
+        "station_name": "新乡.新乡.学院站",
+        "vn_kv": 115,
+        "bus_name_list": [
+          "新乡.学院站.115.2",
+          "新乡.学院站.115.3",
+          "新乡.学院站.115.4",
+          "新乡.学院站.115.5",
+          "新乡.学院站.10.2"
+        ],
+        "color": "",
+        "lat": 5.722468808665796,
+        "lon": 29.02679195137621,
+        "bus_id_list": [
+          248,
+          250,
+          251,
+          252,
+          253
+        ],
+        "trafo_id_list": [
+          517
+        ],
+        "trafo_name_list": [
+          "新乡.学院站.学#2主变"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 0.315313023265455,
+            "q_mvar": -2.8202958970213214
+          }
+        ]
+      },
+      {
+        "station_id": "27cce624-3884-4119-b471-c88b07d12fc2",
+        "station_type": "station",
+        "station_name": "新乡.新乡.定国站",
+        "vn_kv": 115,
+        "bus_name_list": [
+          "新乡.定国站.115.2",
+          "新乡.定国站.10.2"
+        ],
+        "color": "",
+        "lat": 5.362414092683649,
+        "lon": 32.119547045669066,
+        "bus_id_list": [
+          274,
+          275
+        ],
+        "trafo_id_list": [
+          520
+        ],
+        "trafo_name_list": [
+          "新乡.定国站.定#1主变"
+        ],
+        "feedin_relation_bus_name_list": [],
+        "trafo_display_list": [
+          {
+            "p_mw": 1.3102282258296076,
+            "q_mvar": -3.092810382420223
+          }
+        ]
+      }
+    ],
+    "channel_data": [
+      {
+        "channel_name": "府城站.115.2_新乡.牧野站.115.3",
+        "from_station": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "to_station": "535e50c5-d534-45da-a271-381d7fc3627b",
+        "line_data": [
+          {
+            "name": "府牧线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 143,
+            "from_bus": 496,
+            "to_bus": 151,
+            "in_service": true,
+            "max_i_ka": 0.6900000000000001,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 6.629,
+            "r_ohm_per_km": 0.10182591642781719,
+            "x_ohm_per_km": 0.397767385729371,
+            "c_nf_per_km": 4.321600506342007e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037448",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.牧野站.115.3",
+            "isSequence": true,
+            "p_from_mw": -3.5110040936145105e-14,
+            "q_from_mvar": -1.1641368440249061e-10
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            38.19044969463331,
+            1.817785512012718
+          ],
+          [
+            47.062393099051846,
+            8.010453063943174
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 230
+      },
+      {
+        "channel_name": "府城站.115.2_新乡.园区站.115.2",
+        "from_station": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "to_station": "cf4cc7fa-ed3e-471f-abe7-08222ecc09af",
+        "line_data": [
+          {
+            "name": "府区线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 146,
+            "from_bus": 496,
+            "to_bus": 259,
+            "in_service": true,
+            "max_i_ka": 0.77,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 4.806,
+            "r_ohm_per_km": 0.0710230961298377,
+            "x_ohm_per_km": 0.32481897627965045,
+            "c_nf_per_km": 5.29854159273892e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037450",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.园区站.115.2",
+            "isSequence": true,
+            "p_from_mw": 0.030221271057077687,
+            "q_from_mvar": -2.6390723790923003
+          },
+          {
+            "name": "Ⅱ府区线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 344,
+            "from_bus": 496,
+            "to_bus": 261,
+            "in_service": true,
+            "max_i_ka": 0.68,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 4.79,
+            "r_ohm_per_km": 0.12297306889352819,
+            "x_ohm_per_km": 0.40503340292275575,
+            "c_nf_per_km": 4.651710236506335e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037798",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.园区站.115.3",
+            "isSequence": true,
+            "p_from_mw": 7.393027572244933e-13,
+            "q_from_mvar": -8.849049066571175e-11
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            38.19044969463331,
+            1.817785512012718
+          ],
+          [
+            27.5505358039497,
+            4.250796239498903
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 230
+      },
+      {
+        "channel_name": "府城站.115.2_新乡.东干站.115.2",
+        "from_station": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "to_station": "006b1079-35cd-460c-bd2b-4b07d4ad9df2",
+        "line_data": [
+          {
+            "name": "府干线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 215,
+            "from_bus": 496,
+            "to_bus": 264,
+            "in_service": true,
+            "max_i_ka": 0.603,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 11.595,
+            "r_ohm_per_km": 0.08423165157395429,
+            "x_ohm_per_km": 0.36709529969814575,
+            "c_nf_per_km": 6.58856168038894e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037580",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.东干站.115.2",
+            "isSequence": true,
+            "p_from_mw": 3.7739623412069463,
+            "q_from_mvar": -5.099626003962993
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            38.19044969463331,
+            1.817785512012718
+          ],
+          [
+            26.41330563605166,
+            4.262637770979869
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 230
+      },
+      {
+        "channel_name": "新乡.定国站.115.2_新乡.东干站.115.3",
+        "from_station": "27cce624-3884-4119-b471-c88b07d12fc2",
+        "to_station": "006b1079-35cd-460c-bd2b-4b07d4ad9df2",
+        "line_data": [
+          {
+            "name": "定干线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 268,
+            "from_bus": 274,
+            "to_bus": 265,
+            "in_service": true,
+            "max_i_ka": 1.222,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 6.5,
+            "r_ohm_per_km": 0.023520153846153843,
+            "x_ohm_per_km": 0.12691923076923078,
+            "c_nf_per_km": 4.407367654852486e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037678",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "新乡.定国站.115.2",
+            "to_bus_name": "新乡.东干站.115.3",
+            "isSequence": true,
+            "p_from_mw": -1.1088910518299359e-13,
+            "q_from_mvar": -1.1733420158537148e-10
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            32.119547045669066,
+            5.362414092683649
+          ],
+          [
+            26.41330563605166,
+            4.262637770979869
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 115
+      },
+      {
+        "channel_name": "府城站.115.2_新乡.定国站.115.2",
+        "from_station": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "to_station": "27cce624-3884-4119-b471-c88b07d12fc2",
+        "line_data": [
+          {
+            "name": "府定线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 269,
+            "from_bus": 496,
+            "to_bus": 274,
+            "in_service": true,
+            "max_i_ka": 1.222,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 2.5,
+            "r_ohm_per_km": 0.0621576,
+            "x_ohm_per_km": 0.344326,
+            "c_nf_per_km": 1.1459155902616465e-8,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037679",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.定国站.115.2",
+            "isSequence": true,
+            "p_from_mw": 1.3103634429972013,
+            "q_from_mvar": -3.0920613385109346
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            38.19044969463331,
+            1.817785512012718
+          ],
+          [
+            32.119547045669066,
+            5.362414092683649
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 230
+      },
+      {
+        "channel_name": "府城站.115.2_新乡.学院站.115.3",
+        "from_station": "6669cf7b-1113-49bb-ab2e-935709ac6a1a",
+        "to_station": "4962ece7-710f-4f77-86ba-de690cd37250",
+        "line_data": [
+          {
+            "name": "Ⅰ府学线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 294,
+            "from_bus": 496,
+            "to_bus": 250,
+            "in_service": true,
+            "max_i_ka": 0.71,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 5.986,
+            "r_ohm_per_km": 0.0771715669896425,
+            "x_ohm_per_km": 0.3228917474106248,
+            "c_nf_per_km": 3.722300707127522e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037713",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.学院站.115.3",
+            "isSequence": true,
+            "p_from_mw": 9.638728474374519e-13,
+            "q_from_mvar": -8.850579117578615e-11
+          },
+          {
+            "name": "Ⅱ府学线",
+            "type": "ac_line",
+            "color": "",
+            "vn_kv": 115,
+            "line_types": "solid",
+            "index": 296,
+            "from_bus": 496,
+            "to_bus": 248,
+            "in_service": true,
+            "max_i_ka": 0.71,
+            "max_loading_rate": 1,
+            "transmission_cost": null,
+            "timeseries": [],
+            "max_total_elec_tran_mwh": null,
+            "min_total_elec_tran_mwh": null,
+            "electricity_relax_cost_cny_per_mwh": null,
+            "parallel": 1,
+            "length_km": 5.986,
+            "r_ohm_per_km": 0.0771715669896425,
+            "x_ohm_per_km": 0.3228917474106248,
+            "c_nf_per_km": 3.722300707127522e-9,
+            "g_us_per_km": 0,
+            "lineid": "116530642254037714",
+            "cap_const": true,
+            "existing_construction_cost": null,
+            "fixed_OM_cost": null,
+            "variable_OM_cost": null,
+            "commissioning_datetime": null,
+            "decommissioning_datetime": null,
+            "feederid": "",
+            "_commissioning_datetime": null,
+            "_decommissioning_datetime": null,
+            "from_bus_name": "府城站.115.2",
+            "to_bus_name": "新乡.学院站.115.2",
+            "isSequence": true,
+            "p_from_mw": 0.31559983202203135,
+            "q_from_mvar": -2.8190958673065127
+          }
+        ],
+        "switch_data": [],
+        "coords": [
+          [
+            38.19044969463331,
+            1.817785512012718
+          ],
+          [
+            29.02679195137621,
+            5.722468808665796
+          ]
+        ],
+        "min_vn_kv": 115,
+        "max_vn_kv": 230
+      }
+    ]
+  }
+}

@@ -142,6 +142,9 @@ import {
 } from '@/view/graph/data/stationDatasets.js'                          // data/*.svg 转 lgdata 格式
 import changcunPvList from '@/view/graph/data/changcunPV.json'
 import { teardownLgPvIconShine } from '@/view/graph/lg/lgPvIconOverlay.js'
+import {
+    refreshLgRegionFeederCellIndex,
+} from '@/view/graph/lg/lgRegionFeederClick.js'
 
 // 导入 G 文件转换工具
 import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G 文件转 SVG
@@ -455,14 +458,28 @@ function disableLgGraphContextMenus(graph) {
     }
 }
 
-/** 区域系统图等只读 SVG 页：隐藏左侧图元面板并禁用编辑 */
+/** 区域系统图等只读 SVG 页：隐藏左侧图元面板并禁用编辑（保持 graph 可命中以支持馈线点击） */
 function applyLgSvgViewOnlyMode(ui, container) {
     applyLgSidebarLayout(ui, container, false)
     const graph = ui?.editor?.graph
-    if (graph && typeof graph.setEnabled === 'function') {
-        graph.setEnabled(false)
+    if (!graph) {
+        return
+    }
+    graph.setCellsEditable(false)
+    graph.setCellsMovable(false)
+    graph.setCellsResizable(false)
+    graph.setCellsDeletable(false)
+    graph.setCellsCloneable(false)
+    graph.setConnectable(false)
+    graph.setDropEnabled(false)
+    if (graph.graphHandler) {
+        graph.graphHandler.setEnabled(false)
+    }
+    if (graph.connectionHandler) {
+        graph.connectionHandler.setEnabled(false)
     }
     disableLgGraphContextMenus(graph)
+    refreshLgRegionFeederCellIndex(graph)
 }
 
 function setLgSidebarExpanded(expanded) {
@@ -762,11 +779,15 @@ if (feederFromRoute?.feeder) {
 // ==================== 组件状态变量 ====================
 let uiEditor                       // 编辑器 UI 实例（App 类的实例）
 let poleEle = ref()                 // 柱上辅助复选框的引用
-const selectedData = ref('fucheng23')  // /graphLg 及站内馈线跳转默认府城变23板府馨线
 
 /** /graphLg 数据源下拉框可见项（仅府城变四条线路） */
 const VISIBLE_DATASET_KEYS = ['fucheng09', 'fucheng19', 'fucheng22', 'fucheng23']
 const stationDataOptions = STATION_DATA_OPTIONS.filter((o) => VISIBLE_DATASET_KEYS.includes(o.value))
+
+const datasetFromRoute = route.query.dataset != null ? String(route.query.dataset) : ''
+const selectedData = ref(
+    datasetFromRoute && VISIBLE_DATASET_KEYS.includes(datasetFromRoute) ? datasetFromRoute : 'fucheng23'
+)
 
 // 数据源映射
 const dataSources = {
@@ -880,6 +901,7 @@ window.navigateToGraphLgWithFeeder = (payload) => {
         query: {
             feeder: payload.feeder || '',
             feederKey: payload.feederKey || '',
+            dataset: payload.dataset || '',
             keyid: payload.keyid || '',
             rtkeyid: payload.rtkeyid || '',
         },
@@ -1243,6 +1265,7 @@ onMounted(() => {
     if (isSvgFileMode.value) {
         window['disableOper'] = true
         window['customShape'] = false
+        window.__lgRegionSystemSvgMode = true
     }
 
     applyDrawioSaveStatusIcon()
@@ -1343,6 +1366,7 @@ onBeforeUnmount(() => {
     if (isSvgFileMode.value) {
         window['disableOper'] = false
         window['customShape'] = true
+        window.__lgRegionSystemSvgMode = false
     }
     delete window.navigateToGraphLgWithFeeder
     try {

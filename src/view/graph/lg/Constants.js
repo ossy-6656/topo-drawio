@@ -603,6 +603,18 @@ export const LG_DEVICE_ATTR_UNIT_SUFFIX = {
     model_paras_x: 'Ω/km',
     model_paras_g: 'Ω/km',
     model_paras_b: 'Ω/km',
+    hv_ks: 'kW',
+    hv_kd: 'KA',
+    hv_fs: 'kW',
+    hv_kz: '%',
+    mv_ks: 'kW',
+    mv_kd: 'KA',
+    mv_fs: 'kW',
+    mv_kz: '%',
+    lv_ks: 'kW',
+    lv_kd: 'KA',
+    lv_fs: 'kW',
+    lv_kz: '%'
 }
 
 export function lgDeviceAttrLabel(name, fallback) {
