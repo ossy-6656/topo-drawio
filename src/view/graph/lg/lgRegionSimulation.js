@@ -29,8 +29,63 @@ function getFlowDataUrl() {
     return window.__lgRegionFlowDataUrl || DEFAULT_FLOW_DATA_URL
 }
 
+const SBID_PREFIX = 'sbid000000'
+
 function normalizeId(id) {
     return String(id || '').replace(/-/g, '').toLowerCase()
+}
+
+/** 潮流 JSON 的 busid/lineid/trafoid 与 SVG GlobeID 的多种写法 */
+function flowIdVariants(rawId) {
+    const keys = new Set()
+    const n = normalizeId(rawId)
+    if (!n) return keys
+
+    keys.add(n)
+
+    if (n.startsWith('sbid')) {
+        if (n.startsWith(SBID_PREFIX)) {
+            keys.add(n.slice(SBID_PREFIX.length))
+        }
+        keys.add(n.slice(4))
+        return keys
+    }
+
+    keys.add(SBID_PREFIX + n)
+    if (n.startsWith('00') && n.length > 2) {
+        const body = n.slice(2)
+        keys.add(body)
+        keys.add(SBID_PREFIX + body)
+        if (body.startsWith('0')) {
+            const core = body.slice(1)
+            keys.add(core)
+            keys.add(SBID_PREFIX + core)
+        }
+    }
+    return keys
+}
+
+function indexFlowRecord(map, rawId, record) {
+    for (const key of flowIdVariants(rawId)) {
+        if (!map.has(key)) {
+            map.set(key, record)
+        }
+    }
+}
+
+/** 从 PD_类型码_GlobeID 形式的 ObjectID 提取 GlobeID 段 */
+function extractGlobeIdFromObjectId(objectId) {
+    const m = String(objectId || '').match(/^PD_\d+_(.+)$/i)
+    return m ? m[1] : ''
+}
+
+function getCellPropMap(cell, parser) {
+    if (!cell?.id || !parser?.attrMap) return null
+    const id = String(cell.id)
+    if (parser.attrMap.has(id)) {
+        return parser.attrMap.get(id)
+    }
+    return null
 }
 
 function normalizeName(name) {
@@ -73,37 +128,52 @@ function buildFlowIndexes(data) {
     const trafoByName = new Map()
 
     for (const line of data.res_line || []) {
-        if (line.lineid) lineById.set(normalizeId(line.lineid), line)
+        if (line.lineid) indexFlowRecord(lineById, line.lineid, line)
         if (line.name) lineByName.set(normalizeName(line.name), line)
     }
     for (const bus of data.res_bus || []) {
-        if (bus.busid) busById.set(normalizeId(bus.busid), bus)
+        if (bus.busid) indexFlowRecord(busById, bus.busid, bus)
         if (bus.name) busByName.set(normalizeName(bus.name), bus)
     }
     for (const trafo of data.res_trafo || []) {
-        if (trafo.trafoid) trafoById.set(normalizeId(trafo.trafoid), trafo)
+        if (trafo.trafoid) indexFlowRecord(trafoById, trafo.trafoid, trafo)
         if (trafo.name) trafoByName.set(normalizeName(trafo.name), trafo)
     }
 
     return { lineById, lineByName, busById, busByName, trafoById, trafoByName }
 }
 
+function addGlobeIdKeys(keys, rawGlobeId) {
+    if (!rawGlobeId) return
+    for (const variant of flowIdVariants(rawGlobeId)) {
+        keys.add(variant)
+    }
+}
+
 function getCellMatchKeys(cell, parser) {
     const keys = new Set()
     const id = String(cell.id || '')
-    if (id) keys.add(normalizeId(id))
+    if (id.startsWith('TXT-')) {
+        return keys
+    }
 
-    const pm = parser?.attrMap?.get(id)
+    const globeFromObjectId = extractGlobeIdFromObjectId(id)
+    if (globeFromObjectId) {
+        addGlobeIdKeys(keys, globeFromObjectId)
+    }
+
+    const pm = getCellPropMap(cell, parser)
     const psr = pm?.['cge:PSR_Ref']
     if (psr) {
-        ;['GlobeID', 'ObjectID', 'GeoPsrid'].forEach((field) => {
-            if (psr[field]) keys.add(normalizeId(psr[field]))
-        })
+        addGlobeIdKeys(keys, psr.GlobeID)
+        if (psr.ObjectID) {
+            addGlobeIdKeys(keys, extractGlobeIdFromObjectId(psr.ObjectID) || psr.ObjectID)
+        }
+        if (psr.GeoPsrid) addGlobeIdKeys(keys, psr.GeoPsrid)
         if (psr.ObjectName) keys.add(normalizeName(psr.ObjectName))
     }
 
     if (cell.name) keys.add(normalizeName(cell.name))
-    if (cell.sbid) keys.add(normalizeId(cell.sbid))
 
     const val = cell.value
     if (typeof val === 'string' && val.trim()) {
@@ -113,24 +183,32 @@ function getCellMatchKeys(cell, parser) {
     return keys
 }
 
-function matchFlowRecord(cell, graph, parser, indexes) {
-    const keys = getCellMatchKeys(cell, parser)
+function getFlowMatchMaps(cell, graph, indexes) {
     const model = graph.getModel()
-    const tryMaps = []
+    const maps = []
 
     if (model.isEdge(cell)) {
-        tryMaps.push(indexes.lineById, indexes.lineByName)
+        maps.push(indexes.lineById, indexes.lineByName, indexes.busById, indexes.busByName)
     } else if (DeviceCategoryUtil?.isBusCell?.(cell)) {
-        tryMaps.push(indexes.busById, indexes.busByName)
+        maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
     } else {
         const st = graph.getCurrentCellStyle(cell) || {}
         const shape = String(st.shape || cell.symbol || '').toLowerCase()
         if (shape.indexOf('potentialtransformer') === 0) {
-            tryMaps.push(indexes.trafoById, indexes.trafoByName)
+            maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName)
+        } else {
+            maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName, indexes.trafoById, indexes.trafoByName)
         }
     }
 
-    for (const map of tryMaps) {
+    return maps
+}
+
+function matchFlowRecord(cell, graph, parser, indexes) {
+    const keys = getCellMatchKeys(cell, parser)
+    if (keys.size === 0) return null
+
+    for (const map of getFlowMatchMaps(cell, graph, indexes)) {
         for (const key of keys) {
             if (map.has(key)) {
                 return map.get(key)
