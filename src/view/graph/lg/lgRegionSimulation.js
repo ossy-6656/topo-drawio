@@ -3,22 +3,31 @@
  */
 import { ElMessage } from 'element-plus'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
+import { isLgLoadShapeOrPsr } from '@/view/graph/lg/Constants.js'
 
 const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
-const HIGHLIGHT_STROKE = '#ff3b30'
+const WARN_HIGHLIGHT_STROKE = '#ffcc00'
 const HIGHLIGHT_STROKE_WIDTH = 4
+const BLINK_INTERVAL_MS = 600
+const SHAPE_TINT_SELECTOR = 'path,circle,ellipse,line,rect,polygon,polyline,text'
 
 const VM_LOW_LIMIT = 0.95
 const VM_HIGH_LIMIT = 1.05
-const LOADING_LIMIT_PERCENT = 100
+const LOADING_WARN_PERCENT = 80
 
 let flowDataCache = null
 let flowDataUrlCache = ''
 const overlayCellIds = new Set()
 const highlightedCells = new Set()
 const savedHighlightStyles = new Map()
+/** @type {Map<string, Array<{stroke: string|null, fill: string|null, strokeWidth: string|null}>>} */
+const warnShapeColorTemplates = new Map()
 let overLimitHighlightOn = false
+let warnBlinkTimer = null
+let warnBlinkGraph = null
+let warnBlinkPhaseOn = true
+let warnBlinkSyncHandler = null
 
 /** /graphLg、/in-site-svg 显示仿真菜单；/region-system-svg 不显示 */
 function isLgSimulationMenuEnabled() {
@@ -183,6 +192,25 @@ function getCellMatchKeys(cell, parser) {
     return keys
 }
 
+function getCellShapeInfo(cell, graph) {
+    const st = graph.getCurrentCellStyle(cell) || {}
+    return {
+        shape: String(st.shape || cell.symbol || '').toLowerCase(),
+        psrtype: String(st.psrtype || cell.psrtype || ''),
+    }
+}
+
+/** 配变/配电站等负荷类设备，优先匹配 res_trafo */
+function isTrafoOrLoadDevice(cell, graph) {
+    const { shape, psrtype } = getCellShapeInfo(cell, graph)
+    return (
+        shape.indexOf('potentialtransformer') === 0 ||
+        shape.indexOf('powertransformer') === 0 ||
+        shape.startsWith('substation_') ||
+        isLgLoadShapeOrPsr(shape, psrtype)
+    )
+}
+
 function getFlowMatchMaps(cell, graph, indexes) {
     const model = graph.getModel()
     const maps = []
@@ -191,14 +219,10 @@ function getFlowMatchMaps(cell, graph, indexes) {
         maps.push(indexes.lineById, indexes.lineByName, indexes.busById, indexes.busByName)
     } else if (DeviceCategoryUtil?.isBusCell?.(cell)) {
         maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
+    } else if (isTrafoOrLoadDevice(cell, graph)) {
+        maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
     } else {
-        const st = graph.getCurrentCellStyle(cell) || {}
-        const shape = String(st.shape || cell.symbol || '').toLowerCase()
-        if (shape.indexOf('potentialtransformer') === 0) {
-            maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName)
-        } else {
-            maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName, indexes.trafoById, indexes.trafoByName)
-        }
+        maps.push(indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName, indexes.trafoById, indexes.trafoByName)
     }
 
     return maps
@@ -211,11 +235,39 @@ function matchFlowRecord(cell, graph, parser, indexes) {
     for (const map of getFlowMatchMaps(cell, graph, indexes)) {
         for (const key of keys) {
             if (map.has(key)) {
-                return map.get(key)
+                const record = map.get(key)
+                if (!acceptsTrafoRecord(cell, graph, parser, record)) {
+                    continue
+                }
+                return record
             }
         }
     }
     return null
+}
+
+function isTrafoLoadRecord(record) {
+    return record != null && record.trafoid != null && record.loading_percent != null
+}
+
+/** 避免 GlobeID 变体碰撞导致配变匹配到错误的 res_trafo */
+function acceptsTrafoRecord(cell, graph, parser, record) {
+    if (!isTrafoLoadRecord(record)) return true
+    if (!isTrafoOrLoadDevice(cell, graph)) return false
+    const psrName = normalizeName(getCellPropMap(cell, parser)?.['cge:PSR_Ref']?.ObjectName || cell.name)
+    const recordName = normalizeName(record.name)
+    if (psrName && recordName) {
+        return psrName === recordName
+    }
+    return true
+}
+
+function shouldHighlightOverLimitCell(cell, graph, parser, record) {
+    if (!isOverLimitRecord(record)) return false
+    if (isTrafoLoadRecord(record)) {
+        return acceptsTrafoRecord(cell, graph, parser, record)
+    }
+    return true
 }
 
 function buildFlowLabel(record, graph, cell) {
@@ -278,27 +330,192 @@ function clearFlowOverlays(graph) {
     overlayCellIds.clear()
 }
 
-function clearOverLimitHighlight(graph) {
-    if (!graph || highlightedCells.size === 0) return
-    const cells = Array.from(highlightedCells)
-    graph.setCellStyles('strokeColor', null, cells)
-    graph.setCellStyles('strokeWidth', null, cells)
-    for (const cell of cells) {
-        const saved = savedHighlightStyles.get(cell.id)
-        if (saved) {
-            if (saved.strokeColor != null) graph.setCellStyles('strokeColor', saved.strokeColor, [cell])
-            if (saved.strokeWidth != null) graph.setCellStyles('strokeWidth', saved.strokeWidth, [cell])
-            if (saved.fillColor != null) graph.setCellStyles('fillColor', saved.fillColor, [cell])
+function stopWarnBlink() {
+    if (warnBlinkTimer != null) {
+        clearInterval(warnBlinkTimer)
+        warnBlinkTimer = null
+    }
+    if (warnBlinkSyncHandler && warnBlinkGraph?.view) {
+        warnBlinkGraph.view.removeListener(warnBlinkSyncHandler)
+    }
+    warnBlinkSyncHandler = null
+    warnBlinkGraph = null
+}
+
+/** SVG symbol 图元内嵌固定描边色，改 cell 样式无效，直接切换 shape SVG 颜色实现本体闪烁 */
+function usesShapeTintBlink(graph, cell) {
+    const model = graph.getModel()
+    if (model.isEdge(cell)) return false
+    if (DeviceCategoryUtil?.isBusCell?.(cell)) return false
+    return true
+}
+
+function getShapeTintElements(node) {
+    if (!node || typeof node.querySelectorAll !== 'function') return []
+    return Array.from(node.querySelectorAll(SHAPE_TINT_SELECTOR))
+}
+
+function ensureShapeColorTemplate(cellId, elements) {
+    const template = elements.map((el) => ({
+        stroke: el.getAttribute('stroke'),
+        fill: el.getAttribute('fill'),
+        strokeWidth: el.getAttribute('stroke-width'),
+    }))
+    warnShapeColorTemplates.set(cellId, template)
+    return template
+}
+
+function restoreShapeElementStyle(el, orig) {
+    if (orig.stroke != null) {
+        if (orig.stroke) el.setAttribute('stroke', orig.stroke)
+        else el.removeAttribute('stroke')
+    }
+    if (orig.fill != null) {
+        if (orig.fill) el.setAttribute('fill', orig.fill)
+        else el.removeAttribute('fill')
+    }
+    if (orig.strokeWidth != null) {
+        if (orig.strokeWidth) el.setAttribute('stroke-width', orig.strokeWidth)
+        else el.removeAttribute('stroke-width')
+    }
+}
+
+function applyShapeWarnTint(graph, cell, on) {
+    const state = graph.view.getState(cell)
+    const elements = getShapeTintElements(state?.shape?.node)
+    if (!elements.length) return
+
+    const cellId = String(cell.id)
+    let template = warnShapeColorTemplates.get(cellId)
+    if (!template || template.length !== elements.length) {
+        template = ensureShapeColorTemplate(cellId, elements)
+    }
+
+    elements.forEach((el, index) => {
+        const orig = template[index]
+        if (!orig) return
+        if (on) {
+            if (orig.stroke && orig.stroke !== 'none') {
+                el.setAttribute('stroke', WARN_HIGHLIGHT_STROKE)
+                const w = parseFloat(orig.strokeWidth)
+                if (!Number.isNaN(w) && w > 0) {
+                    el.setAttribute('stroke-width', String(Math.max(w * 1.6, w + 0.4)))
+                }
+            }
+            if (orig.fill && orig.fill !== 'none') {
+                el.setAttribute('fill', WARN_HIGHLIGHT_STROKE)
+            }
+        } else {
+            restoreShapeElementStyle(el, orig)
         }
+    })
+}
+
+function clearShapeWarnTints(graph) {
+    for (const cell of highlightedCells) {
+        const saved = savedHighlightStyles.get(cell.id)
+        if (saved?.useShapeTint) {
+            applyShapeWarnTint(graph, cell, false)
+        }
+    }
+    warnShapeColorTemplates.clear()
+}
+
+function installWarnBlinkSync(graph) {
+    if (warnBlinkSyncHandler || !graph?.view || typeof mxEvent === 'undefined') return
+    warnBlinkSyncHandler = () => {
+        if (warnBlinkGraph && highlightedCells.size > 0) {
+            applyWarnBlinkPhase(warnBlinkGraph, warnBlinkPhaseOn)
+        }
+    }
+    graph.view.addListener(mxEvent.SCALE, warnBlinkSyncHandler)
+    graph.view.addListener(mxEvent.TRANSLATE, warnBlinkSyncHandler)
+    graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, warnBlinkSyncHandler)
+}
+
+function restoreHighlightedCellStyles(graph, cell) {
+    const saved = savedHighlightStyles.get(cell.id)
+    if (!saved) return
+    if (saved.strokeColor != null) {
+        graph.setCellStyles('strokeColor', saved.strokeColor, [cell])
+    } else {
+        graph.setCellStyles('strokeColor', null, [cell])
+    }
+    if (saved.strokeWidth != null) {
+        graph.setCellStyles('strokeWidth', saved.strokeWidth, [cell])
+    } else {
+        graph.setCellStyles('strokeWidth', null, [cell])
+    }
+    if (saved.fillColor != null) {
+        graph.setCellStyles('fillColor', saved.fillColor, [cell])
+    } else if (saved.isBus) {
+        graph.setCellStyles('fillColor', null, [cell])
+    }
+}
+
+function applyWarnBlinkPhase(graph, on) {
+    warnBlinkPhaseOn = on
+    let needInvalidate = false
+    for (const cell of highlightedCells) {
+        const saved = savedHighlightStyles.get(cell.id)
+        if (saved?.useShapeTint) {
+            applyShapeWarnTint(graph, cell, on)
+            continue
+        }
+        needInvalidate = true
+        if (on) {
+            graph.setCellStyles('strokeColor', WARN_HIGHLIGHT_STROKE, [cell])
+            graph.setCellStyles('strokeWidth', HIGHLIGHT_STROKE_WIDTH, [cell])
+            if (saved?.isBus) {
+                graph.setCellStyles('fillColor', WARN_HIGHLIGHT_STROKE, [cell])
+            }
+        } else {
+            restoreHighlightedCellStyles(graph, cell)
+        }
+    }
+    if (needInvalidate) {
+        graph.view.invalidate()
+    }
+}
+
+function startWarnBlink(graph) {
+    stopWarnBlink()
+    if (!graph || highlightedCells.size === 0) return
+
+    warnBlinkGraph = graph
+    installWarnBlinkSync(graph)
+    warnBlinkPhaseOn = true
+    applyWarnBlinkPhase(graph, true)
+
+    warnBlinkTimer = setInterval(() => {
+        if (!warnBlinkGraph || highlightedCells.size === 0) {
+            stopWarnBlink()
+            return
+        }
+        warnBlinkPhaseOn = !warnBlinkPhaseOn
+        applyWarnBlinkPhase(warnBlinkGraph, warnBlinkPhaseOn)
+    }, BLINK_INTERVAL_MS)
+}
+
+function clearOverLimitHighlight(graph) {
+    stopWarnBlink()
+    clearShapeWarnTints(graph)
+    if (!graph || highlightedCells.size === 0) {
+        overLimitHighlightOn = false
+        return
+    }
+    for (const cell of highlightedCells) {
+        restoreHighlightedCellStyles(graph, cell)
     }
     highlightedCells.clear()
     savedHighlightStyles.clear()
     overLimitHighlightOn = false
+    graph.view.invalidate()
 }
 
 function isOverLimitRecord(record) {
     if (!record) return false
-    if (record.loading_percent != null && Number(record.loading_percent) >= LOADING_LIMIT_PERCENT) {
+    if (record.loading_percent != null && Number(record.loading_percent) >= LOADING_WARN_PERCENT) {
         return true
     }
     if (record.vm_pu != null) {
@@ -315,9 +532,9 @@ function applyHighlight(graph, cell) {
         strokeColor: st.strokeColor,
         strokeWidth: st.strokeWidth,
         fillColor: st.fillColor,
+        isBus: DeviceCategoryUtil?.isBusCell?.(cell),
+        useShapeTint: usesShapeTintBlink(graph, cell),
     })
-    graph.setCellStyles('strokeColor', HIGHLIGHT_STROKE, [cell])
-    graph.setCellStyles('strokeWidth', HIGHLIGHT_STROKE_WIDTH, [cell])
     highlightedCells.add(cell)
 }
 
@@ -418,21 +635,25 @@ export function toggleLgOverLimitHighlight(ui, flowDataUrl) {
 
                 clearOverLimitHighlight(graph)
 
+                graph.view.validate()
+
                 let count = 0
                 for (const cell of cells) {
-                    if (String(cell.id).startsWith(OVERLAY_PREFIX) || cell.lgFlowOverlay) continue
+                    if (String(cell.id).startsWith(OVERLAY_PREFIX) || cell.lgFlowOverlay) {
+                        continue
+                    }
                     const record = matchFlowRecord(cell, graph, parser, indexes)
-                    if (!isOverLimitRecord(record)) continue
+                    if (!shouldHighlightOverLimitCell(cell, graph, parser, record)) continue
                     applyHighlight(graph, cell)
                     count++
                 }
 
                 overLimitHighlightOn = count > 0
-                graph.view.invalidate()
                 if (count > 0) {
-                    ElMessage.success(`已高亮 ${count} 个越限设备`)
+                    startWarnBlink(graph)
+                    ElMessage.success(`已黄色闪烁高亮 ${count} 个越限设备（负载率≥${LOADING_WARN_PERCENT}% 或电压越限）`)
                 } else {
-                    ElMessage.info('未发现越限设备（负载率≥100% 或电压越限）')
+                    ElMessage.info(`未发现越限设备（负载率≥${LOADING_WARN_PERCENT}% 或电压越限）`)
                 }
             } finally {
                 if (!wasEnabled) {
