@@ -13,6 +13,7 @@ import {
 
 const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
+const WARN_OVERLAY_PREFIX = 'lg-warn-overlay-'
 const OVERLAY_FONT_SIZE = 9
 const OVERLAY_GAP = 2
 const LINE_LABEL_GAP = 8
@@ -33,6 +34,7 @@ const LOADING_WARN_PERCENT = 80
 let flowDataCache = null
 let flowDataUrlCache = ''
 const overlayCellIds = new Set()
+const warnOverlayCellIds = new Set()
 const highlightedCells = new Set()
 const savedHighlightStyles = new Map()
 /** @type {Map<string, Array<{stroke: string|null, fill: string|null, strokeWidth: string|null}>>} */
@@ -139,7 +141,16 @@ async function loadFlowData(url) {
     if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
     }
-    const json = await response.json()
+    const text = await response.text()
+    if (!text.trim()) {
+        throw new Error('潮流数据文件为空')
+    }
+    let json
+    try {
+        json = JSON.parse(text)
+    } catch (e) {
+        throw new Error('潮流数据 JSON 格式无效（文件可能不完整）')
+    }
     flowDataCache = json.data || json
     flowDataUrlCache = resolved
     return flowDataCache
@@ -743,7 +754,6 @@ function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
 
     if (category === 'bus') {
         if (!record) return ''
-        if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
         if (record.vn_kv != null) lines.push(`额定电压:${formatNumber(record.vn_kv, 0)}kV`)
         const rms = calcBusRmsVoltage(record)
         if (rms != null) lines.push(`计算电压:${formatNumber(rms, 3)}kV`)
@@ -920,12 +930,135 @@ function createFlowOverlayPlacement(graph, cell, width, height) {
     }
 }
 
+/** 越限负载率标签：顶点图元贴右侧；线路贴最长段中点偏右 */
+function createWarnOverlayPlacement(graph, cell, width, height) {
+    const model = graph.getModel()
+    const gap = OVERLAY_GAP
+
+    if (!model.isEdge(cell)) {
+        const geo = new mxGeometry(1, 0.5, width, height)
+        geo.relative = true
+        geo.offset = new mxPoint(gap, -height / 2)
+        return { parent: cell, geo, relative: true }
+    }
+
+    const anchor = getEdgeLabelAnchorInModel(graph, cell)
+    if (anchor) {
+        return {
+            parent: graph.getDefaultParent(),
+            x: anchor.x + gap,
+            y: anchor.y - height / 2,
+            width,
+            height,
+            relative: false,
+        }
+    }
+
+    const bbox = typeof graph.getBoundingBoxFromGeometry === 'function'
+        ? graph.getBoundingBoxFromGeometry([cell], true)
+        : null
+    if (bbox && (bbox.width > 0 || bbox.height > 0)) {
+        return {
+            parent: graph.getDefaultParent(),
+            x: bbox.x + bbox.width + gap,
+            y: bbox.y + bbox.height / 2 - height / 2,
+            width,
+            height,
+            relative: false,
+        }
+    }
+
+    return createFlowOverlayPlacement(graph, cell, width, height)
+}
+
 function shouldSkipFlowOverlayCell(cell) {
     const id = String(cell.id || '')
-    if (id.startsWith(OVERLAY_PREFIX) || cell.lgFlowOverlay) return true
+    if (
+        id.startsWith(OVERLAY_PREFIX) ||
+        id.startsWith(WARN_OVERLAY_PREFIX) ||
+        cell.lgFlowOverlay ||
+        cell.lgWarnOverlay
+    ) {
+        return true
+    }
     if (DeviceCategoryUtil?.isTextCell?.(cell)) return true
     if (cell.flag === 'virtualCell' || cell.flag === 'pointline') return true
     return false
+}
+
+function insertWarnOverlay(graph, cell, label) {
+    const model = graph.getModel()
+    const { width, height } = getOverlaySize(label)
+    const placement = createWarnOverlayPlacement(graph, cell, width, height)
+    const overlayId = `${WARN_OVERLAY_PREFIX}${cell.id}`
+    const style = [
+        'text',
+        'html=0',
+        'strokeColor=none',
+        'fillColor=none',
+        'align=left',
+        'verticalAlign=middle',
+        `fontColor=${WARN_HIGHLIGHT_STROKE}`,
+        `fontSize=${OVERLAY_FONT_SIZE}`,
+        'fontFamily=SimSun',
+        'whiteSpace=wrap',
+        'layer=Text_Layer',
+        'lgWarnOverlay=1',
+    ].join(';')
+
+    const existing = model.getCell(overlayId)
+    if (existing) {
+        graph.removeCells([existing], false)
+        warnOverlayCellIds.delete(overlayId)
+    }
+
+    let overlay
+    if (placement.relative) {
+        overlay = graph.insertVertex(
+            placement.parent,
+            overlayId,
+            label,
+            placement.geo.x,
+            placement.geo.y,
+            width,
+            height,
+            style,
+            true,
+        )
+        model.setGeometry(overlay, placement.geo)
+    } else {
+        overlay = graph.insertVertex(
+            placement.parent,
+            overlayId,
+            label,
+            placement.x,
+            placement.y,
+            width,
+            height,
+            style,
+        )
+    }
+    overlay.setConnectable(false)
+    overlay.lgWarnOverlay = true
+    warnOverlayCellIds.add(overlayId)
+    return overlay
+}
+
+function clearWarnOverlays(graph) {
+    if (!graph || warnOverlayCellIds.size === 0) return
+    const model = graph.getModel()
+    const cells = Array.from(warnOverlayCellIds)
+        .map((id) => model.getCell(id))
+        .filter(Boolean)
+    if (cells.length) {
+        model.beginUpdate()
+        try {
+            graph.removeCells(cells, false)
+        } finally {
+            model.endUpdate()
+        }
+    }
+    warnOverlayCellIds.clear()
 }
 
 function clearFlowOverlays(graph) {
@@ -1116,6 +1249,7 @@ function startWarnBlink(graph) {
 function clearOverLimitHighlight(graph) {
     stopWarnBlink()
     clearShapeWarnTints(graph)
+    clearWarnOverlays(graph)
     if (!graph || highlightedCells.size === 0) {
         overLimitHighlightOn = false
         return
@@ -1139,6 +1273,20 @@ function isOverLimitRecord(record) {
         return vm < VM_LOW_LIMIT || vm > VM_HIGH_LIMIT
     }
     return false
+}
+
+function buildOverLimitOverlayLabel(record) {
+    if (!record) return ''
+    if (record.loading_percent != null && Number(record.loading_percent) >= LOADING_WARN_PERCENT) {
+        return `负载率:${formatNumber(Math.abs(Number(record.loading_percent)), 1)}%`
+    }
+    if (record.vm_pu != null) {
+        const vm = Number(record.vm_pu)
+        if (vm < VM_LOW_LIMIT || vm > VM_HIGH_LIMIT) {
+            return `电压:${formatNumber(vm, 3)}pu`
+        }
+    }
+    return ''
 }
 
 function applyHighlight(graph, cell) {
@@ -1300,14 +1448,28 @@ export function toggleLgOverLimitHighlight(ui, flowDataUrl) {
                 graph.view.validate()
 
                 let count = 0
-                for (const cell of cells) {
-                    if (String(cell.id).startsWith(OVERLAY_PREFIX) || cell.lgFlowOverlay) {
-                        continue
+                const insertedWarnOverlays = []
+                model.beginUpdate()
+                try {
+                    for (const cell of cells) {
+                        if (shouldSkipFlowOverlayCell(cell)) {
+                            continue
+                        }
+                        const record = matchFlowRecord(cell, graph, parser, indexes)
+                        if (!shouldHighlightOverLimitCell(cell, graph, parser, record)) continue
+                        applyHighlight(graph, cell)
+                        const label = buildOverLimitOverlayLabel(record)
+                        if (label) {
+                            const overlay = insertWarnOverlay(graph, cell, label)
+                            if (overlay) insertedWarnOverlays.push(overlay)
+                        }
+                        count++
                     }
-                    const record = matchFlowRecord(cell, graph, parser, indexes)
-                    if (!shouldHighlightOverLimitCell(cell, graph, parser, record)) continue
-                    applyHighlight(graph, cell)
-                    count++
+                    if (insertedWarnOverlays.length) {
+                        graph.orderCells(false, insertedWarnOverlays)
+                    }
+                } finally {
+                    model.endUpdate()
                 }
 
                 overLimitHighlightOn = count > 0
