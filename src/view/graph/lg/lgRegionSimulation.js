@@ -15,6 +15,7 @@ const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
 const OVERLAY_FONT_SIZE = 9
 const OVERLAY_GAP = 2
+const LINE_LABEL_GAP = 8
 const FLOW_P_EPS = 1e-9
 const FLOW_MOTION_DUR_SEC = 5.5
 const FLOW_MOTION_ARROW_COLOR = '#00e5ff'
@@ -771,15 +772,90 @@ function getOverlaySize(label, fontSize = OVERLAY_FONT_SIZE) {
     }
 }
 
-function viewPointToModel(graph, viewX, viewY) {
+/** mxGraph：view = scale * (model + translate) → model = view/scale - translate */
+function viewPtToModel(graph, viewX, viewY) {
     const view = graph.view
+    const scale = view.scale || 1
     return {
-        x: (viewX - view.translate.x) / view.scale,
-        y: (viewY - view.translate.y) / view.scale,
+        x: viewX / scale - view.translate.x,
+        y: viewY / scale - view.translate.y,
     }
 }
 
-/** 顶点图元：子节点相对定位；线路：模型坐标居中贴线 */
+function getEdgePathPointsInModel(graph, edge) {
+    const state = graph.view.getState(edge)
+    if (state?.absolutePoints?.length >= 2) {
+        return state.absolutePoints.map((p) => viewPtToModel(graph, p.x, p.y))
+    }
+
+    const geo = graph.getModel().getGeometry(edge)
+    if (!geo) return null
+
+    const pts = []
+    if (geo.sourcePoint != null) {
+        pts.push({ x: geo.sourcePoint.x, y: geo.sourcePoint.y })
+    }
+    if (geo.points != null) {
+        for (let i = 0; i < geo.points.length; i++) {
+            pts.push({ x: geo.points[i].x, y: geo.points[i].y })
+        }
+    }
+    if (geo.targetPoint != null) {
+        pts.push({ x: geo.targetPoint.x, y: geo.targetPoint.y })
+    }
+
+    if (pts.length >= 2) return pts
+
+    const src = graph.getModel().getTerminal(edge, true)
+    const tgt = graph.getModel().getTerminal(edge, false)
+    const srcState = src ? graph.view.getState(src) : null
+    const tgtState = tgt ? graph.view.getState(tgt) : null
+    if (srcState && tgtState) {
+        return [
+            viewPtToModel(graph, srcState.getCenterX(), srcState.getCenterY()),
+            viewPtToModel(graph, tgtState.getCenterX(), tgtState.getCenterY()),
+        ]
+    }
+    return null
+}
+
+/** 取线路折线最长段中点 + 法向偏移（与 LGSvgParser 线路名称标签一致） */
+function getEdgeLabelAnchorInModel(graph, edge) {
+    const pts = getEdgePathPointsInModel(graph, edge)
+    if (!pts || pts.length < 2) return null
+
+    let bestLen = 0
+    let mx = (pts[0].x + pts[pts.length - 1].x) / 2
+    let my = (pts[0].y + pts[pts.length - 1].y) / 2
+    let segDx = pts[pts.length - 1].x - pts[0].x
+    let segDy = pts[pts.length - 1].y - pts[0].y
+
+    for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1]
+        const b = pts[i]
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        const lenSq = dx * dx + dy * dy
+        if (lenSq > bestLen) {
+            bestLen = lenSq
+            mx = (a.x + b.x) / 2
+            my = (a.y + b.y) / 2
+            segDx = dx
+            segDy = dy
+        }
+    }
+
+    let lineAngle = (Math.atan2(segDy, segDx) * 180) / Math.PI
+    if (lineAngle > 90) lineAngle -= 180
+
+    const rad = ((lineAngle + 90) * Math.PI) / 180
+    const ox = Math.cos(rad) * LINE_LABEL_GAP
+    const oy = Math.sin(rad) * LINE_LABEL_GAP
+
+    return { x: mx + ox, y: my + oy }
+}
+
+/** 顶点图元：子节点相对定位；线路：模型坐标贴最长段中点 */
 function createFlowOverlayPlacement(graph, cell, width, height) {
     const model = graph.getModel()
     const gap = OVERLAY_GAP
@@ -791,34 +867,29 @@ function createFlowOverlayPlacement(graph, cell, width, height) {
         return { parent: cell, geo, relative: true }
     }
 
-    let cx
-    let cy
+    const anchor = getEdgeLabelAnchorInModel(graph, cell)
+    if (anchor) {
+        return {
+            parent: graph.getDefaultParent(),
+            x: anchor.x - width / 2,
+            y: anchor.y - height / 2,
+            width,
+            height,
+            relative: false,
+        }
+    }
+
     const bbox = typeof graph.getBoundingBoxFromGeometry === 'function'
         ? graph.getBoundingBoxFromGeometry([cell], true)
         : null
-
+    let cx
+    let cy
     if (bbox && (bbox.width > 0 || bbox.height > 0)) {
         cx = bbox.x + bbox.width / 2
         cy = bbox.y + bbox.height / 2
     } else {
-        const state = graph.view.getState(cell)
-        if (state?.absolutePoints?.length) {
-            const pts = state.absolutePoints
-            const mid = pts[Math.floor(pts.length / 2)] || pts[0]
-            const p = viewPointToModel(graph, mid.x, mid.y)
-            cx = p.x
-            cy = p.y
-        } else {
-            const edgeGeo = graph.getCellGeometry(cell)
-            if (edgeGeo && typeof edgeGeo.getCenterPoint === 'function') {
-                const p = edgeGeo.getCenterPoint()
-                cx = p.x
-                cy = p.y
-            } else {
-                cx = edgeGeo?.x ?? 0
-                cy = edgeGeo?.y ?? 0
-            }
-        }
+        cx = 0
+        cy = 0
     }
 
     return {
@@ -1089,6 +1160,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
 
         let matched = 0
         const flowLineItems = []
+        const insertedOverlays = []
         model.beginUpdate()
         try {
             for (const cell of cells) {
@@ -1119,6 +1191,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                     `fontSize=${OVERLAY_FONT_SIZE}`,
                     'fontFamily=SimSun',
                     'whiteSpace=wrap',
+                    'layer=Text_Layer',
                     'lgFlowOverlay=1',
                 ].join(';')
 
@@ -1151,7 +1224,12 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                 overlay.setConnectable(false)
                 overlay.lgFlowOverlay = true
                 overlayCellIds.add(overlayId)
+                insertedOverlays.push(overlay)
                 matched++
+            }
+
+            if (insertedOverlays.length) {
+                graph.orderCells(false, insertedOverlays)
             }
         } finally {
             model.endUpdate()
