@@ -577,9 +577,10 @@ export default {
 
 		sb.push('>');
         // 排除显示的号码相关内容
-        if(ts.indexOf('号码') == -1&&ts.indexOf('电话') == -1) {
+        if(ts.indexOf('号码') == -1&&ts.indexOf('电话') == -1&&ts.indexOf('温度') == -1) {
             sb.push(ts);
         }
+        
 		sb.push('</text>');
 		return sb.join('');
 	},
@@ -693,6 +694,9 @@ export default {
 		let x = dom.getAttribute('x');
 		let y = dom.getAttribute('y');
 		let tfr = dom.getAttribute('tfr');
+        if (dom.nodeName == 'DollyBreaker'){
+            tfr = 'rotate(0) scale(1,1)'
+        }
 		let keyid = dom.getAttribute('keyid');
 		let keyname = dom.getAttribute('keyname');
 		let devref = dom.getAttribute('devref'); // 文本内容

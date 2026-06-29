@@ -52,6 +52,10 @@ let App = function (editor, container, lightbox, svgParser)
     // 设置网格颜色为深灰色（#252525）
     this.setGridColor('#252525');
 
+    // 默认隐藏画布网格
+    this.editor.graph.defaultGridEnabled = false;
+    this.editor.graph.setGridEnabled(false);
+
     // 隐藏页面边界（不显示打印页面的虚线）
     this.setPageVisible(false);
 

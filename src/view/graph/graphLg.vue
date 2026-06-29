@@ -154,7 +154,7 @@ import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G �
 import $bus from '@/utils/bus'                                           // 全局事件总线
 import customSymbolStr from './data/symbol.js'                           // 自定义 SVG 符号
 import LGSvgParser from '@/view/graph/lg/LGSvgParser.js'                 // SVG 解析器
-import { applyLgCanvasTheme, getLgCanvasTheme } from '@/view/graph/lg/lgCanvasTheme.js'
+import { applyLgCanvasTheme, applyLgGridHidden, getLgCanvasTheme } from '@/view/graph/lg/lgCanvasTheme.js'
 import {
     LG_SIDEBAR_DEVICE_ENTRIES,
     LG_SIDEBAR_DRAG_SYMBOL_BLEND,
@@ -164,7 +164,10 @@ import {
     getLgdataSidebarReferenceDragDef,
     buildInSiteGfileSidebarDragDef,
     scaleInSiteGfileSidebarDragDef,
+    alignLgLoadDeviceDragDef,
+    alignLgLoadDeviceSizeRows,
     LG_IN_SITE_GFILE_DEVICE_DISPLAY_SCALE,
+    LG_GRAPH_DATASET_NAME_LINE_HEIGHT,
     maxSideFromShapeDragDefaults,
     computeLgSwitchCanvasRefSideFromLgdataScale,
     computeLgSwitchCanvasRefSideFromScale,
@@ -416,16 +419,22 @@ function resolveLgLoadSidebarSizing(lgsvgParser, dataKey) {
             ? cachedLgSidebarScale
             : lgsvgParser?.getScale() || 1
     if (!isStationDataset || !lgsvgParser) {
-        return { gScale: fallbackScale, dragDef: cachedLgSidebarDragDef }
+        return {
+            gScale: fallbackScale,
+            dragDef: alignLgLoadDeviceDragDef(cachedLgSidebarDragDef || {}),
+        }
     }
     const stationDrag = lgsvgParser.shapeDragDefaults || {}
     const stationScale =
         lgsvgParser.getScale() ||
         computeLgSidebarScaleFromSvgString(STATION_DATA_MAP[dataKey]) ||
         fallbackScale
+    const dragDef = alignLgLoadDeviceDragDef(
+        Object.keys(stationDrag).length > 0 ? stationDrag : cachedLgSidebarDragDef || {},
+    )
     return {
         gScale: stationScale,
-        dragDef: Object.keys(stationDrag).length > 0 ? stationDrag : cachedLgSidebarDragDef,
+        dragDef,
     }
 }
 
@@ -472,6 +481,7 @@ function applyLgSvgViewOnlyMode(ui, container) {
     graph.setCellsCloneable(false)
     graph.setConnectable(false)
     graph.setDropEnabled(false)
+    applyLgGridHidden(graph)
     if (graph.graphHandler) {
         graph.graphHandler.setEnabled(false)
     }
@@ -925,6 +935,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
 
             ui.setSvgTxtObj(svgTxtObj)
             applyLgCanvasTheme(ui, getLgCanvasTheme())
+            applyLgGridHidden(ui)
 
             // 强制显示 Sidebar 和分割线
             uiEditor = ui
@@ -1172,15 +1183,7 @@ let initEditFun = (svgstr, lgsvgParser) => {
                                     )
                                     return { symbolId, label, key, w, h, styleExtra }
                                 })
-                                const pdSize = lgDeviceSizes.find((r) => r.key === 'substation')
-                                if (pdSize && pdSize.w > 0 && pdSize.h > 0) {
-                                    for (const row of lgDeviceSizes) {
-                                        if (row.key === 'xb') {
-                                            row.w = pdSize.w
-                                            row.h = pdSize.h
-                                        }
-                                    }
-                                }
+                                alignLgLoadDeviceSizeRows(lgDeviceSizes)
                                 const lgDeviceFns = lgDeviceSizes.map(
                                     ({ symbolId, label, w, h, styleExtra }) => {
                                         const style =
@@ -1262,6 +1265,9 @@ onMounted(() => {
         window.__lgSimulationMenuEnabled = true
         window.__lgRegionFlowDataUrl = props.flowDataUrl || ''
     }
+    if (isDatasetMode.value && typeof mxConstants !== 'undefined') {
+        mxConstants.LINE_HEIGHT = LG_GRAPH_DATASET_NAME_LINE_HEIGHT
+    }
     if (isSvgFileMode.value) {
         window['disableOper'] = true
         window['customShape'] = false
@@ -1293,6 +1299,7 @@ window.initGraphWithSvg = (_svg, themecut) => {
 
                 lgsvgParser = new LGSvgParser(id)
                 lgsvgParser.setTaskId(taskId)
+                lgsvgParser.isDatasetMode = isDatasetMode.value
                 lgsvgParser.setThemecut(themecut)
                 lgsvgParser.pvDeviceList =
                     selectedData.value === 'changcun' ? changcunPvList : null
@@ -1356,6 +1363,9 @@ window.initGraphWithSvg = (_svg, themecut) => {
 
 onBeforeUnmount(() => {
     $bus.off('multiScale_zjt')
+    if (isDatasetMode.value && typeof mxConstants !== 'undefined') {
+        mxConstants.LINE_HEIGHT = 1
+    }
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = false
     }

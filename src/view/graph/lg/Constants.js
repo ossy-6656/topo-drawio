@@ -4,6 +4,65 @@
  */
 export const LG_SIDEBAR_DRAG_SYMBOL_BLEND = 0.12
 
+/** /graphLg 设备名称多行文本行高（相对字号；与 mxConstants.LINE_HEIGHT 同步） */
+export const LG_GRAPH_DATASET_NAME_LINE_HEIGHT = 1.35
+
+/** 柱上用户变 symbol.js viewBox 高/宽（3 × 2.550548） */
+export const LG_PTUSER_SYMBOL_H_PER_W = 2.550548 / 3
+
+/** 以配电站/箱变侧栏宽为锚，推算柱上用户变侧栏尺寸（保持 symbol 高宽比） */
+export function resolveLgPtuserSidebarWhFromAnchor(anchorW) {
+    const w = Number(anchorW)
+    if (!(w > 0)) {
+        return null
+    }
+    return { w, h: w * LG_PTUSER_SYMBOL_H_PER_W }
+}
+
+/** 负荷侧栏 dragDef：箱变跟配电站，柱上用户变宽跟配电站 */
+export function alignLgLoadDeviceDragDef(dragDef) {
+    const out = dragDef && typeof dragDef === 'object' ? { ...dragDef } : {}
+    const sub =
+        out.substation?.w > 0 && out.substation?.h > 0
+            ? out.substation
+            : out.xb?.w > 0 && out.xb?.h > 0
+              ? out.xb
+              : null
+    if (!sub) {
+        return out
+    }
+    out.xb = { w: sub.w, h: sub.h }
+    const pt = resolveLgPtuserSidebarWhFromAnchor(sub.w)
+    if (pt) {
+        out.ptuser = pt
+    }
+    return out
+}
+
+/** 负荷侧栏模板行：箱变、柱上用户变与配电站尺寸对齐 */
+export function alignLgLoadDeviceSizeRows(rows) {
+    if (!Array.isArray(rows)) {
+        return rows
+    }
+    const pd =
+        rows.find((r) => r.key === 'substation' && r.w > 0 && r.h > 0) ||
+        rows.find((r) => r.key === 'xb' && r.w > 0 && r.h > 0)
+    if (!pd) {
+        return rows
+    }
+    const pt = resolveLgPtuserSidebarWhFromAnchor(pd.w)
+    for (const row of rows) {
+        if (row.key === 'xb') {
+            row.w = pd.w
+            row.h = pd.h
+        } else if (row.key === 'ptuser' && pt) {
+            row.w = pt.w
+            row.h = pt.h
+        }
+    }
+    return rows
+}
+
 /**
  * lgdata 侧栏参考尺寸（/graphLg 打开 zjtSvg 前或与图中无对应设备时的回退）。
  * /in-site-svg 复用，与 graphLg 默认 zjtSvg 侧栏一致。
@@ -14,11 +73,10 @@ export function getLgdataSidebarReferenceDragDef(scale) {
         return {}
     }
     const side = 3 * s
-    const ptH = 2.550548 * s
     return {
         substation: { w: side, h: side },
         xb: { w: side, h: side },
-        ptuser: { w: side, h: ptH },
+        ptuser: resolveLgPtuserSidebarWhFromAnchor(side) || { w: side, h: side * LG_PTUSER_SYMBOL_H_PER_W },
         potentialtransformer2w: { w: side, h: side },
         potentialtransformer3w: { w: side, h: side },
         generatingunit: { w: side, h: side },
@@ -69,7 +127,7 @@ export function buildInSiteGfileSidebarDragDef(gDrag, targetSide) {
     if (!(side > 0)) {
         return out
     }
-    const ptH = side * (2.550548 / 3)
+    const ptH = side * LG_PTUSER_SYMBOL_H_PER_W
     for (let i = 0; i < LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS.length; i++) {
         const key = LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS[i]
         if (!out[key] || !(out[key].w > 0)) {
@@ -85,7 +143,7 @@ export function buildInSiteGfileSidebarDragDef(gDrag, targetSide) {
     if (out.substation && out.substation.w > 0) {
         out.xb = { w: out.substation.w, h: out.substation.h }
     }
-    return out
+    return alignLgLoadDeviceDragDef(out)
 }
 
 /** 仅缩小 in-site-svg 变压器/机组/负荷侧栏与拖入尺寸 */

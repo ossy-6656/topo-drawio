@@ -10,19 +10,26 @@ import {
     isLgSwitchShapeOrPsr,
     lgSwitchStatusLabel,
 } from '@/view/graph/lg/Constants.js'
+import { getLgFlowOverlayFontColor } from '@/view/graph/lg/lgCanvasTheme.js'
 
 const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
 const WARN_OVERLAY_PREFIX = 'lg-warn-overlay-'
 const OVERLAY_FONT_SIZE = 9
+const WARN_OVERLAY_FONT_SIZE = 12
+const OVERLAY_LINE_HEIGHT = 1.8
 const OVERLAY_GAP = 2
 const LINE_LABEL_GAP = 8
+const LINE_LABEL_CLEARANCE = 6
+/** 潮流上图：线路数据标签与线路的法向间距（略小于 LINE_LABEL_CLEARANCE，避免偏太远） */
+const FLOW_LINE_LABEL_CLEARANCE = 2
+const FLOW_LINE_LABEL_STROKE_PAD = 1
 const FLOW_P_EPS = 1e-9
 const FLOW_MOTION_DUR_SEC = 5.5
 const FLOW_MOTION_ARROW_COLOR = '#00e5ff'
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const LG_FLOW_MOTION_ATTR = 'data-lg-flow-motion'
-const WARN_HIGHLIGHT_STROKE = '#ffcc00'
+const WARN_HIGHLIGHT_STROKE = '#ff0000'
 const HIGHLIGHT_STROKE_WIDTH = 4
 const BLINK_INTERVAL_MS = 600
 const SHAPE_TINT_SELECTOR = 'path,circle,ellipse,line,rect,polygon,polyline,text'
@@ -314,29 +321,17 @@ function resolveLineVnKv(record, indexes) {
     return null
 }
 
-/** 线路潮流方向量：loading_percent 正负表示流向；若仅为正幅度则结合 p_from_mw 符号 */
+/** 线路潮流方向量：p_from_mw 正负表示 from_bus → to_bus 或反向 */
 function getLineFlowDirectionValue(record) {
-    const lpRaw = record?.loading_percent
     const pRaw = record?.p_from_mw
-    const lp = lpRaw != null && !Number.isNaN(Number(lpRaw)) ? Number(lpRaw) : null
-    const p = pRaw != null && !Number.isNaN(Number(pRaw)) ? Number(pRaw) : null
-
-    if (lp != null) {
-        if (lp < -FLOW_P_EPS) return lp
-        if (lp > FLOW_P_EPS) {
-            if (p != null && p < -FLOW_P_EPS) return -lp
-            if (p != null && p > FLOW_P_EPS) return lp
-        }
-        return lp
-    }
-    if (p != null) return p
-    return null
+    if (pRaw == null || Number.isNaN(Number(pRaw))) return null
+    return Number(pRaw)
 }
 
 function lineHasFlow(record) {
-    const v = getLineFlowDirectionValue(record)
-    if (v == null) return false
-    return Math.abs(v) >= FLOW_P_EPS
+    const p = getLineFlowDirectionValue(record)
+    if (p == null) return false
+    return Math.abs(p) >= FLOW_P_EPS
 }
 
 function terminalMatchesBus(terminal, busRecord, parser) {
@@ -355,7 +350,7 @@ function terminalMatchesBus(terminal, busRecord, parser) {
     return Boolean(cellName && normalizeName(busRecord.name) === cellName)
 }
 
-/** 判断线路运动箭头是否应沿 absolutePoints 反向（结合 loading_percent 正负与 from/to 母线端子） */
+/** 判断线路运动箭头是否应沿 absolutePoints 反向（p_from_mw 正负 + from/to 母线端子） */
 function shouldReverseLineFlowPath(edge, graph, parser, record, indexes) {
     const p = getLineFlowDirectionValue(record) ?? 0
     const model = graph.getModel()
@@ -762,14 +757,14 @@ function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
         const vn = resolveLineVnKv(record, indexes)
         if (vn != null) lines.push(`电压:${formatNumber(vn, 0)}kV`)
         if (record.i_from_ka != null) lines.push(`电流:${formatNumber(record.i_from_ka, 4)}kA`)
-        if (record.p_from_mw != null) lines.push(`有功:${formatNumber(record.p_from_mw)}MW`)
-        if (record.q_from_mvar != null) lines.push(`无功:${formatNumber(record.q_from_mvar)}MVar`)
+        if (record.p_from_mw != null) lines.push(`P:${formatNumber(record.p_from_mw)}MW`)
+        if (record.q_from_mvar != null) lines.push(`Q:${formatNumber(record.q_from_mvar)}MVar`)
         if (record.loading_percent != null) lines.push(`负载:${formatNumber(record.loading_percent, 1)}%`)
     } else if (category === 'gen') {
         if (!record) return ''
         if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
-        if (record.p_mw != null) lines.push(`有功:${formatNumber(record.p_mw)}MW`)
-        if (record.q_mvar != null) lines.push(`无功:${formatNumber(record.q_mvar)}MVar`)
+        if (record.p_mw != null) lines.push(`P:${formatNumber(record.p_mw)}MW`)
+        if (record.q_mvar != null) lines.push(`Q:${formatNumber(record.q_mvar)}MVar`)
     } else if (category === 'load') {
         if (!record) return ''
         if (displayName || record.name) lines.push(`名称:${displayName || record.name}`)
@@ -788,16 +783,40 @@ function buildFlowLabel(record, graph, cell) {
     return buildFlowOverlayLabel(cell, graph, null, record, { busByIndex: new Map() })
 }
 
-function getOverlaySize(label, fontSize = OVERLAY_FONT_SIZE) {
+function getOverlaySize(label, fontSize = OVERLAY_FONT_SIZE, lineHeight = 1) {
     const lines = String(label || '').split('\n').filter(Boolean)
     if (!lines.length) {
-        return { width: 48, height: fontSize + 2 }
+        return { width: 48, height: Math.ceil(fontSize * lineHeight) + 2 }
     }
     const dim = TextUtil.getTextDimensionFromTxtList(fontSize, lines)
+    const height = Math.ceil(lines.length * fontSize * lineHeight)
     return {
         width: Math.max(dim.width + 4, 24),
-        height: Math.max(dim.height + 2, fontSize + 2),
+        height: Math.max(height + 2, Math.ceil(fontSize * lineHeight) + 2),
     }
+}
+
+function formatFlowOverlayHtml(label) {
+    const lines = String(label || '').split('\n').filter(Boolean)
+    if (!lines.length) return ''
+    const inner = lines.map((line) => mxUtils.htmlEntities(line, false)).join('<br/>')
+    return `<div style="text-align:left;line-height:${OVERLAY_LINE_HEIGHT};">${inner}</div>`
+}
+
+function buildFlowOverlayStyle() {
+    return [
+        'text',
+        'html=1',
+        'strokeColor=none',
+        'fillColor=none',
+        'align=left',
+        'verticalAlign=top',
+        `fontColor=${getLgFlowOverlayFontColor()}`,
+        `fontSize=${OVERLAY_FONT_SIZE}`,
+        'fontFamily=SimSun',
+        'layer=Text_Layer',
+        'lgFlowOverlay=1',
+    ].join(';')
 }
 
 /** mxGraph：view = scale * (model + translate) → model = view/scale - translate */
@@ -847,8 +866,8 @@ function getEdgePathPointsInModel(graph, edge) {
     return null
 }
 
-/** 取线路折线最长段中点 + 法向偏移（与 LGSvgParser 线路名称标签一致） */
-function getEdgeLabelAnchorInModel(graph, edge) {
+/** 取线路折线最长段中点 + 法向单位向量（与 LGSvgParser 线路名称标签一致，法向为线段下方/外侧） */
+function getEdgeLabelFrameInModel(graph, edge) {
     const pts = getEdgePathPointsInModel(graph, edge)
     if (!pts || pts.length < 2) return null
 
@@ -877,10 +896,39 @@ function getEdgeLabelAnchorInModel(graph, edge) {
     if (lineAngle > 90) lineAngle -= 180
 
     const rad = ((lineAngle + 90) * Math.PI) / 180
-    const ox = Math.cos(rad) * LINE_LABEL_GAP
-    const oy = Math.sin(rad) * LINE_LABEL_GAP
+    const segLen = Math.sqrt(bestLen) || 1
+    return {
+        mx,
+        my,
+        nx: Math.cos(rad),
+        ny: Math.sin(rad),
+        segLen,
+        segDx: segDx / segLen,
+        segDy: segDy / segLen,
+    }
+}
 
-    return { x: mx + ox, y: my + oy }
+/** @deprecated 使用 getEdgeLabelFrameInModel */
+function getEdgeLabelAnchorInModel(graph, edge) {
+    const frame = getEdgeLabelFrameInModel(graph, edge)
+    if (!frame) return null
+    return {
+        x: frame.mx + frame.nx * LINE_LABEL_GAP,
+        y: frame.my + frame.ny * LINE_LABEL_GAP,
+    }
+}
+
+/** 线路标签：沿法向偏移，使标签最近边与线路保持 clearance，避免压线 */
+function placeEdgeOverlayLabel(frame, width, height, clearance = LINE_LABEL_CLEARANCE, strokePad = 2) {
+    const offset = clearance + strokePad + height / 2
+    const cx = frame.mx + frame.nx * offset
+    const cy = frame.my + frame.ny * offset
+    return {
+        x: cx - width / 2,
+        y: cy - height / 2,
+        width,
+        height,
+    }
 }
 
 /** 顶点图元：子节点相对定位；线路：模型坐标贴最长段中点 */
@@ -895,14 +943,21 @@ function createFlowOverlayPlacement(graph, cell, width, height) {
         return { parent: cell, geo, relative: true }
     }
 
-    const anchor = getEdgeLabelAnchorInModel(graph, cell)
-    if (anchor) {
-        return {
-            parent: graph.getDefaultParent(),
-            x: anchor.x - width / 2,
-            y: anchor.y - height / 2,
+    const frame = getEdgeLabelFrameInModel(graph, cell)
+    if (frame) {
+        const pos = placeEdgeOverlayLabel(
+            frame,
             width,
             height,
+            FLOW_LINE_LABEL_CLEARANCE,
+            FLOW_LINE_LABEL_STROKE_PAD
+        )
+        return {
+            parent: graph.getDefaultParent(),
+            x: pos.x,
+            y: pos.y,
+            width: pos.width,
+            height: pos.height,
             relative: false,
         }
     }
@@ -942,14 +997,15 @@ function createWarnOverlayPlacement(graph, cell, width, height) {
         return { parent: cell, geo, relative: true }
     }
 
-    const anchor = getEdgeLabelAnchorInModel(graph, cell)
-    if (anchor) {
+    const frame = getEdgeLabelFrameInModel(graph, cell)
+    if (frame) {
+        const pos = placeEdgeOverlayLabel(frame, width, height, LINE_LABEL_CLEARANCE)
         return {
             parent: graph.getDefaultParent(),
-            x: anchor.x + gap,
-            y: anchor.y - height / 2,
-            width,
-            height,
+            x: pos.x,
+            y: pos.y,
+            width: pos.width,
+            height: pos.height,
             relative: false,
         }
     }
@@ -988,7 +1044,7 @@ function shouldSkipFlowOverlayCell(cell) {
 
 function insertWarnOverlay(graph, cell, label) {
     const model = graph.getModel()
-    const { width, height } = getOverlaySize(label)
+    const { width, height } = getOverlaySize(label, WARN_OVERLAY_FONT_SIZE)
     const placement = createWarnOverlayPlacement(graph, cell, width, height)
     const overlayId = `${WARN_OVERLAY_PREFIX}${cell.id}`
     const style = [
@@ -999,9 +1055,10 @@ function insertWarnOverlay(graph, cell, label) {
         'align=left',
         'verticalAlign=middle',
         `fontColor=${WARN_HIGHLIGHT_STROKE}`,
-        `fontSize=${OVERLAY_FONT_SIZE}`,
+        `fontSize=${WARN_OVERLAY_FONT_SIZE}`,
+        'fontStyle=1',
         'fontFamily=SimSun',
-        'whiteSpace=wrap',
+        'whiteSpace=nowrap',
         'layer=Text_Layer',
         'lgWarnOverlay=1',
     ].join(';')
@@ -1343,30 +1400,18 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                 const label = buildFlowOverlayLabel(cell, graph, parser, record, indexes)
                 if (!label) continue
 
-                const { width, height } = getOverlaySize(label)
+                const { width, height } = getOverlaySize(label, OVERLAY_FONT_SIZE, OVERLAY_LINE_HEIGHT)
                 const placement = createFlowOverlayPlacement(graph, cell, width, height)
                 const overlayId = `${OVERLAY_PREFIX}${cell.id}`
-                const style = [
-                    'text',
-                    'html=0',
-                    'strokeColor=none',
-                    'fillColor=none',
-                    'align=center',
-                    'verticalAlign=middle',
-                    'fontColor=#00e5ff',
-                    `fontSize=${OVERLAY_FONT_SIZE}`,
-                    'fontFamily=SimSun',
-                    'whiteSpace=wrap',
-                    'layer=Text_Layer',
-                    'lgFlowOverlay=1',
-                ].join(';')
+                const style = buildFlowOverlayStyle()
+                const displayLabel = formatFlowOverlayHtml(label)
 
                 let overlay
                 if (placement.relative) {
                     overlay = graph.insertVertex(
                         placement.parent,
                         overlayId,
-                        label,
+                        displayLabel,
                         placement.geo.x,
                         placement.geo.y,
                         width,
@@ -1379,7 +1424,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                     overlay = graph.insertVertex(
                         placement.parent,
                         overlayId,
-                        label,
+                        displayLabel,
                         placement.x,
                         placement.y,
                         width,
@@ -1475,7 +1520,7 @@ export function toggleLgOverLimitHighlight(ui, flowDataUrl) {
                 overLimitHighlightOn = count > 0
                 if (count > 0) {
                     startWarnBlink(graph)
-                    ElMessage.success(`已黄色闪烁高亮 ${count} 个越限设备（负载率≥${LOADING_WARN_PERCENT}% 或电压越限）`)
+                    ElMessage.success(`已红色闪烁高亮 ${count} 个越限设备（负载率≥${LOADING_WARN_PERCENT}% 或电压越限）`)
                 } else {
                     ElMessage.info(`未发现越限设备（负载率≥${LOADING_WARN_PERCENT}% 或电压越限）`)
                 }

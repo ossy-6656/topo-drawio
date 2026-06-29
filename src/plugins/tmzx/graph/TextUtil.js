@@ -260,7 +260,7 @@ let TextUtil = {
      * @param fs
      * @param list
      */
-    getTextDimension(fs, list) {
+    getTextDimension(fs, list, lineHeight = 1) {
         let width = 0
         let height = 0
 
@@ -270,7 +270,7 @@ let TextUtil = {
             if (tmpW > width) {
                 width = tmpW
             }
-            height += fs
+            height += fs * lineHeight
         }
 
         return { width, height }
@@ -350,7 +350,7 @@ let TextUtil = {
         }
     },
 
-    getTextDimensionFromTxtList(fs, list) {
+    getTextDimensionFromTxtList(fs, list, lineHeight = 1) {
         let width = 0
         let height = 0
 
@@ -359,7 +359,7 @@ let TextUtil = {
             if (tmpW > width) {
                 width = tmpW
             }
-            height += fs
+            height += fs * lineHeight
         }
 
         return { width, height }

@@ -684,7 +684,7 @@ const sampleFiles = [
 
 const selectedFile = ref(resolveLiaisonFileFromRoute())
 const loading = ref(false)
-const canvasTheme = ref('dark')
+const canvasTheme = ref('light')
 
 const CANVAS_THEMES = {
   dark: { bg: '#000000', grid: '#252525' },
@@ -1098,7 +1098,7 @@ function mountEditor(parser) {
       applyCanvasTheme(canvasTheme.value, { skipParser: true })
       const graph = ui.editor?.graph
       if (graph && typeof graph.setGridEnabled === 'function') {
-        graph.setGridEnabled(true)
+        graph.setGridEnabled(false)
       }
       disableLiaisonDrawioContextMenus(graph)
       bindClickInfo(ui.editor.graph)
@@ -1109,7 +1109,7 @@ function mountEditor(parser) {
         hideBuiltinPanels()
         const g = ui.editor?.graph
         if (g && typeof g.setGridEnabled === 'function') {
-          g.setGridEnabled(true)
+          g.setGridEnabled(false)
         }
         finalizeEditorMount(ui)
       }
@@ -2202,8 +2202,9 @@ function applyCanvasTheme(theme, opts = {}) {
   const cfg = CANVAS_THEMES[next]
   if (uiEditor) {
     uiEditor.setBackgroundColor(cfg.bg)
-    if (typeof uiEditor.setGridColor === 'function') {
-      uiEditor.setGridColor(cfg.grid)
+    const graph = uiEditor.editor?.graph
+    if (graph && typeof graph.setGridEnabled === 'function') {
+      graph.setGridEnabled(false)
     }
   }
   if (opts.skipParser) return

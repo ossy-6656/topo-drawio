@@ -11,7 +11,7 @@ import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js';
 import SymbolUtil from '@/plugins/tmzx/graph/SymbolUtil.js';
 import PoleHandler from '@/plugins/tmzx/graph/PoleHandler';
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js';
-import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc, LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS } from './Constants.js';
+import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc, LG_GRAPH_DATASET_NAME_LINE_HEIGHT, LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS } from './Constants.js';
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js';
 import {
     applyLgPvIconShineOverlays,
@@ -22,8 +22,10 @@ import {
 } from './lgPvIconOverlay.js';
 import SvgBase from '../common/SvgBase.js';
 import {
-    applyLgDeviceNameFontColors,
+    applyLgThemeTextColors,
     getLgDeviceNameFontColor,
+    getLgFeederNameFontColor,
+    getLgMeasureFontColor,
 } from './lgCanvasTheme.js';
 import SVGFinder from '@/plugins/tmzx/graph/SVGFinder.js';
 import Line2LineUtil from '../common/Line2LineUtil.js';
@@ -2169,7 +2171,8 @@ export default class LGSvgParser extends SvgBase {
         let cx = +$firstTxt.attr('x') * this.getScale();
         let y = +$firstTxt.attr('y') * this.getScale();
 
-        let { width, height } = TextUtil.getTextDimension(fs, list);
+        const nameLineHeight = layerName === 'Text_Layer' ? this.getNameTextLineHeight() : 1;
+        let { width, height } = TextUtil.getTextDimension(fs, list, nameLineHeight);
 
         let param = this.getTransform(transform);
         let angle = param['rotate'];
@@ -2224,8 +2227,14 @@ export default class LGSvgParser extends SvgBase {
         sb.push(`layer=${layerName};`);
         // sb.push('rotatable=0;');
 
-        if (fill) {
-            sb.push(`fontColor=${fill};`); // 这种情况是a标签的情况（绿色）
+        if (layerName === 'Hot_Layer') {
+            if (fill) {
+                sb.push(`fontColor=${getLgFeederNameFontColor(undefined, fill)};`);
+            } else {
+                sb.push(`fontColor=${getLgFeederNameFontColor()};`);
+            }
+        } else if (fill) {
+            sb.push(`fontColor=${fill};`); // 非馈线 a 标签保留 SVG 原色
         } else {
             sb.push(`fontColor=${getLgDeviceNameFontColor()};`);
         }
@@ -2245,6 +2254,9 @@ export default class LGSvgParser extends SvgBase {
         cell.superlinkname = superlinkname;
         cell.superlinkpsrid = superlinkpsrid;
         cell.href = href;
+        if (fill) {
+            cell.lgOriginalFontColor = fill;
+        }
         if (nodeName === 'a') {
             cell.lgPeiXian = true;
             applyLgDakuixianMark(cell, sbid, null);
@@ -2307,7 +2319,7 @@ export default class LGSvgParser extends SvgBase {
         sb.push('layer=Point_Layer;');
         sb.push('flag=pqi;');
         // sb.push('rotatable=0;');
-        sb.push('fontColor=#959595;');
+        sb.push(`fontColor=${getLgMeasureFontColor()};`);
         sb.push(`fontSize=${_fs};`);
         sb.push(`fontFamily=SimSun;`);
         // sb.push('recursiveResize=1;');
@@ -2316,6 +2328,7 @@ export default class LGSvgParser extends SvgBase {
         sb.push('strokeColor=#717171;fillColor=none;align=center;verticalAlign=middle;html=0;'); // spacing=0;
 
         let cell = graph.insertVertex(parent, id, dataList.join('\n'), x, y, width, height, sb.join(''));
+        cell.lgOriginalFontColor = '#959595';
         cell.setVertex(true);
         cell.setConnectable(false);
         if (list.length > 0) {
@@ -2721,8 +2734,14 @@ export default class LGSvgParser extends SvgBase {
         return String(nameRaw).replace(/\n/g, '').trim();
     }
 
+    /** /graphLg 设备名称行高；其他页面保持 1 */
+    getNameTextLineHeight() {
+        return this.isDatasetMode ? LG_GRAPH_DATASET_NAME_LINE_HEIGHT : 1;
+    }
+
     insertOrUpdateNameTxtCell(graph, model, txtId, sbid, name, fs, anchorX, anchorY) {
-        const dim = TextUtil.getTextDimensionFromTxtList(fs, [name]);
+        const lineHeight = this.getNameTextLineHeight();
+        const dim = TextUtil.getTextDimensionFromTxtList(fs, String(name).split('\n'), lineHeight);
         const parent = graph.getDefaultParent();
         let txtCell = model.getCell(txtId);
         if (!txtCell) {
@@ -2895,8 +2914,8 @@ export default class LGSvgParser extends SvgBase {
     parseSvg() {
         let graph = this.graph;
         graph.setGridSize(1);
-        // graph.gridEnabled = false;
-        // graph.setGridEnabled(false);
+        graph.defaultGridEnabled = false;
+        graph.setGridEnabled(false);
 
         graph.setDropEnabled(false);
         graph.graphHandler.setRemoveCellsFromParent(false);
@@ -3403,7 +3422,7 @@ export default class LGSvgParser extends SvgBase {
         }
 
         if (this.ui) {
-            applyLgDeviceNameFontColors(this.ui)
+            applyLgThemeTextColors(this.ui)
         }
     }
 
