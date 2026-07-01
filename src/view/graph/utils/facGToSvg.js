@@ -149,6 +149,7 @@ const PSR_TYPE_BY_G_NODE = {
     EnergyConsumer: '0302',
     Transformer3: '0304',
     Bus: '0308',
+    BusbarSection: '0311',
     poke: '0399',
 };
 
@@ -168,12 +169,41 @@ function normalizeFacUseFragment(useXml) {
     return s;
 }
 
+function appendXmlAttr(attrs, key, value) {
+    if (value == null || value === '') return attrs;
+    return attrs + ` ${key}="${escapeXmlAttr(String(value))}"`;
+}
+
+function buildPsrRefAttrs(dom, psrType) {
+    const id = dom.getAttribute('id') || 'PD_unknown';
+    const nodeName = dom.nodeName;
+    let name =
+        dom.getAttribute('keyname') ||
+        dom.getAttribute('key_name') ||
+        dom.getAttribute('name') ||
+        '';
+    if (!name && nodeName === 'Transformer3') {
+        name = dom.getAttribute('key_name1') || id;
+    }
+    name = name || id;
+    const psr = psrType || psrTypeForGNode(nodeName);
+    let attrs = `ObjectID="${escapeXmlAttr(id)}" ObjectName="${escapeXmlAttr(name)}" PSRType="${psr}"`;
+    const keyid = dom.getAttribute('keyid') || dom.getAttribute('keyid1');
+    const rtkeyid = dom.getAttribute('rtkeyid') || dom.getAttribute('rtkeyid1');
+    const keyName = dom.getAttribute('key_name') || dom.getAttribute('key_name1');
+    const voltype = dom.getAttribute('voltype') || dom.getAttribute('voltype1');
+    attrs = appendXmlAttr(attrs, 'keyid', keyid);
+    attrs = appendXmlAttr(attrs, 'rtkeyid', rtkeyid);
+    attrs = appendXmlAttr(attrs, 'key_name', keyName);
+    attrs = appendXmlAttr(attrs, 'voltype', voltype);
+    return attrs;
+}
+
 function wrapDeviceUseGroup(dom, useInner) {
     const id = dom.getAttribute('id') || 'PD_unknown';
-    const name = escapeXmlAttr(dom.getAttribute('keyname') || dom.getAttribute('keyid') || id);
-    const psr = psrTypeForGNode(dom.nodeName);
+    const psrAttrs = buildPsrRefAttrs(dom);
     const frag = normalizeFacUseFragment(useInner);
-    return `<g id="${escapeXmlAttr(id)}">` + frag + `<metadata>` + `<cge:PSR_Ref ObjectID="${escapeXmlAttr(id)}" ObjectName="${name}" PSRType="${psr}"/>` + `<cge:Layer_Ref ObjectName="Breaker_Layer"/>` + `</metadata></g>`;
+    return `<g id="${escapeXmlAttr(id)}">` + frag + `<metadata>` + `<cge:PSR_Ref ${psrAttrs}/>` + `<cge:Layer_Ref ObjectName="Breaker_Layer"/>` + `</metadata></g>`;
 }
 
 function lineGToPolylineSvg(dom) {
@@ -203,13 +233,11 @@ function feederShortName(keyName) {
     return s;
 }
 
-function wrapLineLikeGroup(dom, innerSvg, idx) {
+function wrapLineLikeGroup(dom, innerSvg, idx, psrType) {
     const id = dom.getAttribute('id') || `PD_line_${idx}`;
     const oid = escapeXmlAttr(id);
-    const name = escapeXmlAttr(
-        dom.getAttribute('name') || dom.getAttribute('key_name') || dom.getAttribute('keyname') || ''
-    );
-    return `<g id="${oid}">` + innerSvg + `<metadata>` + `<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="36000000"/>` + `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` + `</metadata></g>`;
+    const psrAttrs = buildPsrRefAttrs(dom, psrType || '36000000');
+    return `<g id="${oid}">` + innerSvg + `<metadata>` + `<cge:PSR_Ref ${psrAttrs}/>` + `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` + `</metadata></g>`;
 }
 
 /** 站内图出线端（ACLineEnd）→ 可点击跳转至站外馈线图 */
@@ -425,7 +453,11 @@ function buildLgCompatibleBody(children, onWarn) {
             case 'ACLineSegment':
             case 'line': {
                 const inner = lineGToPolylineSvg(dom);
-                lineParts.push(wrapLineLikeGroup(dom, inner, i));
+                const busPsr =
+                    nodeName === 'Bus' || nodeName === 'BusbarSection'
+                        ? psrTypeForGNode(nodeName)
+                        : '36000000';
+                lineParts.push(wrapLineLikeGroup(dom, inner, i, busPsr));
                 break;
             }
             case 'Text': {

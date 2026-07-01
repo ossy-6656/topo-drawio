@@ -1,5 +1,5 @@
 /**
- * 区域系统图仿真菜单：潮流数据上图、越限设备高亮
+ * 区域系统图仿真菜单：潮流数据上图、越限设备高亮（/in-site-svg 仅潮流上图，母线/主变专用标签）
  * 潮流匹配：SVG 图元 metadata 中 cge:PSR_Ref.GlobeID ↔ JSON 的 busid/lineid/trafoid
  */
 import { ElMessage } from 'element-plus'
@@ -60,6 +60,32 @@ function isLgSimulationMenuEnabled() {
     return window.__lgSimulationMenuEnabled === true
 }
 
+/** /in-site-svg 不显示越限设备高亮 */
+function isLgOverLimitHighlightEnabled() {
+    return !window.__lgInSiteSvgMode
+}
+
+function isLgInSiteSvgMode() {
+    return window.__lgInSiteSvgMode === true
+}
+
+/** G 文件 voltype → 额定电压 kV（站内母线匹配） */
+const IN_SITE_VOLTYPE_KV = { 1005: 230, 1006: 115, 1008: 10, 1010: 10 }
+
+/** /in-site-svg 主变：侧栏变压器 + G 文件 Transformer3(0304) */
+function isLgInSiteMainTransformerDevice(cell, graph) {
+    const { shape, psrtype } = getCellShapeInfo(cell, graph)
+    if (
+        shape === 'potentialtransformer2w' ||
+        shape === 'potentialtransformer3w' ||
+        shape.indexOf('potentialtransformer2w_') === 0 ||
+        shape.indexOf('potentialtransformer3w_') === 0
+    ) {
+        return true
+    }
+    return psrtype === '0304'
+}
+
 function getFlowDataUrl() {
     return window.__lgRegionFlowDataUrl || DEFAULT_FLOW_DATA_URL
 }
@@ -84,6 +110,15 @@ function flowIdVariants(rawId) {
         }
         keys.add(n.slice(4))
         return keys
+    }
+
+    const colon = n.indexOf(':')
+    if (colon >= 0) {
+        const tail = n.slice(colon + 1)
+        if (tail) {
+            keys.add(tail)
+            keys.add(SBID_PREFIX + tail)
+        }
     }
 
     keys.add(SBID_PREFIX + n)
@@ -171,6 +206,7 @@ function buildFlowIndexes(data) {
     const busByIndex = new Map()
     const trafoById = new Map()
     const trafoByName = new Map()
+    const trafoDisplayByTrafoid = new Map()
     const genById = new Map()
     const genByName = new Map()
     const loadById = new Map()
@@ -178,6 +214,32 @@ function buildFlowIndexes(data) {
     const switchById = new Map()
     const switchByName = new Map()
     const recordByGlobeId = new Map()
+
+    const preferTrafoDisplayRecord = (rec) => {
+        const n = String(rec?.name || '')
+        if (n.endsWith('_高')) return 3
+        if (n.endsWith('_中')) return 2
+        if (n.endsWith('_低')) return 1
+        return 0
+    }
+
+    const indexTrafoDisplay = (trafo) => {
+        if (!trafo?.trafoid) return
+        const tid = String(trafo.trafoid)
+        const existing = trafoDisplayByTrafoid.get(tid)
+        if (!existing || preferTrafoDisplayRecord(trafo) > preferTrafoDisplayRecord(existing)) {
+            trafoDisplayByTrafoid.set(tid, trafo)
+        }
+    }
+
+    const resolveInSiteStationPrefix = () => {
+        for (const feeder of data.res_feeder || []) {
+            if (!feeder?.station) continue
+            const seg = String(feeder.station).split('.').pop()
+            if (seg) return seg
+        }
+        return '府城站'
+    }
 
     const indexGlobe = (rawId, record, type) => {
         for (const key of flowIdVariants(rawId)) {
@@ -206,6 +268,7 @@ function buildFlowIndexes(data) {
         if (trafo.trafoid) {
             indexFlowRecord(trafoById, trafo.trafoid, trafo)
             indexGlobe(trafo.trafoid, trafo, 'trafo')
+            indexTrafoDisplay(trafo)
         }
         if (trafo.name) trafoByName.set(normalizeName(trafo.name), trafo)
     }
@@ -240,6 +303,7 @@ function buildFlowIndexes(data) {
         busByIndex,
         trafoById,
         trafoByName,
+        trafoDisplayByTrafoid,
         genById,
         genByName,
         loadById,
@@ -247,6 +311,9 @@ function buildFlowIndexes(data) {
         switchById,
         switchByName,
         recordByGlobeId,
+        busList: data.res_bus || [],
+        trafoList: data.res_trafo || [],
+        inSiteStationPrefix: resolveInSiteStationPrefix(),
     }
 }
 
@@ -265,6 +332,18 @@ function getCellGlobeIds(cell, parser) {
     const psr = pm?.['cge:PSR_Ref']
     if (psr?.GlobeID) push(psr.GlobeID)
     if (psr?.GeoPsrid) push(psr.GeoPsrid)
+    if (psr?.keyid) push(psr.keyid)
+    if (psr?.rtkeyid) {
+        push(psr.rtkeyid)
+        const tail = String(psr.rtkeyid).split(':').pop()
+        if (tail) push(tail)
+    }
+    if (cell.keyid) push(cell.keyid)
+    if (cell.rtkeyid) {
+        push(cell.rtkeyid)
+        const tail = String(cell.rtkeyid).split(':').pop()
+        if (tail) push(tail)
+    }
 
     const fromObjectId = extractGlobeIdFromObjectId(cell.id)
     if (fromObjectId && (fromObjectId.length > 12 || /^sbid/i.test(fromObjectId))) {
@@ -276,8 +355,13 @@ function getCellGlobeIds(cell, parser) {
 
 function getPreferredRecordTypes(cell, graph) {
     const category = getFlowOverlayDeviceCategory(cell, graph)
+    if (isLgInSiteSvgMode()) {
+        if (category === 'bus') return ['bus']
+        if (category === 'trafo') return ['trafo']
+    }
     if (category === 'line') return ['line', 'bus', 'trafo']
     if (category === 'bus') return ['bus', 'line', 'trafo']
+    if (category === 'trafo') return ['trafo', 'bus', 'line']
     if (category === 'gen') return ['gen', 'bus', 'line']
     if (category === 'load') return ['load', 'bus', 'line']
     if (category === 'switch') return ['switch', 'bus', 'line']
@@ -289,8 +373,12 @@ function getPreferredRecordTypes(cell, graph) {
 function getFlowOverlayDeviceCategory(cell, graph) {
     const model = graph.getModel()
     const { shape, psrtype } = getCellShapeInfo(cell, graph)
-    if (model.isEdge(cell)) return 'line'
+    if (model.isEdge(cell)) {
+        if (isLgInSiteSvgMode() && (psrtype === '0308' || psrtype === '0311')) return 'bus'
+        return 'line'
+    }
     if (DeviceCategoryUtil?.isBusCell?.(cell)) return 'bus'
+    if (isLgInSiteSvgMode() && isLgInSiteMainTransformerDevice(cell, graph)) return 'trafo'
     if (isLgSwitchShapeOrPsr(shape, psrtype)) return 'switch'
     if (shape === 'generatingunit') return 'gen'
     if (psrtype === '370000' || shape.startsWith('energyconsumer_')) return 'load'
@@ -541,6 +629,165 @@ function formatSwitchClosedValue(record, cell, graph) {
     return '闭合'
 }
 
+function lookupFlowRecordByRawIds(rawIds, map, validate) {
+    for (const raw of rawIds) {
+        if (!raw) continue
+        const candidates = [raw]
+        const tail = String(raw).split(':').pop()
+        if (tail && tail !== raw) candidates.push(tail)
+        for (const id of candidates) {
+            for (const v of flowIdVariants(id)) {
+                const hit = map.get(v)
+                if (hit && (!validate || validate(hit))) return hit
+            }
+        }
+    }
+    return null
+}
+
+function listInSiteStationBuses(indexes) {
+    const prefix = indexes.inSiteStationPrefix || '府城站'
+    return (indexes.busList || []).filter((b) => b.name && String(b.name).startsWith(`${prefix}.`))
+}
+
+function inSiteBusSectionRank(keyName) {
+    const s = String(keyName || '')
+    if (/东|ⅱ|ii|二/.test(s)) return 2
+    if (/西|南|ⅰ|i|一|Ⅰ/.test(s) && !/东|ⅱ|ii|二/.test(s)) return 1
+    if (/旁/.test(s)) return 3
+    return 0
+}
+
+function collectInSiteBusPeers(cell, graph, parser, voltype) {
+    const model = graph.getModel()
+    const parent = model.getParent(cell)
+    if (!parent) return [cell]
+    const peers = []
+    const childCount = model.getChildCount(parent)
+    for (let i = 0; i < childCount; i++) {
+        const ch = model.getChildAt(parent, i)
+        if (!model.isEdge(ch)) continue
+        if (getFlowOverlayDeviceCategory(ch, graph) !== 'bus') continue
+        const pm = getCellPropMap(ch, parser)
+        const vt = Number(pm?.['cge:PSR_Ref']?.voltype || ch.voltype)
+        if (vt !== voltype) continue
+        peers.push(ch)
+    }
+    peers.sort((a, b) => Number(a.id) - Number(b.id))
+    return peers.length ? peers : [cell]
+}
+
+function matchInSiteBusByVoltypeAndName(cell, graph, parser, indexes) {
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref'] || {}
+    const voltype = Number(psr.voltype || cell.voltype)
+    const kv = IN_SITE_VOLTYPE_KV[voltype]
+    if (kv == null) return null
+
+    const keyName = psr.key_name || psr.ObjectName || cell.name || ''
+    const candidates = listInSiteStationBuses(indexes).filter((b) => Number(b.vn_kv) === kv)
+    if (!candidates.length) return null
+    if (candidates.length === 1) return candidates[0]
+
+    const sorted = [...candidates].sort((a, b) => {
+        const sa = Number(String(a.name).split('.').pop()) || 0
+        const sb = Number(String(b.name).split('.').pop()) || 0
+        return sa - sb
+    })
+
+    const rank = inSiteBusSectionRank(keyName)
+    if (rank > 0) {
+        return sorted[Math.min(rank - 1, sorted.length - 1)] || sorted[0]
+    }
+
+    const peers = collectInSiteBusPeers(cell, graph, parser, voltype)
+    const peerIndex = peers.indexOf(cell)
+    if (peerIndex >= 0 && peerIndex < sorted.length) {
+        return sorted[peerIndex]
+    }
+    return sorted[0]
+}
+
+function extractInSiteTrafoNum(text) {
+    const m = String(text || '').match(/#(\d+)主变/)
+    return m ? Number(m[1]) : null
+}
+
+function pickInSiteTrafoDisplayRecord(records) {
+    if (!records?.length) return null
+    if (records.length === 1) return records[0]
+    return (
+        records.find((r) => String(r.name || '').endsWith('_高')) ||
+        records.find((r) => String(r.name || '').endsWith('_中')) ||
+        records[0]
+    )
+}
+
+function matchInSiteTrafoByName(cell, graph, parser, indexes) {
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref'] || {}
+    const text = psr.key_name || psr.ObjectName || cell.name || ''
+    const num = extractInSiteTrafoNum(text)
+    if (num == null) return null
+
+    const prefix = indexes.inSiteStationPrefix || '府城站'
+    const hits = (indexes.trafoList || []).filter((rec) => {
+        if (!rec.name || !String(rec.name).includes(prefix)) return false
+        return extractInSiteTrafoNum(rec.name) === num
+    })
+    return pickInSiteTrafoDisplayRecord(hits)
+}
+
+function matchInSiteBusById(cell, parser, indexes) {
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref'] || {}
+    return lookupFlowRecordByRawIds(
+        [psr.keyid, psr.rtkeyid, cell.keyid, cell.rtkeyid],
+        indexes.busById,
+        isBusFlowRecord,
+    )
+}
+
+function matchInSiteTrafoById(cell, parser, indexes) {
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref'] || {}
+    const hit = lookupFlowRecordByRawIds(
+        [psr.keyid, psr.rtkeyid, cell.keyid, cell.rtkeyid],
+        indexes.trafoById,
+        isTrafoFlowRecord,
+    )
+    if (!hit) return null
+    return indexes.trafoDisplayByTrafoid?.get(hit.trafoid) || hit
+}
+
+/** /in-site-svg：母线仅 res_bus，主变仅 res_trafo */
+function matchInSiteFlowRecord(cell, graph, parser, indexes) {
+    const category = getFlowOverlayDeviceCategory(cell, graph)
+    if (category === 'bus') {
+        const byId = matchInSiteBusById(cell, parser, indexes)
+        if (byId) return byId
+
+        const byGlobe = matchFlowRecordByGlobeId(cell, graph, parser, indexes.recordByGlobeId)
+        if (byGlobe && isBusFlowRecord(byGlobe)) return byGlobe
+
+        return matchInSiteBusByVoltypeAndName(cell, graph, parser, indexes)
+    }
+
+    if (category === 'trafo') {
+        const byId = matchInSiteTrafoById(cell, parser, indexes)
+        if (byId) return byId
+
+        const byGlobe = matchFlowRecordByGlobeId(cell, graph, parser, indexes.recordByGlobeId)
+        if (byGlobe && isTrafoFlowRecord(byGlobe)) {
+            return indexes.trafoDisplayByTrafoid?.get(byGlobe.trafoid) || byGlobe
+        }
+
+        return matchInSiteTrafoByName(cell, graph, parser, indexes)
+    }
+
+    return null
+}
+
 function matchFlowRecordByName(cell, graph, parser, indexes) {
     const category = getFlowOverlayDeviceCategory(cell, graph)
     if (!category) return null
@@ -553,6 +800,7 @@ function matchFlowRecordByName(cell, graph, parser, indexes) {
     if (category === 'switch' && indexes.switchByName.has(name)) return indexes.switchByName.get(name)
     if (category === 'bus' && indexes.busByName.has(name)) return indexes.busByName.get(name)
     if (category === 'line' && indexes.lineByName.has(name)) return indexes.lineByName.get(name)
+    if (category === 'trafo' && indexes.trafoByName.has(name)) return indexes.trafoByName.get(name)
     return null
 }
 
@@ -623,7 +871,19 @@ function getCellMatchKeys(cell, parser) {
             addGlobeIdKeys(keys, extractGlobeIdFromObjectId(psr.ObjectID) || psr.ObjectID)
         }
         if (psr.GeoPsrid) addGlobeIdKeys(keys, psr.GeoPsrid)
+        if (psr.keyid) {
+            for (const v of flowIdVariants(psr.keyid)) keys.add(v)
+        }
+        if (psr.rtkeyid) {
+            for (const v of flowIdVariants(psr.rtkeyid)) keys.add(v)
+        }
         if (psr.ObjectName) keys.add(normalizeName(psr.ObjectName))
+    }
+    if (cell.keyid) {
+        for (const v of flowIdVariants(cell.keyid)) keys.add(v)
+    }
+    if (cell.rtkeyid) {
+        for (const v of flowIdVariants(cell.rtkeyid)) keys.add(v)
     }
 
     if (cell.name) keys.add(normalizeName(cell.name))
@@ -668,6 +928,8 @@ function getFlowMatchMaps(cell, graph, indexes) {
         maps.push(indexes.genById, indexes.genByName, indexes.busById, indexes.busByName)
     } else if (category === 'load') {
         maps.push(indexes.loadById, indexes.loadByName, indexes.busById, indexes.busByName)
+    } else if (category === 'trafo') {
+        maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName)
     } else if (category === 'switch') {
         maps.push(indexes.switchById, indexes.switchByName)
     } else if (isTrafoOrLoadDevice(cell, graph)) {
@@ -693,6 +955,13 @@ function getFlowMatchMaps(cell, graph, indexes) {
 }
 
 function matchFlowRecord(cell, graph, parser, indexes) {
+    if (isLgInSiteSvgMode()) {
+        const category = getFlowOverlayDeviceCategory(cell, graph)
+        if (category === 'bus' || category === 'trafo') {
+            return matchInSiteFlowRecord(cell, graph, parser, indexes)
+        }
+    }
+
     const byGlobe = matchFlowRecordByGlobeId(cell, graph, parser, indexes.recordByGlobeId)
     if (byGlobe) return byGlobe
 
@@ -723,7 +992,7 @@ function isTrafoLoadRecord(record) {
 /** 避免 GlobeID 变体碰撞导致配变匹配到错误的 res_trafo */
 function acceptsTrafoRecord(cell, graph, parser, record) {
     if (!isTrafoLoadRecord(record)) return true
-    if (!isTrafoOrLoadDevice(cell, graph)) return false
+    if (!isTrafoOrLoadDevice(cell, graph) && !isLgInSiteMainTransformerDevice(cell, graph)) return false
     const psrName = normalizeName(getCellPropMap(cell, parser)?.['cge:PSR_Ref']?.ObjectName || cell.name)
     const recordName = normalizeName(record.name)
     if (psrName && recordName) {
@@ -740,9 +1009,111 @@ function shouldHighlightOverLimitCell(cell, graph, parser, record) {
     return true
 }
 
+function getCellFlowAttr(cell, graph, key) {
+    const st = graph.getCurrentCellStyle(cell) || {}
+    const raw = cell[key] != null && cell[key] !== '' ? cell[key] : st[key]
+    if (raw == null || raw === '') return null
+    const n = Number(raw)
+    return Number.isNaN(n) ? raw : n
+}
+
+function isTrafoFlowRecord(record) {
+    return (
+        record != null &&
+        (record.trafoid != null ||
+            record.sn_mva != null ||
+            record.p_hv_mw != null ||
+            record.p_lv_mw != null)
+    )
+}
+
+function isBusFlowRecord(record) {
+    return record != null && record.trafoid == null && record.lineid == null && record.vm_pu != null
+}
+
+function resolveTrafoFlowVoltage(record, cell, graph) {
+    if (record?.hv_rms_voltage != null) return Number(record.hv_rms_voltage)
+    if (record?.vn_hv_kv != null) return Number(record.vn_hv_kv)
+    if (record?.vn_lv_kv != null) return Number(record.vn_lv_kv)
+    if (record?.vn_kv != null) return Number(record.vn_kv)
+    const iv = getCellFlowAttr(cell, graph, 'I_Vol')
+    if (iv != null && !Number.isNaN(Number(iv))) return Number(iv)
+    const kv = getCellFlowAttr(cell, graph, 'K_Vol')
+    if (kv != null && !Number.isNaN(Number(kv))) return Number(kv)
+    return null
+}
+
+function resolveTrafoFlowSn(record, cell, graph) {
+    if (record?.sn_mva != null) return Number(record.sn_mva)
+    const is = getCellFlowAttr(cell, graph, 'I_S')
+    if (is != null && !Number.isNaN(Number(is))) return Number(is)
+    return null
+}
+
+function resolveTrafoFlowP(record, cell, graph) {
+    if (record?.p_hv_mw != null) return Number(record.p_hv_mw)
+    if (record?.p_lv_mw != null) return Number(record.p_lv_mw)
+    if (record?.p_mw != null) return Number(record.p_mw)
+    const p = getCellFlowAttr(cell, graph, 'P')
+    if (p != null && !Number.isNaN(Number(p))) return Number(p)
+    return null
+}
+
+function resolveTrafoFlowQ(record, cell, graph) {
+    if (record?.q_hv_mvar != null) return Number(record.q_hv_mvar)
+    if (record?.q_lv_mvar != null) return Number(record.q_lv_mvar)
+    if (record?.q_mvar != null) return Number(record.q_mvar)
+    const q = getCellFlowAttr(cell, graph, 'Q')
+    if (q != null && !Number.isNaN(Number(q))) return Number(q)
+    return null
+}
+
+/** /in-site-svg 母线潮流标签：额定电压 vn_kv、计算电压 rms_voltage */
+function buildInSiteBusFlowLabel(record) {
+    if (!record) return ''
+    const lines = []
+    if (record.vn_kv != null) lines.push(`额定电压:${formatNumber(record.vn_kv, 0)}kV`)
+    const rms = calcBusRmsVoltage(record)
+    if (rms != null) lines.push(`计算电压:${formatNumber(rms, 3)}kV`)
+    return lines.join('\n')
+}
+
+/** /in-site-svg 主变潮流标签：电压、额定容量、有功、无功、负载 */
+function buildInSiteTrafoFlowLabel(cell, graph, record) {
+    const flowRec = isTrafoFlowRecord(record) ? record : null
+    const lines = []
+
+    const vn = resolveTrafoFlowVoltage(flowRec, cell, graph)
+    if (vn != null) lines.push(`电压:${formatNumber(vn, 0)}kV`)
+
+    const sn = resolveTrafoFlowSn(flowRec, cell, graph)
+    if (sn != null) lines.push(`额定容量:${formatNumber(sn)}MVA`)
+
+    const p = resolveTrafoFlowP(flowRec, cell, graph)
+    if (p != null) lines.push(`有功功率:${formatNumber(p)}MW`)
+
+    const q = resolveTrafoFlowQ(flowRec, cell, graph)
+    if (q != null) lines.push(`无功功率:${formatNumber(q)}Mvar`)
+
+    if (flowRec?.loading_percent != null) {
+        lines.push(`负载:${formatNumber(flowRec.loading_percent, 1)}%`)
+    }
+
+    return lines.join('\n')
+}
+
 function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
     const category = getFlowOverlayDeviceCategory(cell, graph)
     if (!category) return ''
+
+    if (isLgInSiteSvgMode()) {
+        if (category === 'bus') {
+            return buildInSiteBusFlowLabel(record)
+        }
+        if (category === 'trafo') {
+            return buildInSiteTrafoFlowLabel(cell, graph, record)
+        }
+    }
 
     const lines = []
     const displayName = getCellDisplayName(cell, parser, record)
@@ -1391,6 +1762,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
 
                 const category = getFlowOverlayDeviceCategory(cell, graph)
                 if (!category || category === 'switch') continue
+                if (isLgInSiteSvgMode() && category === 'line') continue
 
                 const record = matchFlowRecord(cell, graph, parser, indexes)
                 if (category === 'line' && record && lineHasFlow(record)) {
@@ -1549,16 +1921,18 @@ function installLgRegionSimulationActions(actions) {
         })
     )
 
-    const highlightAction = actions.put(
-        'lgSimOverLimitHighlight',
-        new Action('越限设备高亮', function () {
-            toggleLgOverLimitHighlight(ui, flowDataUrl)
+    if (isLgOverLimitHighlightEnabled()) {
+        const highlightAction = actions.put(
+            'lgSimOverLimitHighlight',
+            new Action('越限设备高亮', function () {
+                toggleLgOverLimitHighlight(ui, flowDataUrl)
+            })
+        )
+        highlightAction.setToggleAction(true)
+        highlightAction.setSelectedCallback(function () {
+            return overLimitHighlightOn
         })
-    )
-    highlightAction.setToggleAction(true)
-    highlightAction.setSelectedCallback(function () {
-        return overLimitHighlightOn
-    })
+    }
 }
 
 function installLgRegionSimulationMenuDefinition() {
@@ -1572,7 +1946,11 @@ function installLgRegionSimulationMenuDefinition() {
             'simulation',
             new Menu(
                 mxUtils.bind(this, function (menu, parent) {
-                    this.addMenuItems(menu, ['lgSimPowerFlowOverlay', 'lgSimOverLimitHighlight'], parent)
+                    const items = ['lgSimPowerFlowOverlay']
+                    if (isLgOverLimitHighlightEnabled()) {
+                        items.push('lgSimOverLimitHighlight')
+                    }
+                    this.addMenuItems(menu, items, parent)
                 })
             )
         )
@@ -1602,7 +1980,7 @@ function installLgRegionSimulationMenubar() {
 
 let lgRegionSimulationMenuInstalled = false
 
-/** 注册顶部「仿真」菜单（与「主题」同级，仅 /graphLg、/in-site-svg） */
+/** 注册顶部「仿真」菜单（与「主题」同级，/graphLg、/in-site-svg；越限高亮仅 /graphLg） */
 export function installLgRegionSimulationMenu() {
     if (lgRegionSimulationMenuInstalled) return
     if (typeof Actions === 'undefined' || typeof Menus === 'undefined' || typeof Action === 'undefined') {
