@@ -663,6 +663,33 @@ export default {
 		return sb.join('');
 	},
 	/**
+	 * G 文件设备 state（遥信码）→ 图元 symbol 索引（_0 / _1）。
+	 */
+	deviceStateToSymbolIndex(nodeName, state) {
+		const s = parseInt(state, 10);
+		if (!Number.isFinite(s)) return 0;
+		const closed = s % 10 === 1;
+		switch (nodeName) {
+			case 'Disconnector':
+			case 'GroundDisconnector':
+				return closed ? 1 : 0;
+			case 'CBreaker':
+			case 'DollyBreaker':
+				return closed ? 0 : 1;
+			default:
+				return 0;
+		}
+	},
+	resolveSymbolIdWithState(baseId, symbolProps, staIndex) {
+		const candidate = baseId + '_' + staIndex;
+		if (symbolProps[candidate]) return candidate;
+		const fallback0 = baseId + '_0';
+		if (symbolProps[fallback0]) return fallback0;
+		const fallback1 = baseId + '_1';
+		if (symbolProps[fallback1]) return fallback1;
+		return candidate;
+	},
+	/**
 	 * 特殊设备
 	 * @param dom
 	 * @param devMap 设备数据，用于取状态
@@ -682,7 +709,8 @@ export default {
 		let devref = dom.getAttribute('devref'); // 文本内容
 
 		let symbolId = devref.substring(1);
-		symbolId = symbolId + '_0';
+		const staIndex = this.deviceStateToSymbolIndex(dom.nodeName, dom.getAttribute('state'));
+		symbolId = this.resolveSymbolIdWithState(symbolId, symbolProps, staIndex);
 		let width, height;
 		try {
 			let props = symbolProps[symbolId];
