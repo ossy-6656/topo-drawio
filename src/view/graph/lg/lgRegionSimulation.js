@@ -1,6 +1,8 @@
 /**
  * 区域系统图仿真菜单：潮流数据上图、越限设备高亮（/in-site-svg 仅潮流上图，母线/主变专用标签）
  * 潮流匹配：SVG 图元 metadata 中 cge:PSR_Ref.GlobeID ↔ JSON 的 busid/lineid/trafoid
+ * /graphLg 潮流数据上图：使用 public/府城站配网潮流数据.json，母线/线路/机组匹配 data.res_sub_system 的 res_bus / res_line / res_gen
+ * /graphLg 越限设备高亮：匹配 data.res_sub_system 下的 res_bus / res_line / res_trafo 等
  */
 import { ElMessage } from 'element-plus'
 import DeviceCategoryUtil from '@/plugins/tmzx/graph/DeviceCategoryUtil.js'
@@ -12,13 +14,19 @@ import {
 } from '@/view/graph/lg/Constants.js'
 import { getLgFlowOverlayFontColor } from '@/view/graph/lg/lgCanvasTheme.js'
 
-const DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
+/** /graphLg 默认潮流数据（配网子系统 res_sub_system） */
+const DEFAULT_FLOW_DATA_URL = '/府城站配网潮流数据.json'
+/** /in-site-svg 站内图仍使用含顶层 res_bus/res_trafo 的完整潮流结果 */
+const IN_SITE_DEFAULT_FLOW_DATA_URL = '/新乡潮流计算结果（府城站）.json'
 const OVERLAY_PREFIX = 'lg-flow-overlay-'
 const WARN_OVERLAY_PREFIX = 'lg-warn-overlay-'
 const OVERLAY_FONT_SIZE = 9
 const WARN_OVERLAY_FONT_SIZE = 12
 const OVERLAY_LINE_HEIGHT = 1.8
 const OVERLAY_GAP = 2
+/** /in-site-svg 主变潮流标签相对图标的偏移（左、下，贴近图标左下角） */
+const IN_SITE_TRAFO_FLOW_LABEL_LEFT_OFFSET = 50
+const IN_SITE_TRAFO_FLOW_LABEL_DOWN_OFFSET = 50
 const LINE_LABEL_GAP = 8
 const LINE_LABEL_CLEARANCE = 6
 /** 潮流上图：线路数据标签与线路的法向间距（略小于 LINE_LABEL_CLEARANCE，避免偏太远） */
@@ -88,7 +96,10 @@ function isLgInSiteMainTransformerDevice(cell, graph) {
 }
 
 function getFlowDataUrl() {
-    return window.__lgRegionFlowDataUrl || DEFAULT_FLOW_DATA_URL
+    if (window.__lgRegionFlowDataUrl) {
+        return window.__lgRegionFlowDataUrl
+    }
+    return isLgInSiteSvgMode() ? IN_SITE_DEFAULT_FLOW_DATA_URL : DEFAULT_FLOW_DATA_URL
 }
 
 const SBID_PREFIX = 'sbid000000'
@@ -339,6 +350,41 @@ function buildFlowIndexes(data) {
     }
 }
 
+/** /graphLg 潮流上图：母线、线路、机组用 res_sub_system，其余仍用顶层 data */
+function buildGraphLgFlowIndexes(data) {
+    const sub = data?.res_sub_system
+    if (!sub || typeof sub !== 'object') {
+        return buildFlowIndexes(data)
+    }
+    return buildFlowIndexes({
+        ...data,
+        res_bus: sub.res_bus || [],
+        res_line: sub.res_line || [],
+        res_gen: sub.res_gen || [],
+    })
+}
+
+function buildPowerFlowIndexes(data) {
+    return isLgInSiteSvgMode() ? buildFlowIndexes(data) : buildGraphLgFlowIndexes(data)
+}
+
+/** /graphLg 越限高亮：优先使用 res_sub_system（馈线子系统潮流），无则回退顶层 data */
+function buildOverLimitFlowIndexes(data) {
+    const sub = data?.res_sub_system
+    if (!sub || typeof sub !== 'object') {
+        return buildFlowIndexes(data)
+    }
+    return buildFlowIndexes({
+        res_bus: sub.res_bus || [],
+        res_line: sub.res_line || [],
+        res_trafo: sub.res_trafo || [],
+        res_gen: sub.res_gen || [],
+        res_load: sub.res_load || [],
+        res_switch: sub.res_switch || [],
+        res_feeder: sub.res_feeder || [],
+    })
+}
+
 /** 从图元 metadata 提取 GlobeID（与 JSON 中 busid/lineid/trafoid 对应） */
 function getCellGlobeIds(cell, parser) {
     const ids = []
@@ -375,12 +421,20 @@ function getCellGlobeIds(cell, parser) {
     return ids
 }
 
+/** 站房/配电室图元（zf06 等），越限与潮流匹配 res_sub_system.res_load */
+function isDistributionSubstationCell(cell, graph) {
+    const { shape, psrtype } = getCellShapeInfo(cell, graph)
+    const psr = String(psrtype || '').toLowerCase()
+    return shape.startsWith('substation_') || psr === 'zf06' || psr === '30000005'
+}
+
 function getPreferredRecordTypes(cell, graph) {
     const category = getFlowOverlayDeviceCategory(cell, graph)
     if (isLgInSiteSvgMode()) {
         if (category === 'bus') return ['bus']
         if (category === 'trafo') return ['trafo']
     }
+    if (isDistributionSubstationCell(cell, graph)) return ['load', 'line', 'bus', 'trafo']
     if (category === 'line') return ['line', 'bus', 'trafo']
     if (category === 'bus') return ['bus', 'line', 'trafo']
     if (category === 'trafo') return ['trafo', 'bus', 'line']
@@ -967,6 +1021,9 @@ function getFlowMatchMaps(cell, graph, indexes) {
     } else if (category === 'switch') {
         maps.push(indexes.switchById, indexes.switchByName)
     } else if (isTrafoOrLoadDevice(cell, graph)) {
+        if (isDistributionSubstationCell(cell, graph)) {
+            maps.push(indexes.loadById, indexes.loadByName)
+        }
         maps.push(indexes.trafoById, indexes.trafoByName, indexes.busById, indexes.busByName, indexes.lineById, indexes.lineByName)
     } else {
         maps.push(
@@ -998,6 +1055,13 @@ function matchFlowRecord(cell, graph, parser, indexes) {
 
     const byGlobe = matchFlowRecordByGlobeId(cell, graph, parser, indexes.recordByGlobeId)
     if (byGlobe) return byGlobe
+
+    if (isDistributionSubstationCell(cell, graph)) {
+        const name = normalizeName(getCellDisplayName(cell, parser, null))
+        if (name && indexes.loadByName?.has(name)) {
+            return indexes.loadByName.get(name)
+        }
+    }
 
     const byName = matchFlowRecordByName(cell, graph, parser, indexes)
     if (byName) return byName
@@ -1369,12 +1433,47 @@ function placeEdgeOverlayLabel(frame, width, height, clearance = LINE_LABEL_CLEA
     }
 }
 
+function getCellModelBounds(graph, cell) {
+    const bbox =
+        typeof graph.getBoundingBoxFromGeometry === 'function'
+            ? graph.getBoundingBoxFromGeometry([cell], true)
+            : null
+    if (bbox && (bbox.width > 0 || bbox.height > 0)) {
+        return { x: bbox.x, y: bbox.y, width: bbox.width, height: bbox.height }
+    }
+    const geo = graph.getModel()?.getGeometry(cell)
+    if (geo && (geo.width > 0 || geo.height > 0)) {
+        return { x: geo.x, y: geo.y, width: geo.width, height: geo.height }
+    }
+    return null
+}
+
+/** /in-site-svg 主变潮流标签：图标左下角偏左、略上移，贴近图标 */
+function createInSiteTrafoFlowOverlayPlacement(graph, cell, width, height) {
+    const bounds = getCellModelBounds(graph, cell)
+    if (!bounds) return null
+    return {
+        parent: graph.getDefaultParent(),
+        x: bounds.x - IN_SITE_TRAFO_FLOW_LABEL_LEFT_OFFSET,
+        y: bounds.y + bounds.height - height + IN_SITE_TRAFO_FLOW_LABEL_DOWN_OFFSET,
+        width,
+        height,
+        relative: false,
+    }
+}
+
 /** 顶点图元：站内图用模型绝对坐标；其它页面用子节点相对定位 */
-function createFlowOverlayPlacement(graph, cell, width, height) {
+function createFlowOverlayPlacement(graph, cell, width, height, opts = {}) {
+    const { category } = opts
     const model = graph.getModel()
     const gap = OVERLAY_GAP
 
     if (!model.isEdge(cell)) {
+        if (isLgInSiteSvgMode() && category === 'trafo') {
+            const trafoPlacement = createInSiteTrafoFlowOverlayPlacement(graph, cell, width, height)
+            if (trafoPlacement) return trafoPlacement
+        }
+
         if (isLgInSiteSvgMode()) {
             const bbox =
                 typeof graph.getBoundingBoxFromGeometry === 'function'
@@ -1841,7 +1940,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
 
     try {
         const data = await loadFlowData(flowDataUrl)
-        const indexes = buildFlowIndexes(data)
+        const indexes = buildPowerFlowIndexes(data)
         const model = graph.getModel()
         const cells = Object.values(model.cells || {}).filter((c) => c && c.id && c.id !== '0')
 
@@ -1869,7 +1968,7 @@ export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
                 if (!label) continue
 
                 const { width, height } = getOverlaySize(label, OVERLAY_FONT_SIZE, OVERLAY_LINE_HEIGHT)
-                const placement = createFlowOverlayPlacement(graph, cell, width, height)
+                const placement = createFlowOverlayPlacement(graph, cell, width, height, { category })
                 const overlayId = `${OVERLAY_PREFIX}${cell.id}`
                 const style = buildFlowOverlayStyle()
                 const displayLabel = formatFlowOverlayHtml(label)
@@ -1952,7 +2051,7 @@ export function toggleLgOverLimitHighlight(ui, flowDataUrl) {
             }
 
             try {
-                const indexes = buildFlowIndexes(data)
+                const indexes = buildOverLimitFlowIndexes(data)
                 const model = graph.getModel()
                 const cells = Object.values(model.cells || {}).filter((c) => c && c.id && c.id !== '0')
 

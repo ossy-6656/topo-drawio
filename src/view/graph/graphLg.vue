@@ -1267,7 +1267,9 @@ onMounted(() => {
     }
     if (isDatasetMode.value || isGFileMode.value) {
         window.__lgSimulationMenuEnabled = true
-        window.__lgRegionFlowDataUrl = props.flowDataUrl || ''
+        window.__lgRegionFlowDataUrl =
+            props.flowDataUrl ||
+            (isDatasetMode.value ? '/府城站配网潮流数据.json' : '')
     }
     if (isDatasetMode.value && typeof mxConstants !== 'undefined') {
         mxConstants.LINE_HEIGHT = LG_GRAPH_DATASET_NAME_LINE_HEIGHT
