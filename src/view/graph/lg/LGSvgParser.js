@@ -1828,6 +1828,9 @@ export default class LGSvgParser extends SvgBase {
         cell.psrtype = PSRType;
         cell.name = ObjectName;
         cell.layer = layerId;
+        if (psrRef.voltype != null && psrRef.voltype !== '') {
+            cell.voltype = psrRef.voltype;
+        }
         applyLgDakuixianMark(cell, ObjectID, PSRType);
 
         attrMap.set(cell.id, propMap);

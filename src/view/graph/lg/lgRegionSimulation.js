@@ -72,14 +72,15 @@ function isLgInSiteSvgMode() {
 /** G 文件 voltype → 额定电压 kV（站内母线匹配） */
 const IN_SITE_VOLTYPE_KV = { 1005: 230, 1006: 115, 1008: 10, 1010: 10 }
 
-/** /in-site-svg 主变：侧栏变压器 + G 文件 Transformer3(0304) */
+/** /in-site-svg 主变：侧栏变压器 + G 文件 Transformer3(0304) / powertransformer 图元 */
 function isLgInSiteMainTransformerDevice(cell, graph) {
     const { shape, psrtype } = getCellShapeInfo(cell, graph)
     if (
         shape === 'potentialtransformer2w' ||
         shape === 'potentialtransformer3w' ||
         shape.indexOf('potentialtransformer2w_') === 0 ||
-        shape.indexOf('potentialtransformer3w_') === 0
+        shape.indexOf('potentialtransformer3w_') === 0 ||
+        shape.indexOf('powertransformer') === 0
     ) {
         return true
     }
@@ -233,12 +234,30 @@ function buildFlowIndexes(data) {
     }
 
     const resolveInSiteStationPrefix = () => {
+        if (typeof window !== 'undefined' && window.__lgInSiteStationName) {
+            const fromRoute = String(window.__lgInSiteStationName).trim()
+            if (fromRoute) return fromRoute
+        }
         for (const feeder of data.res_feeder || []) {
             if (!feeder?.station) continue
             const seg = String(feeder.station).split('.').pop()
             if (seg) return seg
         }
         return '府城站'
+    }
+
+    const inSiteStationPrefix = resolveInSiteStationPrefix()
+    const trafoByStationNum = new Map()
+    for (const trafo of data.res_trafo || []) {
+        if (!trafo?.name || !String(trafo.name).startsWith(`${inSiteStationPrefix}.`)) continue
+        const num = extractInSiteTrafoNum(trafo.name)
+        if (num == null) continue
+        const key = `${inSiteStationPrefix}:${num}`
+        const existing = trafoByStationNum.get(key)
+        if (!existing || preferTrafoDisplayRecord(trafo) > preferTrafoDisplayRecord(existing)) {
+            trafoByStationNum.set(key, trafo)
+        }
+        indexTrafoDisplay(trafo)
     }
 
     const indexGlobe = (rawId, record, type) => {
@@ -268,7 +287,9 @@ function buildFlowIndexes(data) {
         if (trafo.trafoid) {
             indexFlowRecord(trafoById, trafo.trafoid, trafo)
             indexGlobe(trafo.trafoid, trafo, 'trafo')
-            indexTrafoDisplay(trafo)
+            if (!String(trafo.name || '').startsWith(`${inSiteStationPrefix}.`)) {
+                indexTrafoDisplay(trafo)
+            }
         }
         if (trafo.name) trafoByName.set(normalizeName(trafo.name), trafo)
     }
@@ -304,6 +325,7 @@ function buildFlowIndexes(data) {
         trafoById,
         trafoByName,
         trafoDisplayByTrafoid,
+        trafoByStationNum,
         genById,
         genByName,
         loadById,
@@ -313,7 +335,7 @@ function buildFlowIndexes(data) {
         recordByGlobeId,
         busList: data.res_bus || [],
         trafoList: data.res_trafo || [],
-        inSiteStationPrefix: resolveInSiteStationPrefix(),
+        inSiteStationPrefix,
     }
 }
 
@@ -378,7 +400,10 @@ function getFlowOverlayDeviceCategory(cell, graph) {
         return 'line'
     }
     if (DeviceCategoryUtil?.isBusCell?.(cell)) return 'bus'
-    if (isLgInSiteSvgMode() && isLgInSiteMainTransformerDevice(cell, graph)) return 'trafo'
+    if (isLgInSiteSvgMode()) {
+        if (isLgInSiteMainTransformerDevice(cell, graph)) return 'trafo'
+        if (extractInSiteTrafoNum(cell.name) != null) return 'trafo'
+    }
     if (isLgSwitchShapeOrPsr(shape, psrtype)) return 'switch'
     if (shape === 'generatingunit') return 'gen'
     if (psrtype === '370000' || shape.startsWith('energyconsumer_')) return 'load'
@@ -723,16 +748,25 @@ function pickInSiteTrafoDisplayRecord(records) {
     )
 }
 
-function matchInSiteTrafoByName(cell, graph, parser, indexes) {
+function getInSiteTrafoLabelText(cell, parser) {
     const pm = getCellPropMap(cell, parser)
     const psr = pm?.['cge:PSR_Ref'] || {}
-    const text = psr.key_name || psr.ObjectName || cell.name || ''
+    return psr.key_name || psr.key_name1 || psr.ObjectName || cell.name || ''
+}
+
+function matchInSiteTrafoByName(cell, graph, parser, indexes) {
+    const text = getInSiteTrafoLabelText(cell, parser)
     const num = extractInSiteTrafoNum(text)
     if (num == null) return null
 
     const prefix = indexes.inSiteStationPrefix || '府城站'
+    const keyed = indexes.trafoByStationNum?.get(`${prefix}:${num}`)
+    if (keyed) {
+        return indexes.trafoDisplayByTrafoid?.get(keyed.trafoid) || keyed
+    }
+
     const hits = (indexes.trafoList || []).filter((rec) => {
-        if (!rec.name || !String(rec.name).includes(prefix)) return false
+        if (!rec.name || !String(rec.name).startsWith(`${prefix}.`)) return false
         return extractInSiteTrafoNum(rec.name) === num
     })
     return pickInSiteTrafoDisplayRecord(hits)
@@ -1031,6 +1065,37 @@ function isBusFlowRecord(record) {
     return record != null && record.trafoid == null && record.lineid == null && record.vm_pu != null
 }
 
+function resolveInSiteTrafoRatedKv(cell, graph) {
+    const st = graph.getCurrentCellStyle(cell) || {}
+    const vt = Number(st.voltype || cell.voltype)
+    if (Number.isFinite(vt) && IN_SITE_VOLTYPE_KV[vt] != null) {
+        return IN_SITE_VOLTYPE_KV[vt]
+    }
+    return null
+}
+
+/** JSON 无 sn_mva 时，由视在功率与负载率反推额定容量 */
+function deriveTrafoSnMvaFromFlow(record) {
+    const loading = Number(record?.loading_percent)
+    if (!Number.isFinite(loading) || Math.abs(loading) < 1e-6) return null
+    const p =
+        record?.p_hv_mw != null
+            ? Number(record.p_hv_mw)
+            : record?.p_lv_mw != null
+              ? Number(record.p_lv_mw)
+              : null
+    const q =
+        record?.q_hv_mvar != null
+            ? Number(record.q_hv_mvar)
+            : record?.q_lv_mvar != null
+              ? Number(record.q_lv_mvar)
+              : null
+    if (p == null && q == null) return null
+    const apparent = Math.hypot(p || 0, q || 0)
+    if (apparent < 1e-6) return null
+    return (apparent * 100) / Math.abs(loading)
+}
+
 function resolveTrafoFlowVoltage(record, cell, graph) {
     if (record?.hv_rms_voltage != null) return Number(record.hv_rms_voltage)
     if (record?.vn_hv_kv != null) return Number(record.vn_hv_kv)
@@ -1040,11 +1105,17 @@ function resolveTrafoFlowVoltage(record, cell, graph) {
     if (iv != null && !Number.isNaN(Number(iv))) return Number(iv)
     const kv = getCellFlowAttr(cell, graph, 'K_Vol')
     if (kv != null && !Number.isNaN(Number(kv))) return Number(kv)
+    if (isLgInSiteSvgMode()) {
+        const ratedKv = resolveInSiteTrafoRatedKv(cell, graph)
+        if (ratedKv != null) return ratedKv
+    }
     return null
 }
 
 function resolveTrafoFlowSn(record, cell, graph) {
     if (record?.sn_mva != null) return Number(record.sn_mva)
+    const derived = deriveTrafoSnMvaFromFlow(record)
+    if (derived != null) return derived
     const is = getCellFlowAttr(cell, graph, 'I_S')
     if (is != null && !Number.isNaN(Number(is))) return Number(is)
     return null
@@ -1078,28 +1149,24 @@ function buildInSiteBusFlowLabel(record) {
     return lines.join('\n')
 }
 
-/** /in-site-svg 主变潮流标签：电压、额定容量、有功、无功、负载 */
+/** /in-site-svg 主变潮流标签：电压、额定容量、有功、无功、负载（五项固定展示） */
 function buildInSiteTrafoFlowLabel(cell, graph, record) {
-    const flowRec = isTrafoFlowRecord(record) ? record : null
-    const lines = []
+    if (!record) return ''
 
-    const vn = resolveTrafoFlowVoltage(flowRec, cell, graph)
-    if (vn != null) lines.push(`电压:${formatNumber(vn, 0)}kV`)
+    const vn = resolveTrafoFlowVoltage(record, cell, graph)
+    const sn = resolveTrafoFlowSn(record, cell, graph)
+    const p = resolveTrafoFlowP(record, cell, graph)
+    const q = resolveTrafoFlowQ(record, cell, graph)
+    const load = record.loading_percent
 
-    const sn = resolveTrafoFlowSn(flowRec, cell, graph)
-    if (sn != null) lines.push(`额定容量:${formatNumber(sn)}MVA`)
-
-    const p = resolveTrafoFlowP(flowRec, cell, graph)
-    if (p != null) lines.push(`有功功率:${formatNumber(p)}MW`)
-
-    const q = resolveTrafoFlowQ(flowRec, cell, graph)
-    if (q != null) lines.push(`无功功率:${formatNumber(q)}Mvar`)
-
-    if (flowRec?.loading_percent != null) {
-        lines.push(`负载:${formatNumber(flowRec.loading_percent, 1)}%`)
-    }
-
-    return lines.join('\n')
+    const vnDigits = vn != null && Math.abs(vn) >= 100 ? 0 : vn != null && Math.abs(vn) >= 10 ? 1 : 2
+    return [
+        `电压:${vn != null ? `${formatNumber(vn, vnDigits)}kV` : '--'}`,
+        `额定容量:${sn != null ? `${formatNumber(sn)}MVA` : '--'}`,
+        `P:${p != null ? `${formatNumber(p)}MW` : '--'}`,
+        `Q:${q != null ? `${formatNumber(q)}Mvar` : '--'}`,
+        `负载:${load != null && load !== '' ? `${formatNumber(load, 1)}%` : '--'}`,
+    ].join('\n')
 }
 
 function buildFlowOverlayLabel(cell, graph, parser, record, indexes) {
@@ -1302,12 +1369,41 @@ function placeEdgeOverlayLabel(frame, width, height, clearance = LINE_LABEL_CLEA
     }
 }
 
-/** 顶点图元：子节点相对定位；线路：模型坐标贴最长段中点 */
+/** 顶点图元：站内图用模型绝对坐标；其它页面用子节点相对定位 */
 function createFlowOverlayPlacement(graph, cell, width, height) {
     const model = graph.getModel()
     const gap = OVERLAY_GAP
 
     if (!model.isEdge(cell)) {
+        if (isLgInSiteSvgMode()) {
+            const bbox =
+                typeof graph.getBoundingBoxFromGeometry === 'function'
+                    ? graph.getBoundingBoxFromGeometry([cell], true)
+                    : null
+            let cx
+            let topY
+            if (bbox && (bbox.width > 0 || bbox.height > 0)) {
+                cx = bbox.x + bbox.width / 2
+                topY = bbox.y
+            } else {
+                const geo = model.getGeometry(cell)
+                if (geo && (geo.width > 0 || geo.height > 0)) {
+                    cx = geo.x + geo.width / 2
+                    topY = geo.y
+                }
+            }
+            if (cx != null && topY != null) {
+                return {
+                    parent: graph.getDefaultParent(),
+                    x: cx - width / 2,
+                    y: topY - height - gap,
+                    width,
+                    height,
+                    relative: false,
+                }
+            }
+        }
+
         const geo = new mxGeometry(0.5, 0, width, height)
         geo.relative = true
         geo.offset = new mxPoint(-width / 2, -height - gap)

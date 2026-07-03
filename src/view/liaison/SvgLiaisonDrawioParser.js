@@ -16,6 +16,8 @@ const KV110 = '#F04155'
 const KV110_STROKE = '#c03548'
 const KV35 = '#FFFF00'
 const KV35_STROKE = '#b8b800'
+/** 站内主变、线路 P/Q 等量测数字颜色 */
+const LIAISON_MEASUREMENT_COLOR = '#9CF0F2'
 
 /** 电压分档：5=1000kV，4=500kV，3=220kV，2=110kV，1=35kV */
 function voltageTier(kv) {
@@ -44,39 +46,73 @@ function stationStrokeColorByKV(kv) {
   return KV35_STROKE
 }
 
-/** 站房默认外廓（逻辑 px）：1000 > 500 > 220 > 110 > 35 */
+/** 收窄站房宽高比：略减宽、略增高 */
+function applyStationBoxAspectAdjust(w, h) {
+  return { w: Math.round(w * 0.85), h: Math.round(h * 1.1) }
+}
+
+/** 站房默认外廓（逻辑 px）：各档先收窄宽高比；1000kV ×1.5×0.8，500kV ×2×0.8，其余不变 */
 function stationBoxSizeByKV(kv) {
   const k = normalizeKV(kv)
-  if (k >= 800) return { w: 160, h: 80 }
-  if (k >= 500) return { w: 140, h: 70 }
-  if (k >= 220) return { w: 120, h: 60 }
-  if (k >= 110) return { w: 100, h: 50 }
-  return { w: 80, h: 40 }
+  if (k >= 800) {
+    const { w, h } = applyStationBoxAspectAdjust(160, 80)
+    return { w: Math.round(w * 1.5 * 0.8), h: Math.round(h * 1.5 * 0.8) }
+  }
+  if (k >= 500) {
+    const { w, h } = applyStationBoxAspectAdjust(140, 70)
+    return { w: Math.round(w * 2 * 0.8), h: Math.round(h * 2 * 0.8) }
+  }
+  if (k >= 220) return applyStationBoxAspectAdjust(120, 60)
+  if (k >= 110) return applyStationBoxAspectAdjust(100, 50)
+  return applyStationBoxAspectAdjust(80, 40)
 }
 
 function stationTitleFontPx(kv) {
   const k = normalizeKV(kv)
-  if (k >= 800) return 16
-  if (k >= 500) return 15
-  if (k >= 220) return 14
-  if (k >= 110) return 12
-  return 11
+  if (k >= 800) return 32
+  if (k >= 500) return 30
+  if (k >= 220) return 20
+  if (k >= 110) return 18
+  return 14
+}
+
+/** 主变量测字号：随站名字号等比适配 */
+function stationTrafoFontPx(kv) {
+  return Math.max(6, Math.round(stationTitleFontPx(kv) * 0.36))
+}
+
+/** 站名与主变量测间隔：随字号与站高适配，不用固定 px */
+function stationNameTrafoGapPx(kv) {
+  const titlePx = stationTitleFontPx(kv)
+  const { h } = stationBoxSizeByKV(kv)
+  return Math.max(2, Math.round(titlePx * 0.22 + h * 0.012))
 }
 
 function stationStyleFontPx(kv, trafoLabel) {
-  if (trafoLabel) return '8'
-  const k = normalizeKV(kv)
-  if (k >= 800) return '17'
-  if (k >= 500) return '16'
-  if (k >= 220) return '15'
-  if (k >= 110) return '13'
-  return '12'
+  if (trafoLabel) return String(stationTrafoFontPx(kv))
+  return String(stationTitleFontPx(kv))
 }
 
 function shortStationName(name) {
   const raw = String(name || '')
   const parts = raw.split('.')
   return parts[parts.length - 1] || raw || '未知站'
+}
+
+/** 站房图形内展示用短名：去掉「储能电站」「风电场」「电场」「站」后缀；侧栏/JSON 等仍用 shortStationName */
+function stationGraphLabelName(name) {
+  let label = shortStationName(name)
+  if (label.endsWith('储能电站')) {
+    label = label.slice(0, -'储能电站'.length)
+  } else if (label.endsWith('风电场')) {
+    label = label.slice(0, -'风电场'.length)
+  } else if (label.endsWith('电场')) {
+    label = label.slice(0, -'电场'.length)
+  } else if (label.endsWith('站')) {
+    label = label.slice(0, -1)
+  }
+  label = label.trim()
+  return label || shortStationName(name)
 }
 
 /** 名称含 T+数字（如 T1、T2、T10）的虚拟站：与 110kV 同尺寸的虚线空心矩形母线框；内有文字（有标签时为短名，无标签时为「T+数字」） */
@@ -296,9 +332,29 @@ function visualLinkCellSuffix(docChannelIndex, lineIndex, splitCount) {
   return splitCount > 1 ? `${docChannelIndex}:${lineIndex}` : String(docChannelIndex)
 }
 
-/** 同一 channel 拆多条线时，开关 id 仅用文档通道下标（共用） */
-function channelSwitchSuffix(docChannelIndex) {
-  return String(docChannelIndex)
+function channelLineSplitCount(channel) {
+  const n = Array.isArray(channel?.line_data) ? channel.line_data.length : 0
+  return n > 1 ? n : 1
+}
+
+/** 拆线通道每条 visual link 各一组开关；单线通道仍为 sw:N:from/to */
+function channelSwitchSuffix(docChannelIndex, lineIndex = 0, splitCount = 1) {
+  return splitCount > 1 ? `${docChannelIndex}:${lineIndex}` : String(docChannelIndex)
+}
+
+function buildValidChannelSwitchIds(channels) {
+  const valid = new Set()
+  const list = Array.isArray(channels) ? channels : []
+  for (let docIdx = 0; docIdx < list.length; docIdx++) {
+    const splitCount = channelLineSplitCount(list[docIdx])
+    const lineCount = splitCount > 1 ? splitCount : 1
+    for (let li = 0; li < lineCount; li++) {
+      const key = channelSwitchSuffix(docIdx, li, splitCount)
+      valid.add(`sw:${key}:from`)
+      valid.add(`sw:${key}:to`)
+    }
+  }
+  return valid
 }
 
 /** 解析画布通道 id 后缀，如 `5` 或 `5:2` → 文档通道下标与 line_data 行号 */
@@ -588,9 +644,10 @@ function stationInnerLabelColor(kv) {
 
 /**
  * 站房标签：不展示电压档位；`trafo_display_list` 时在站名下方小字展示：多台主变**横向并排**，每台内 **P 与 Q 上下排列**（不展示主变名，无单位）。
+ * 站名与量测在站形内水平、垂直居中，间隔随电压档适配。
  * @returns {{ html: string, topAlign: boolean }}
  */
-function buildStationVertexLabelHtml(s, showLabels, showMeasurements = true) {
+function buildStationVertexLabelHtml(s, showLabels) {
   if (!showLabels) {
     if (s.isVirtual) {
       const match = String(s.name || '').match(/T\d+/i)
@@ -600,24 +657,28 @@ function buildStationVertexLabelHtml(s, showLabels, showMeasurements = true) {
     return { html: '', topAlign: false }
   }
   if (s.isVirtual) {
-    const ne = escapeHtmlLabel(s.name)
+    const ne = escapeHtmlLabel(stationGraphLabelName(s.name))
     return {
-      html: `<div style="text-align:center;font-size:11px;font-weight:700;color:#ffffff;">${ne}</div>`,
+      html: `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:100%;box-sizing:border-box;text-align:center;font-size:11px;font-weight:700;color:#ffffff;line-height:1;">${ne}</div>`,
       topAlign: false,
     }
   }
   const color = stationInnerLabelColor(s.kv)
-  const rows = showMeasurements ? s.trafoRows || [] : []
+  const rows = s.trafoRows || []
   const titlePx = stationTitleFontPx(s.kv)
-  const trafoPx = 8
-  const nameEsc = escapeHtmlLabel(s.name)
+  const nameEsc = escapeHtmlLabel(stationGraphLabelName(s.name))
+  const nameBlock = `<div style="font-size:${titlePx}px;font-weight:700;line-height:1;margin:0;padding:0;color:${color};">${nameEsc}</div>`
   if (rows.length === 0) {
     return {
-      html: `<div style="text-align:center;font-size:${titlePx}px;font-weight:700;color:${color};line-height:1;">${nameEsc}</div>`,
+      html: `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;min-height:100%;box-sizing:border-box;text-align:center;line-height:0;font-size:0;">${nameBlock}</div>`,
       topAlign: false,
     }
   }
-  const colStyle = `display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-size:${trafoPx}px;font-weight:600;line-height:1;`
+  const trafoPx = stationTrafoFontPx(s.kv)
+  const gapPx = stationNameTrafoGapPx(s.kv)
+  const colGapX = Math.round(trafoPx * 0.95)
+  const colGapY = Math.round(trafoPx * 0.45)
+  const colStyle = `display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:${trafoPx}px;font-weight:600;line-height:1;color:${LIAISON_MEASUREMENT_COLOR};`
   const columns = rows
     .map((r) => {
       const ps = formatMwMvarNumber(r.p)
@@ -625,13 +686,13 @@ function buildStationVertexLabelHtml(s, showLabels, showMeasurements = true) {
       return `<div style="${colStyle}"><div style="line-height:1;">${ps}</div><div style="line-height:1;">${qs}</div></div>`
     })
     .join('')
-  const trafoRow = `<div style="display:flex;flex-direction:row;justify-content:center;align-items:flex-start;flex-wrap:wrap;gap:4px 8px;margin:0;padding:0;line-height:0;font-size:0;">${columns}</div>`
+  const trafoRow = `<div style="display:flex;flex-direction:row;justify-content:center;align-items:center;flex-wrap:wrap;gap:${colGapY}px ${colGapX}px;margin:0;padding:0;line-height:0;font-size:0;">${columns}</div>`
   return {
-    html: `<div style="text-align:center;color:${color};margin:0;padding:0;line-height:0;font-size:0;">
-<div style="font-size:${titlePx}px;font-weight:700;line-height:1;margin:0;padding:0;">${nameEsc}</div>
-<div style="margin-top:5px;padding:0;line-height:0;font-size:0;">${trafoRow}</div>
+    html: `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;min-height:100%;box-sizing:border-box;gap:${gapPx}px;text-align:center;margin:0;padding:0;line-height:0;font-size:0;">
+${nameBlock}
+${trafoRow}
 </div>`,
-    topAlign: true,
+    topAlign: false,
   }
 }
 
@@ -749,6 +810,11 @@ function channelTrunkStagger(channelIndex) {
   const step = 22
   const slot = channelIndex % 9
   return (slot - 4) * step
+}
+
+/** 同 channel 拆线时仍用全局 trunkStagger（与单线一致） */
+function trunkStaggerForVisualLink(link, visualLinkIndex) {
+  return channelTrunkStagger(visualLinkIndex)
 }
 
 /**
@@ -1200,6 +1266,229 @@ function applyT10HubSubcenterLayout(stations, adjacency, root, t10Hub, scale, ce
   }
 }
 
+/** 经纬度是否非空（(0,0) 视为缺失） */
+function isValidGeoCoord(lon, lat) {
+  const lo = Number(lon)
+  const la = Number(lat)
+  if (Number.isNaN(lo) || Number.isNaN(la)) return false
+  if (Math.abs(lo) < 1e-9 && Math.abs(la) < 1e-9) return false
+  return true
+}
+
+/**
+ * 是否为经处理的真实地理坐标（WGS84 量级）。
+ * 单线图平面坐标（如 lat≈2、lon≈17）不满足，避免误对庆丰/府城等 JSON 启用地理布局。
+ */
+function looksLikeProcessedGeoCoord(lon, lat) {
+  if (!isValidGeoCoord(lon, lat)) return false
+  const lo = Number(lon)
+  const la = Number(lat)
+  return la >= 18 && la <= 54 && lo >= 73 && lo <= 135
+}
+
+function layoutRealNodes(layoutNodes) {
+  return layoutNodes.filter((n) => !n.isBusNode)
+}
+
+function layoutBusNodes(layoutNodes) {
+  return layoutNodes.filter((n) => n.isBusNode)
+}
+
+function resolveGeoBounds(realNodes) {
+  let minLon = Infinity
+  let maxLon = -Infinity
+  let minLat = Infinity
+  let maxLat = -Infinity
+  realNodes.forEach((n) => {
+    if (!looksLikeProcessedGeoCoord(n.lon, n.lat)) return
+    minLon = Math.min(minLon, Number(n.lon))
+    maxLon = Math.max(maxLon, Number(n.lon))
+    minLat = Math.min(minLat, Number(n.lat))
+    maxLat = Math.max(maxLat, Number(n.lat))
+  })
+  if (!Number.isFinite(minLon)) return null
+  if (maxLon - minLon < 1e-8) {
+    minLon -= 0.01
+    maxLon += 0.01
+  }
+  if (maxLat - minLat < 1e-8) {
+    minLat -= 0.01
+    maxLat += 0.01
+  }
+  return { minLon, maxLon, minLat, maxLat }
+}
+
+function mapGeoToCanvas(lon, lat, bounds, margin, usableW, usableH) {
+  const spanLon = bounds.maxLon - bounds.minLon
+  const spanLat = bounds.maxLat - bounds.minLat
+  const tLon = Math.max(0, Math.min(1, (Number(lon) - bounds.minLon) / spanLon))
+  const tLat = Math.max(0, Math.min(1, (bounds.maxLat - Number(lat)) / spanLat))
+  return {
+    cx: margin + tLon * usableW,
+    cy: margin + tLat * usableH,
+  }
+}
+
+/** 叠站时沿轴轻微推开（有上限，避免新乡类密集图数值爆炸为 NaN） */
+function separateLayoutNodeOverlaps(nodes, minGap = 18, maxIter = 24) {
+  const list = nodes.filter((n) => !n.isBusNode)
+  const maxPush = 36
+  for (let iter = 0; iter < maxIter; iter++) {
+    let moved = false
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i]
+        const b = list[j]
+        if (
+          !Number.isFinite(a.x) ||
+          !Number.isFinite(a.y) ||
+          !Number.isFinite(b.x) ||
+          !Number.isFinite(b.y)
+        ) {
+          continue
+        }
+        const overlapX = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)
+        const overlapY = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y)
+        if (overlapX <= 0 || overlapY <= 0) continue
+        const acx = a.x + a.w / 2
+        const acy = a.y + a.h / 2
+        const bcx = b.x + b.w / 2
+        const bcy = b.y + b.h / 2
+        let dx = bcx - acx
+        let dy = bcy - acy
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+          dx = 1
+          dy = 0
+        }
+        const len = Math.hypot(dx, dy) || 1
+        const push = Math.min(maxPush, Math.max(overlapX, overlapY) * 0.35 + 4)
+        if (push <= 0) continue
+        a.x -= (dx / len) * push * 0.5
+        a.y -= (dy / len) * push * 0.5
+        b.x += (dx / len) * push * 0.5
+        b.y += (dy / len) * push * 0.5
+        moved = true
+      }
+    }
+    if (!moved) break
+  }
+}
+
+function placeNodesWithoutGeo(invalidNodes, validNodes, layoutEdges) {
+  const validById = new Map(validNodes.map((n) => [n.id, n]))
+  const adjacency = new Map()
+  layoutEdges.forEach(({ from, to }) => {
+    if (!adjacency.has(from)) adjacency.set(from, [])
+    if (!adjacency.has(to)) adjacency.set(to, [])
+    adjacency.get(from).push(to)
+    adjacency.get(to).push(from)
+  })
+  invalidNodes.forEach((s) => {
+    const neighbors = (adjacency.get(s.id) || [])
+      .map((id) => validById.get(id))
+      .filter(Boolean)
+    if (neighbors.length > 0) {
+      const cx = neighbors.reduce((sum, n) => sum + n.x + n.w / 2, 0) / neighbors.length
+      const cy = neighbors.reduce((sum, n) => sum + n.y + n.h / 2, 0) / neighbors.length
+      s.x = cx - s.w / 2
+      s.y = cy - s.h / 2
+      return
+    }
+    const ref = validNodes[0]
+    if (ref) {
+      s.x = ref.x + ref.w + 48
+      s.y = ref.y
+    }
+  })
+}
+
+function layoutBusNodesAtGeoParent(busNodes, mapPoint) {
+  const byStation = new Map()
+  busNodes.forEach((bn) => {
+    if (!byStation.has(bn.stationId)) byStation.set(bn.stationId, [])
+    byStation.get(bn.stationId).push(bn)
+  })
+  byStation.forEach((list) => {
+    const ref = list[0]
+    const { cx, cy } = mapPoint(ref.lon, ref.lat)
+    const gap = 28
+    if (list.length === 1) {
+      const bn = list[0]
+      bn.x = cx - bn.w / 2
+      bn.y = cy - bn.h / 2
+      return
+    }
+    const totalW = list.length * T10_BUS_NODE_SIZE + (list.length - 1) * gap
+    let startX = cx - totalW / 2
+    list.forEach((bn, i) => {
+      bn.x = startX + i * (T10_BUS_NODE_SIZE + gap)
+      bn.y = cy - bn.h / 2
+    })
+  })
+}
+
+/**
+ * 地理示意布局：方位优先、距离可压缩；仅初次 parseSvg 使用。
+ * @returns {boolean} 是否成功应用
+ */
+function computeGeoLayout(layoutNodes, layoutEdges) {
+  const scale = layoutCompactScale(layoutNodes.length)
+  const width = 2600 * scale
+  const height = 1400 * scale
+  const margin = 110 * scale
+  const usableW = width - 2 * margin
+  const usableH = height - 2 * margin
+  const realNodes = layoutRealNodes(layoutNodes)
+  const busNodes = layoutBusNodes(layoutNodes)
+  const bounds = resolveGeoBounds(realNodes)
+  if (!bounds) return false
+
+  const validNodes = realNodes.filter((n) => looksLikeProcessedGeoCoord(n.lon, n.lat))
+  if (validNodes.length === 0) return false
+
+  const mapPoint = (lon, lat) => mapGeoToCanvas(lon, lat, bounds, margin, usableW, usableH)
+
+  validNodes.forEach((s) => {
+    const { cx, cy } = mapPoint(s.lon, s.lat)
+    s.x = cx - s.w / 2
+    s.y = cy - s.h / 2
+  })
+
+  const invalidNodes = realNodes.filter((n) => !looksLikeProcessedGeoCoord(n.lon, n.lat))
+  if (invalidNodes.length > 0) {
+    placeNodesWithoutGeo(invalidNodes, validNodes, layoutEdges)
+  }
+
+  separateLayoutNodeOverlaps(realNodes, 20 * scale)
+  if (busNodes.length > 0) {
+    layoutBusNodesAtGeoParent(busNodes, mapPoint)
+  }
+  return true
+}
+
+function countProcessedGeoNodes(layoutNodes) {
+  return layoutRealNodes(layoutNodes).filter((n) => looksLikeProcessedGeoCoord(n.lon, n.lat)).length
+}
+
+function resolveLayoutMode(layoutMode, layoutNodes) {
+  const mode = layoutMode || 'auto'
+  const realCount = layoutRealNodes(layoutNodes).length
+  const geoCount = countProcessedGeoNodes(layoutNodes)
+  const canGeo = geoCount >= 2 && (geoCount >= realCount || geoCount / Math.max(realCount, 1) >= 0.5)
+  if (mode === 'topology') return 'topology'
+  if (mode === 'geo') return geoCount >= 1 ? 'geo' : 'topology'
+  return canGeo ? 'geo' : 'topology'
+}
+
+/** 初次成图站位：满足地理坐标条件时用示意地理布局，否则 BFS 环布局 */
+function applyStationLayout(layoutNodes, layoutEdges, options) {
+  if (resolveLayoutMode(options?.layoutMode, layoutNodes) === 'geo' && computeGeoLayout(layoutNodes, layoutEdges)) {
+    return 'geo'
+  }
+  computeTopologyLayout(layoutNodes, layoutEdges)
+  return 'topology'
+}
+
 function computeTopologyLayout(layoutNodes, layoutEdges) {
   const scale = layoutCompactScale(layoutNodes.length)
   const width = 2600 * scale
@@ -1357,11 +1646,10 @@ function forceRemoveGraphCells(graph, cells) {
   graph.removeCells(list, false)
 }
 
-function buildPqMetricHtml(pFromMw, qFromMvar, theme = 'dark') {
-  const color = liaisonLineTextColor(theme)
+function buildPqMetricHtml(pFromMw, qFromMvar) {
   const pStr = escapeHtmlLabel(formatMwMvarNumber(pFromMw))
   const qStr = escapeHtmlLabel(formatMwMvarNumber(qFromMvar))
-  return `<div style="font-size:10pt;line-height:1.25;text-align:center;color:${color};">${pStr}<br/>${qStr}</div>`
+  return `<div style="font-size:10pt;line-height:1.25;text-align:center;color:${LIAISON_MEASUREMENT_COLOR};">${pStr}<br/>${qStr}</div>`
 }
 
 function isLineNameManuallyPlaced(graph, cell) {
@@ -1421,17 +1709,13 @@ function isLiaisonLineEdgeCell(cell) {
   return id.startsWith('liaison:')
 }
 
-/** 联络边样式（含潮流箭头），供成图与策略 B 量测同步共用 */
-function buildLiaisonChannelEdgeStyle(fromKv, toKv, pFromMw, showMeasurements = true) {
+/** 联络边样式；线端不绘制固定箭头，潮流方向由 overlay 动画箭头表示 */
+function buildLiaisonChannelEdgeStyle(fromKv, toKv, pFromMw) {
   const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
-  const showFlowArrow =
-    showMeasurements && pFromMw != null && Math.abs(pFromMw) >= FLOW_P_EPS
-  const arrowStyle = showFlowArrow
-    ? 'endArrow=classic;endFill=1;startArrow=none;'
-    : 'endArrow=none;startArrow=none;'
+  const showFlowArrow = pFromMw != null && Math.abs(pFromMw) >= FLOW_P_EPS
   const lineColor = linkStrokeColor(fromKv, toKv)
   const lineW = linkStrokeWidthPx(fromKv, toKv)
-  const style = `noEdgeStyle=1;edgeStyle=none;rounded=0;orthogonalLoop=0;jettySize=0;strokeColor=${lineColor};strokeWidth=${lineW};${arrowStyle}movable=0;bendable=0;locked=1;editable=0;html=1;flag=svgLiaisonLine;`
+  const style = `noEdgeStyle=1;edgeStyle=none;rounded=0;orthogonalLoop=0;jettySize=0;strokeColor=${lineColor};strokeWidth=${lineW};endArrow=none;startArrow=none;movable=0;bendable=0;locked=1;editable=0;html=1;flag=svgLiaisonLine;`
   return { style, lineColor, lineW, reverseFlow, showFlowArrow }
 }
 
@@ -1503,7 +1787,7 @@ function removeLiaisonFlowDashLegacyStyle() {
 }
 
 /** 沿线运动箭头：单圈时长（秒），默认与上下限 */
-const LIAISON_FLOW_MOTION_DUR_DEFAULT_SEC = 5
+const LIAISON_FLOW_MOTION_DUR_DEFAULT_SEC = 2.5
 const LIAISON_FLOW_MOTION_DUR_MIN_SEC = 0.3
 const LIAISON_FLOW_MOTION_DUR_MAX_SEC = 120
 
@@ -1637,6 +1921,10 @@ function liaisonGraphLoadDeferMs(stationCount, linkCount) {
 
 function scheduleLiaisonFlowMotionArrows(graph, opts = {}) {
   if (!graph) return
+  if (graph._liaisonShowMeasurements === false) {
+    removeLiaisonFlowMotionArrowsFromOverlay(graph)
+    return
+  }
   ensureLiaisonFlowMotionViewListeners(graph)
   if (typeof window === 'undefined') {
     applyLiaisonFlowMotionArrows(graph, opts.durationSecOverride)
@@ -1657,7 +1945,7 @@ export default class SvgLiaisonDrawioParser {
     this.data = data || {}
     this.options = {
       showLabels: options.showLabels !== false,
-      /** 主变/线路 P·Q、线端潮流箭头、沿线运动箭头；演示默认关闭，点「刷新量测」后开启 */
+      /** 站内主变 P/Q、线路 P/Q 与潮流运动箭头；默认关闭，点「刷新量测」后再展示 */
       showMeasurements: options.showMeasurements === true,
       /** 有潮流（|p_from_mw|≥eps）的边：沿线运动箭头（SVG animateMotion），默认开启 */
       flowMotionAnimation: options.flowMotionAnimation !== false && options.flowDashAnimation !== false,
@@ -1666,23 +1954,57 @@ export default class SvgLiaisonDrawioParser {
         options.flowMotionDurationSec != null ? options.flowMotionDurationSec : LIAISON_FLOW_MOTION_DUR_DEFAULT_SEC
       ),
       theme: options.theme === 'light' ? 'light' : 'dark',
+      /**
+       * 初次成图站位：auto（默认，仅当 JSON 含经处理 WGS84 量级坐标时用地理示意布局）、geo、topology。
+       * 已保存 graphXml / 拖动后的几何不受影响。
+       */
+      layoutMode: options.layoutMode || 'auto',
     }
     this.graph = null
     /** 为 true 时 App 不自动 parseSvg，由页面加载已保存图形或手动首次成图 */
     this.skipInitialParseSvg = false
   }
 
-  _shouldAnimateFlow() {
-    return Boolean(this.options.showMeasurements && this.options.flowMotionAnimation)
+  measurementsVisible() {
+    return this.options.showMeasurements === true
   }
 
-  _syncGraphMeasurementFlag() {
-    if (this.graph) this.graph._liaisonShowMeasurements = Boolean(this.options.showMeasurements)
+  trafoRowsForDisplay(source) {
+    if (!this.measurementsVisible()) return []
+    if (Array.isArray(source)) return source
+    return trafoRowsForGraphDisplay(source)
+  }
+
+  _applyFlowMotionState(graph, opts = {}) {
+    if (!graph) return
+    graph._liaisonShowMeasurements = this.measurementsVisible()
+    const motionOn = graph._liaisonShowMeasurements && this.options.flowMotionAnimation !== false
+    if (motionOn) {
+      graph._liaisonFlowMotionDurationSec = this.options.flowMotionDurationSec
+      scheduleLiaisonFlowMotionArrows(graph, opts)
+      return
+    }
+    if (graph._liaisonFlowMotionScheduleTimer != null) {
+      window.clearTimeout(graph._liaisonFlowMotionScheduleTimer)
+      graph._liaisonFlowMotionScheduleTimer = null
+    }
+    removeLiaisonFlowMotionArrowsFromOverlay(graph)
+  }
+
+  _syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar) {
+    if (!graph || !pqLbl) return
+    const model = graph.getModel()
+    if (!this.measurementsVisible()) {
+      model.setValue(pqLbl, '')
+      return
+    }
+    model.setValue(pqLbl, buildPqMetricHtml(pFromMw, qFromMvar))
+    graph.setCellStyle(pqMetricStyle(this.options.theme), [pqLbl])
   }
 
   setGraph(graph) {
     this.graph = graph
-    if (graph) graph._liaisonShowMeasurements = Boolean(this.options.showMeasurements)
+    if (graph) graph._liaisonShowMeasurements = this.measurementsVisible()
     this._ensureLiaisonGraphUi(graph)
     this._installLiaisonResizeGuard(graph)
     this._installLiaisonEdgeInteractionGuard(graph)
@@ -1876,7 +2198,7 @@ export default class SvgLiaisonDrawioParser {
         kv: normalizeKV(item.vn_kv),
         lon: Number(item.lon || 0),
         lat: Number(item.lat || 0),
-        trafoRows: trafoRowsForGraphDisplay(item),
+        trafoRows: this.trafoRowsForDisplay(item),
       }))
 
     const stationById = new Map(stations.map((item) => [item.id, item]))
@@ -1903,7 +2225,7 @@ export default class SvgLiaisonDrawioParser {
       busNodeByStationAndName,
       virtualStationIds
     )
-    computeTopologyLayout(layoutNodes, layoutEdges)
+    applyStationLayout(layoutNodes, layoutEdges, this.options)
 
     const layoutNodeById = new Map(layoutNodes.map((n) => [n.id, n]))
     const visualLinks = expandChannelsToVisualLinks(
@@ -1947,22 +2269,23 @@ export default class SvgLiaisonDrawioParser {
 
       stations.forEach((s) => {
         if (isVirtualT10Station(s.name)) return
+        const node = layoutNodeById.get(s.id) || s
         const doc_station_index = stationIdToDocIndex.get(s.id) ?? -1
         const isVirt = Boolean(s.isVirtual)
+        const trafoRows = this.trafoRowsForDisplay(s.trafoRows)
         const { html: label, topAlign } = buildStationVertexLabelHtml(
-          s,
-          this.options.showLabels,
-          this.options.showMeasurements
+          { ...s, trafoRows },
+          this.options.showLabels
         )
-        const trafoLabel = Boolean(!isVirt && s.trafoRows?.length && this.options.showMeasurements)
+        const trafoLabel = Boolean(!isVirt && trafoRows.length)
         const cell = graph.insertVertex(
           parent,
           `station:${s.id}`,
           label,
-          s.x,
-          s.y,
-          s.w,
-          s.h,
+          node.x,
+          node.y,
+          node.w,
+          node.h,
           isVirt ? virtualT10StationStyle(s.kv) : stationStyleByKV(s.kv, topAlign, trafoLabel)
         )
         cell.entityType = 'station'
@@ -2025,7 +2348,7 @@ export default class SvgLiaisonDrawioParser {
         const sourceOffset = portOffsetForVisualLinkEndpoint(link, fromEndpoint, sides.from, sourceRank, sourceTotal)
         const targetOffset = portOffsetForVisualLinkEndpoint(link, toEndpoint, sides.to, targetRank, targetTotal)
 
-        const trunkStagger = channelTrunkStagger(idx)
+        const trunkStagger = trunkStaggerForVisualLink(link, idx)
         let route = buildOrthogonalRoute(
           fromEndpoint,
           toEndpoint,
@@ -2041,16 +2364,11 @@ export default class SvgLiaisonDrawioParser {
         const lineName = lineItem?.name ? String(lineItem.name).trim() : primaryLineNameFromChannel(channel)
         const pFromMw = lineItem ? pickLinePFromMw(lineItem) : pickChannelPFromMw(channel)
         const qFromMvar = lineItem ? pickLineQFromMvar(lineItem) : pickChannelQFromMvar(channel)
-        const lineColor = linkStrokeColor(fromStation.kv, toStation.kv)
-        const lineW = linkStrokeWidthPx(fromStation.kv, toStation.kv)
-        const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
-
-        const showFlowArrow =
-          this.options.showMeasurements && pFromMw != null && Math.abs(pFromMw) >= FLOW_P_EPS
-        const arrowStyle = showFlowArrow
-          ? 'endArrow=classic;endFill=1;startArrow=none;'
-          : 'endArrow=none;startArrow=none;'
-        const style = `noEdgeStyle=1;edgeStyle=none;rounded=0;orthogonalLoop=0;jettySize=0;strokeColor=${lineColor};strokeWidth=${lineW};${arrowStyle}movable=0;bendable=0;locked=1;editable=0;html=1;flag=svgLiaisonLine;`
+        const { style, lineColor, lineW, reverseFlow } = buildLiaisonChannelEdgeStyle(
+          fromStation.kv,
+          toStation.kv,
+          pFromMw
+        )
         const jw = 6
         const jh = 6
         const jFrom = graph.insertVertex(
@@ -2117,13 +2435,10 @@ export default class SvgLiaisonDrawioParser {
 
         const pqBlock = computeLongestSegmentPQBlockPosition(route)
         if (pqBlock) {
-          const pqHtml = this.options.showMeasurements
-            ? buildPqMetricHtml(pFromMw, qFromMvar, this.options.theme)
-            : ''
           const pqLbl = graph.insertVertex(
             parent,
             `liaison-pq:${cellSuffix}`,
-            pqHtml,
+            '',
             pqBlock.x,
             pqBlock.y,
             pqBlock.w,
@@ -2132,9 +2447,7 @@ export default class SvgLiaisonDrawioParser {
           )
           pqLbl.entityType = 'line'
           pqLbl.entityInfo = lineEntityInfo
-          if (!this.options.showMeasurements) {
-            graph.setCellStyles('visible', '0', [pqLbl])
-          }
+          this._syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar)
           pqMetricCells.push(pqLbl)
         }
 
@@ -2150,9 +2463,11 @@ export default class SvgLiaisonDrawioParser {
 
         const closedFill = switchClosedFill(fromStation.kv, toStation.kv)
         const switchSpecs = buildChannelSwitchSpecs(channel)
-        const swSuffix = channelSwitchSuffix(docChannelIndex)
-        if (lineIndex === 0) {
-          switchSpecs.forEach((spec) => {
+        const swSuffix = channelSwitchSuffix(docChannelIndex, lineIndex, splitCount)
+        if (splitCount > 1 && lineIndex === 0) {
+          this._purgeLegacySharedChannelSwitches(docChannelIndex)
+        }
+        switchSpecs.forEach((spec) => {
             const sd = channel.switch_data || []
             let switch_doc_index = null
             if (spec.item != null) {
@@ -2219,7 +2534,6 @@ export default class SvgLiaisonDrawioParser {
             }
             edgeSwitchPairs.push({ edge, sw, switchLogicalEnd: spec.end, channelRoute: route, reverseFlow })
           })
-        }
       })
     } finally {
       model.endUpdate()
@@ -2300,15 +2614,9 @@ export default class SvgLiaisonDrawioParser {
       window.setTimeout(alignSwitchesToRenderedEdges, 0)
     }
 
-    if (this._shouldAnimateFlow()) {
-      graph._liaisonFlowMotionDurationSec = this.options.flowMotionDurationSec
-      scheduleLiaisonFlowMotionArrows(graph, {
-        deferMs: liaisonGraphLoadDeferMs(stations.length, visualLinks.length),
-      })
-    } else {
-      removeLiaisonFlowMotionArrowsFromOverlay(graph)
-    }
-    this._syncGraphMeasurementFlag()
+    this._applyFlowMotionState(graph, {
+      deferMs: liaisonGraphLoadDeferMs(stations.length, visualLinks.length),
+    })
     this.enableManualEdit()
   }
 
@@ -2353,14 +2661,14 @@ export default class SvgLiaisonDrawioParser {
 
       const chMatch = id.match(/^liaison:(.+)$/)
       if (chMatch) {
-        const resolved = this._resolveDocChannelForGraphSuffix(chMatch[1])
-        if (!resolved) continue
-        const channel = rawChannels[resolved.docChannelIndex]
+        const parsed = parseGraphChannelSuffix(chMatch[1])
+        if (!parsed) continue
+        const channel = rawChannels[parsed.docChannelIndex]
         if (!channel) continue
         const info = buildLineEntityInfoFromChannel(
           channel,
-          resolved.docChannelIndex,
-          resolved.lineIndex,
+          parsed.docChannelIndex,
+          parsed.lineIndex,
           stationNameById,
           rawStationById
         )
@@ -2393,14 +2701,14 @@ export default class SvgLiaisonDrawioParser {
         cell.entityType = 'junction'
         const jm = id.match(/^liaison-j-(?:from|to):(.+)$/)
         if (jm) {
-          const resolved = this._resolveDocChannelForGraphSuffix(jm[1])
-          if (!resolved) continue
-          const channel = rawChannels[resolved.docChannelIndex]
+          const parsed = parseGraphChannelSuffix(jm[1])
+          if (!parsed) continue
+          const channel = rawChannels[parsed.docChannelIndex]
           if (channel) {
             cell.entityInfo = buildLineEntityInfoFromChannel(
               channel,
-              resolved.docChannelIndex,
-              resolved.lineIndex,
+              parsed.docChannelIndex,
+              parsed.lineIndex,
               stationNameById,
               rawStationById
             )
@@ -2411,15 +2719,15 @@ export default class SvgLiaisonDrawioParser {
 
       if (id.startsWith('liaison-pq:') || id.startsWith('liaison-name:')) {
         const prefix = id.startsWith('liaison-pq:') ? 'liaison-pq:' : 'liaison-name:'
-        const resolved = this._resolveDocChannelForGraphSuffix(id.slice(prefix.length))
-        if (!resolved) continue
-        const channel = rawChannels[resolved.docChannelIndex]
+        const parsed = parseGraphChannelSuffix(id.slice(prefix.length))
+        if (!parsed) continue
+        const channel = rawChannels[parsed.docChannelIndex]
         if (channel) {
           cell.entityType = 'line'
           cell.entityInfo = buildLineEntityInfoFromChannel(
             channel,
-            resolved.docChannelIndex,
-            resolved.lineIndex,
+            parsed.docChannelIndex,
+            parsed.lineIndex,
             stationNameById,
             rawStationById
           )
@@ -2429,12 +2737,11 @@ export default class SvgLiaisonDrawioParser {
 
       const swMatch = id.match(/^sw:(\d+(?::\d+)?):(from|to)$/)
       if (swMatch) {
-        const resolved = this._resolveDocChannelForGraphSuffix(swMatch[1])
-        if (!resolved) continue
+        const parsed = parseGraphChannelSuffix(swMatch[1])
+        if (!parsed) continue
         const end = swMatch[2]
-        const channel = rawChannels[resolved.docChannelIndex]
+        const channel = rawChannels[parsed.docChannelIndex]
         if (!channel) continue
-        const parsed = { docChannelIndex: resolved.docChannelIndex, lineIndex: resolved.lineIndex }
         const sd = channel.switch_data || []
         const switch_doc_index = end === 'to' ? 1 : 0
         const item = sd[switch_doc_index] || null
@@ -2573,7 +2880,7 @@ export default class SvgLiaisonDrawioParser {
     const targetRank = ctx.sidePortRankByKey.get(`${idx}@@${targetPortKey}`) ?? 0
     const sourceOffset = portOffsetForVisualLinkEndpoint(link, fromEndpoint, sides.from, sourceRank, sourceTotal)
     const targetOffset = portOffsetForVisualLinkEndpoint(link, toEndpoint, sides.to, targetRank, targetTotal)
-    const trunkStagger = channelTrunkStagger(idx)
+    const trunkStagger = trunkStaggerForVisualLink(link, idx)
     let route = buildOrthogonalRoute(
       fromEndpoint,
       toEndpoint,
@@ -2587,10 +2894,167 @@ export default class SvgLiaisonDrawioParser {
     return route
   }
 
+  /** 拖动时按最新站位置算路由，不用旧折点 */
+  _computeVisualLinkRouteOrBuild(link, ctx) {
+    if (!link?.channel || !ctx) return null
+    link.fromEndpoint =
+      ctx.layoutNodeById?.get(link.channel.from_station) || link.fromEndpoint
+    link.toEndpoint = ctx.layoutNodeById?.get(link.channel.to_station) || link.toEndpoint
+    link.fromStation = link.fromStation || ctx.stationById?.get(link.channel.from_station)
+    link.toStation = link.toStation || ctx.stationById?.get(link.channel.to_station)
+    return this._computeVisualLinkRoute(link, ctx)
+  }
+
+  /** 拖动/relayout 时解析通道图元（按线路名+起终点，不受 usedSuffixes 影响） */
+  _resolveVisualLinkBundle(docChannelIndex, lineIndex, channel) {
+    if (docChannelIndex == null || !channel) return null
+    const splitCount = channelLineSplitCount(channel)
+    const expectedSuffix = visualLinkCellSuffix(docChannelIndex, lineIndex, splitCount)
+
+    const atExpected = this._resolveChannelGraphCellsBySuffix(expectedSuffix)
+    if (
+      atExpected?.jFrom &&
+      atExpected?.jTo &&
+      atExpected?.edge &&
+      this._graphEdgeMatchesDocChannel(
+        {
+          suffix: expectedSuffix,
+          edge: atExpected.edge,
+          from: atExpected.edge.entityInfo?.from_station,
+          to: atExpected.edge.entityInfo?.to_station,
+          lineName: this._lineNameForChannelLine(channel, lineIndex),
+        },
+        channel,
+        lineIndex,
+        { skipGeometry: true }
+      )
+    ) {
+      return atExpected
+    }
+
+    const resolved = this._resolveChannelGraphCells(docChannelIndex, lineIndex)
+    if (resolved?.jFrom && resolved?.jTo && resolved?.edge) return resolved
+
+    const pickSuffix = this._pickGraphSuffixForDocChannel(channel, new Set(), lineIndex, docChannelIndex)
+    if (pickSuffix) {
+      const picked = this._resolveChannelGraphCellsBySuffix(pickSuffix)
+      if (picked?.jFrom && picked?.jTo && picked?.edge) return picked
+    }
+    return null
+  }
+
+  /** 拖动后把画布 suffix 与文档下标对齐（仅 id 重命名，不改几何） */
+  _syncGraphSuffixesForDocChannels(docChannelIndices) {
+    const graph = this.graph
+    const channels = this.data?.data?.channel_data || []
+    if (!graph || !docChannelIndices?.length) return
+
+    const mappings = []
+    for (let ii = 0; ii < docChannelIndices.length; ii++) {
+      const docIdx = docChannelIndices[ii]
+      const ch = channels[docIdx]
+      if (!ch) continue
+      const splitCount = channelLineSplitCount(ch)
+      const lineCount = splitCount > 1 ? splitCount : 1
+      for (let li = 0; li < lineCount; li++) {
+        const expected = visualLinkCellSuffix(docIdx, li, splitCount)
+        const bundle = this._resolveChannelGraphCells(docIdx, li)
+        if (!bundle?.edge || bundle.suffix === expected) continue
+        mappings.push({ oldSuffix: bundle.suffix, newSuffix: expected })
+      }
+    }
+    if (!mappings.length) return
+
+    for (let i = 0; i < mappings.length; i++) {
+      this._renameChannelCellSuffix(mappings[i].oldSuffix, `__t${mappings[i].oldSuffix}`)
+    }
+    const phase2 = [...mappings].sort((a, b) => {
+      const ao = parseGraphChannelSuffix(a.oldSuffix)?.docChannelIndex ?? 0
+      const bo = parseGraphChannelSuffix(b.oldSuffix)?.docChannelIndex ?? 0
+      return bo - ao
+    })
+    for (let i = 0; i < phase2.length; i++) {
+      this._renameChannelCellSuffix(`__t${phase2[i].oldSuffix}`, phase2[i].newSuffix)
+    }
+    this._repairSwitchIdsAfterResync(mappings)
+  }
+
   _computeChannelRoute(docChannelIndex, ctx) {
     const link = ctx.visualLinks?.find((l) => l.docChannelIndex === docChannelIndex && l.lineIndex === 0)
     if (link) return this._computeVisualLinkRoute(link, ctx)
     return null
+  }
+
+  _switchCellMatchesChannelLine(cell, channel, docChannelIndex, lineIndex, end) {
+    if (!cell || !channel || docChannelIndex == null) return false
+    const ei = cell.entityInfo
+    if (
+      ei?.doc_channel_index === docChannelIndex &&
+      (ei?.line_index ?? 0) === lineIndex &&
+      (ei?.switch_end || end) === end
+    ) {
+      return true
+    }
+    if (ei?.switch_end && ei.switch_end !== end) return false
+    if (ei?.line_index != null && ei.line_index !== lineIndex) return false
+    if (ei?.from_station && ei?.to_station) {
+      if (!this._channelPairMatchesStations(ei.from_station, ei.to_station, channel)) return false
+      const spec = buildChannelSwitchSpecs(channel).find((s) => s.end === end)
+      const wantName = spec?.item?.name ? String(spec.item.name).trim() : ''
+      const eiName = ei?.switch_name ? String(ei.switch_name).trim() : ''
+      if (wantName && eiName && wantName !== eiName) return false
+      return true
+    }
+    return false
+  }
+
+  _positionSwitchFromRoute(switchLogicalEnd, channelRoute, reverseFlow, modelPts) {
+    if (modelPts && modelPts.length >= 2) {
+      const n = modelPts.length
+      if (switchLogicalEnd === 'from') {
+        if (reverseFlow && channelRoute) {
+          const ft = channelRoute.points[0] || channelRoute.target
+          const sr = switchRectAlongFirstLeg(channelRoute.source, ft)
+          const sp = computeSwitchPointOnFirstLeg(channelRoute.source, ft)
+          return { cx: sp.x + sr.ox, cy: sp.y + sr.oy, sr }
+        }
+        const p0 = modelPts[0]
+        const p1 = modelPts[1]
+        const dx = p1.x - p0.x
+        const dy = p1.y - p0.y
+        const len = Math.sqrt(dx * dx + dy * dy) || 1
+        if (len < 1) return null
+        const dist = Math.min(
+          SWITCH_DISTANCE_FROM_EXIT_PT,
+          Math.max(4, len - SWITCH_RESERVE_BEFORE_CORNER_PT)
+        )
+        let cx = p0.x + (dx / len) * dist
+        let cy = p0.y + (dy / len) * dist
+        const sr = switchRectAlongFirstLeg(p0, p1)
+        cx += sr.ox
+        cy += sr.oy
+        return { cx, cy, sr }
+      }
+      const pNear = reverseFlow ? modelPts[0] : modelPts[n - 1]
+      const pOut = reverseFlow ? modelPts[1] : modelPts[n - 2]
+      const sp = computeSwitchPointOnFirstLeg(pNear, pOut)
+      const sr = switchRectAlongFirstLeg(pNear, pOut)
+      return { cx: sp.x + sr.ox, cy: sp.y + sr.oy, sr }
+    }
+    if (!channelRoute) return null
+    if (switchLogicalEnd === 'from') {
+      const ft = channelRoute.points[0] || channelRoute.target
+      const sr = switchRectAlongFirstLeg(channelRoute.source, ft)
+      const sp = computeSwitchPointOnFirstLeg(channelRoute.source, ft)
+      return { cx: sp.x + sr.ox, cy: sp.y + sr.oy, sr }
+    }
+    const prevForTo =
+      channelRoute.points.length > 0
+        ? channelRoute.points[channelRoute.points.length - 1]
+        : channelRoute.source
+    const sp = computeSwitchPointOnFirstLeg(channelRoute.target, prevForTo)
+    const sr = switchRectAlongFirstLeg(channelRoute.target, prevForTo)
+    return { cx: sp.x + sr.ox, cy: sp.y + sr.oy, sr }
   }
 
   _alignChannelSwitchPairs(edgeSwitchPairs) {
@@ -2601,56 +3065,159 @@ export default class SvgLiaisonDrawioParser {
     model.beginUpdate()
     try {
       edgeSwitchPairs.forEach(({ edge, sw, switchLogicalEnd, channelRoute, reverseFlow: rev }) => {
-        if (!graph.view.getState(edge)) return
         const geo = model.getGeometry(sw)
-        if (!geo) return
+        if (!geo || !edge) return
         const modelPts = GraphTool.getEdgePoints(graph, edge)
-        if (!modelPts || modelPts.length < 2) return
-        const n = modelPts.length
-        let cx
-        let cy
-        let sr
-        if (switchLogicalEnd === 'from') {
-          if (rev && channelRoute) {
-            const ft = channelRoute.points[0] || channelRoute.target
-            sr = switchRectAlongFirstLeg(channelRoute.source, ft)
-            const sp = computeSwitchPointOnFirstLeg(channelRoute.source, ft)
-            cx = sp.x + sr.ox
-            cy = sp.y + sr.oy
-          } else {
-            const p0 = modelPts[0]
-            const p1 = modelPts[1]
-            const dx = p1.x - p0.x
-            const dy = p1.y - p0.y
-            const len = Math.sqrt(dx * dx + dy * dy) || 1
-            if (len < 1) return
-            const dist = Math.min(
-              SWITCH_DISTANCE_FROM_EXIT_PT,
-              Math.max(4, len - SWITCH_RESERVE_BEFORE_CORNER_PT)
-            )
-            cx = p0.x + (dx / len) * dist
-            cy = p0.y + (dy / len) * dist
-            sr = switchRectAlongFirstLeg(p0, p1)
-            cx += sr.ox
-            cy += sr.oy
-          }
-        } else {
-          const pNear = rev ? modelPts[0] : modelPts[n - 1]
-          const pOut = rev ? modelPts[1] : modelPts[n - 2]
-          const sp = computeSwitchPointOnFirstLeg(pNear, pOut)
-          sr = switchRectAlongFirstLeg(pNear, pOut)
-          cx = sp.x + sr.ox
-          cy = sp.y + sr.oy
-        }
+        const pos = this._positionSwitchFromRoute(switchLogicalEnd, channelRoute, rev, modelPts)
+        if (!pos) return
         const next = geo.clone()
-        next.x = cx
-        next.y = cy
-        next.width = sr.w
-        next.height = sr.h
+        next.x = pos.cx
+        next.y = pos.cy
+        next.width = pos.sr.w
+        next.height = pos.sr.h
         model.setGeometry(sw, next)
       })
     } finally {
       model.endUpdate()
+    }
+  }
+
+  /** 拖动站后：凡连接该站的开关一律沿对应边重定位（含 id 未对齐的遗留开关） */
+  _realignSwitchesTouchingStations(stationIds) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model || !stationIds?.size) return
+
+    const channels = this.data?.data?.channel_data || []
+    const ctx = this._buildChannelRouteContext()
+    const allPairs = []
+    const cells = graph.getChildCells(graph.getDefaultParent(), true, true) || []
+
+    for (let i = 0; i < cells.length; i++) {
+      const sw = cells[i]
+      const id = typeof sw.getId === 'function' ? String(sw.getId()) : ''
+      const m = id.match(/^sw:(.+):(from|to)$/)
+      if (!m) continue
+
+      const end = m[2]
+      const ei = sw.entityInfo
+      const fromId = ei?.from_station
+      const toId = ei?.to_station
+      if (!fromId && !toId) continue
+      if (!stationIds.has(fromId) && !stationIds.has(toId)) continue
+
+      let docChannelIndex = ei?.doc_channel_index
+      let lineIndex = ei?.line_index ?? 0
+      let channel = docChannelIndex != null ? channels[docChannelIndex] : null
+
+      if (!channel || docChannelIndex < 0 || docChannelIndex >= channels.length) {
+        for (let ci = 0; ci < channels.length; ci++) {
+          const ch = channels[ci]
+          if (!fromId || !toId) continue
+          if (!this._channelPairMatchesStations(fromId, toId, ch)) continue
+          docChannelIndex = ci
+          lineIndex = 0
+          channel = ch
+          break
+        }
+      }
+      if (!channel) continue
+
+      const splitCount = channelLineSplitCount(channel)
+      const parsed = parseGraphChannelSuffix(m[1])
+      if (parsed && (ei?.line_index == null || ei.line_index === 0)) {
+        lineIndex = parsed.lineIndex
+      }
+
+      let bundle = this._resolveChannelGraphCells(docChannelIndex, lineIndex)
+      if (!bundle?.edge) continue
+
+      const links = (ctx.visualLinks || []).filter((l) => l.docChannelIndex === docChannelIndex)
+      const link = links.find((l) => l.lineIndex === lineIndex) || links[0]
+      let route = link ? this._computeVisualLinkRouteOrBuild(link, ctx) : null
+      if (!route) route = routeFromChannelBundle(graph, bundle, bundle.edge)
+      if (!route) continue
+
+      const lineItem = pickChannelLineItem(channel, lineIndex)
+      const pFromMw = lineItem ? pickLinePFromMw(lineItem) : pickChannelPFromMw(channel)
+      const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
+
+      allPairs.push({
+        edge: bundle.edge,
+        sw,
+        switchLogicalEnd: ei?.switch_end || end,
+        channelRoute: route,
+        reverseFlow,
+      })
+    }
+
+    if (graph.view?.validate) graph.view.validate()
+    this._alignChannelSwitchPairs(allPairs)
+    if (typeof window !== 'undefined' && allPairs.length) {
+      window.setTimeout(() => this._alignChannelSwitchPairs(allPairs), 0)
+    }
+  }
+
+  /** 按当前线路几何重定位指定通道的全部开关（删站/resync/拖动后补正） */
+  _realignSwitchesForDocChannels(docChannelIndices, ctx) {
+    const graph = this.graph
+    if (!graph || !docChannelIndices?.length) return
+    const routeCtx = ctx || this._buildChannelRouteContext()
+    const channels = this.data?.data?.channel_data || []
+    const allPairs = []
+
+    for (let ii = 0; ii < docChannelIndices.length; ii++) {
+      const docChannelIndex = docChannelIndices[ii]
+      const channel = channels[docChannelIndex]
+      if (!channel) continue
+      const splitCount = channelLineSplitCount(channel)
+      const lineCount = splitCount > 1 ? splitCount : 1
+      const links = (routeCtx.visualLinks || []).filter((l) => l.docChannelIndex === docChannelIndex)
+
+      for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+        const link = links.find((l) => l.lineIndex === lineIndex) || links[0]
+        let bundle = this._resolveChannelGraphCells(docChannelIndex, lineIndex)
+        if (!bundle?.edge) {
+          bundle = this._resolveChannelGraphCellsBySuffix(
+            visualLinkCellSuffix(docChannelIndex, lineIndex, splitCount)
+          )
+        }
+        if (!bundle?.jFrom || !bundle?.jTo || !bundle?.edge) continue
+
+        let route = link ? this._computeVisualLinkRouteOrBuild(link, routeCtx) : null
+        if (!route) route = routeFromChannelBundle(graph, bundle, bundle.edge)
+        if (!route) continue
+
+        const lineItem = pickChannelLineItem(channel, lineIndex)
+        const pFromMw = lineItem ? pickLinePFromMw(lineItem) : pickChannelPFromMw(channel)
+        const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
+        const switchSpecs = buildChannelSwitchSpecs(channel)
+
+        switchSpecs.forEach((spec) => {
+          const sw = this._resolveSwitchCell(
+            docChannelIndex,
+            lineIndex,
+            splitCount,
+            spec.end,
+            channel,
+            bundle.suffix
+          )
+          if (!sw) return
+          allPairs.push({
+            edge: bundle.edge,
+            sw,
+            switchLogicalEnd: spec.end,
+            channelRoute: route,
+            reverseFlow,
+          })
+        })
+      }
+    }
+
+    if (graph.view?.validate) graph.view.validate()
+    this._alignChannelSwitchPairs(allPairs)
+    if (typeof window !== 'undefined' && allPairs.length) {
+      window.setTimeout(() => this._alignChannelSwitchPairs(allPairs), 0)
     }
   }
 
@@ -2678,22 +3245,29 @@ export default class SvgLiaisonDrawioParser {
     }
   }
 
-  _relayoutVisualLink(link, ctx, usedSuffixes = new Set()) {
+  _relayoutVisualLink(link, ctx, _usedSuffixes = new Set()) {
     const graph = this.graph
     const model = graph?.getModel()
     const channel = link.channel
     const docChannelIndex = link.docChannelIndex
+    const lineIdx = link.lineIndex ?? 0
     if (!graph || !model || !channel) return
 
-    const route = this._computeVisualLinkRoute(link, ctx)
-    if (!route) return
+    link.fromEndpoint =
+      ctx?.layoutNodeById?.get(channel.from_station) || link.fromEndpoint
+    link.toEndpoint = ctx?.layoutNodeById?.get(channel.to_station) || link.toEndpoint
+    link.fromStation = link.fromStation || ctx?.stationById?.get(channel.from_station)
+    link.toStation = link.toStation || ctx?.stationById?.get(channel.to_station)
 
-    const expectedSuffix = visualLinkCellSuffix(link.docChannelIndex, link.lineIndex, link.splitCount || 1)
-    const bundle = this._resolveChannelGraphCellsForRelayout(link, channel, usedSuffixes)
+    const splitCount = link.splitCount || channelLineSplitCount(channel)
+    const expectedSuffix = visualLinkCellSuffix(docChannelIndex, lineIdx, splitCount)
+    const bundle = this._resolveVisualLinkBundle(docChannelIndex, lineIdx, channel)
     if (!bundle?.jFrom || !bundle?.jTo || !bundle?.edge) return
     const { jFrom, jTo, edge } = bundle
     const actualSuffix = bundle.suffix
-    usedSuffixes.add(actualSuffix)
+
+    const route = this._computeVisualLinkRouteOrBuild(link, ctx)
+    if (!route) return
 
     const jw = 6
     const jh = 6
@@ -2708,59 +3282,11 @@ export default class SvgLiaisonDrawioParser {
     const switchSpecs = buildChannelSwitchSpecs(channel)
     const from = link.fromStation || ctx.stationById.get(channel.from_station)
     const to = link.toStation || ctx.stationById.get(channel.to_station)
-    if (!from || !to) return
-    const lineColor = linkStrokeColor(from.kv, to.kv)
-    const lineW = linkStrokeWidthPx(from.kv, to.kv)
-    const closedFill = switchClosedFill(from.kv, to.kv)
-    const swSuffix = channelSwitchSuffix(docChannelIndex)
+    const lineColor = from && to ? linkStrokeColor(from.kv, to.kv) : ''
+    const lineW = from && to ? linkStrokeWidthPx(from.kv, to.kv) : 1
+    const closedFill = from && to ? switchClosedFill(from.kv, to.kv) : ''
     const parent = graph.getDefaultParent()
-
     const edgeSwitchPairs = []
-    if ((link.lineIndex ?? 0) === 0) {
-      const neededEnds = new Set(switchSpecs.map((s) => s.end))
-      ;['from', 'to'].forEach((end) => {
-        if (neededEnds.has(end)) return
-        const orphan = model.getCell(`sw:${swSuffix}:${end}`)
-        if (orphan) forceRemoveGraphCells(graph, [orphan])
-      })
-
-      switchSpecs.forEach((spec) => {
-        const prevForTo = route.points.length > 0 ? route.points[route.points.length - 1] : route.source
-        const firstTurnForSw = route.points[0] || route.target
-        const swRect =
-          spec.end === 'from'
-            ? switchRectAlongFirstLeg(route.source, firstTurnForSw)
-            : switchRectAlongFirstLeg(route.target, prevForTo)
-        const centerPt =
-          spec.end === 'from'
-            ? computeSwitchPointOnFirstLeg(route.source, firstTurnForSw)
-            : computeSwitchPointOnFirstLeg(route.target, prevForTo)
-        let sw = model.getCell(`sw:${swSuffix}:${spec.end}`)
-        if (!sw) {
-          sw = graph.insertVertex(
-            parent,
-            `sw:${swSuffix}:${spec.end}`,
-            '',
-            centerPt.x + swRect.ox,
-            centerPt.y + swRect.oy,
-            swRect.w,
-            swRect.h,
-            switchStyle(spec.closed, lineColor, closedFill)
-          )
-          graph.orderCells(false, [sw])
-        } else {
-          graph.setCellStyle(switchStyle(spec.closed, lineColor, closedFill), [sw])
-        }
-        this._bindSwitchEntityInfo(sw, spec, docChannelIndex, channel, from, to, lineColor, lineW, pFromMw, qFromMvar)
-        edgeSwitchPairs.push({
-          edge,
-          sw,
-          switchLogicalEnd: spec.end,
-          channelRoute: route,
-          reverseFlow,
-        })
-      })
-    }
 
     model.beginUpdate()
     try {
@@ -2789,14 +3315,23 @@ export default class SvgLiaisonDrawioParser {
       const lineName = link.lineItem?.name
         ? String(link.lineItem.name).trim()
         : primaryLineNameFromChannel(channel)
+      const labelSuffix = expectedSuffix
       this._syncLineNameLabel({
-        suffix: actualSuffix,
+        suffix: labelSuffix,
         route,
         lineName,
         lineEntityInfo: edge.entityInfo,
         showLabels: this.options.showLabels,
       })
-      const pqLbl = model.getCell(`liaison-pq:${actualSuffix}`)
+      if (actualSuffix !== expectedSuffix) {
+        const stray = []
+        const strayName = model.getCell(`liaison-name:${actualSuffix}`)
+        const strayPq = model.getCell(`liaison-pq:${actualSuffix}`)
+        if (strayName) stray.push(strayName)
+        if (strayPq) stray.push(strayPq)
+        if (stray.length) forceRemoveGraphCells(graph, stray)
+      }
+      const pqLbl = model.getCell(`liaison-pq:${labelSuffix}`)
       const pqBlock = computeLongestSegmentPQBlockPosition(route)
       if (pqLbl && pqBlock) {
         const pqGeo = model.getGeometry(pqLbl)?.clone()
@@ -2807,13 +3342,85 @@ export default class SvgLiaisonDrawioParser {
           pqGeo.height = pqBlock.h
           model.setGeometry(pqLbl, pqGeo)
         }
-        const pqHtml = buildPqMetricHtml(pFromMw, qFromMvar, this.options.theme)
-        model.setValue(pqLbl, pqHtml)
-        graph.setCellStyle(pqMetricStyle(this.options.theme), [pqLbl])
+        this._syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar)
       }
-      if ((link.lineIndex ?? 0) === 0) {
+    } finally {
+      model.endUpdate()
+    }
+
+    if (from && to) {
+      if (splitCount > 1 && lineIdx === 0) {
+        this._purgeLegacySharedChannelSwitches(docChannelIndex)
+      }
+      const neededEnds = new Set(switchSpecs.map((s) => s.end))
+      ;['from', 'to'].forEach((end) => {
+        if (neededEnds.has(end)) return
+        const orphan = model.getCell(this._canonicalSwitchCellId(docChannelIndex, lineIdx, splitCount, end))
+        if (orphan) forceRemoveGraphCells(graph, [orphan])
+      })
+
+      switchSpecs.forEach((spec) => {
+        const prevForTo = route.points.length > 0 ? route.points[route.points.length - 1] : route.source
+        const firstTurnForSw = route.points[0] || route.target
+        const swRect =
+          spec.end === 'from'
+            ? switchRectAlongFirstLeg(route.source, firstTurnForSw)
+            : switchRectAlongFirstLeg(route.target, prevForTo)
+        const centerPt =
+          spec.end === 'from'
+            ? computeSwitchPointOnFirstLeg(route.source, firstTurnForSw)
+            : computeSwitchPointOnFirstLeg(route.target, prevForTo)
+        let sw = this._resolveSwitchCell(
+          docChannelIndex,
+          link.lineIndex ?? 0,
+          splitCount,
+          spec.end,
+          channel,
+          actualSuffix
+        )
+        if (!sw) {
+          sw = graph.insertVertex(
+            parent,
+            this._canonicalSwitchCellId(docChannelIndex, link.lineIndex ?? 0, splitCount, spec.end),
+            '',
+            centerPt.x + swRect.ox,
+            centerPt.y + swRect.oy,
+            swRect.w,
+            swRect.h,
+            switchStyle(spec.closed, lineColor, closedFill)
+          )
+          graph.orderCells(false, [sw])
+        } else {
+          graph.setCellStyle(switchStyle(spec.closed, lineColor, closedFill), [sw])
+        }
+        this._bindSwitchEntityInfo(
+          sw,
+          spec,
+          docChannelIndex,
+          channel,
+          from,
+          to,
+          lineColor,
+          lineW,
+          pFromMw,
+          qFromMvar,
+          link.lineIndex ?? 0
+        )
+        edgeSwitchPairs.push({
+          edge,
+          sw,
+          switchLogicalEnd: spec.end,
+          channelRoute: route,
+          reverseFlow,
+        })
+      })
+
+      model.beginUpdate()
+      try {
         switchSpecs.forEach((spec) => {
-          const sw = model.getCell(`sw:${swSuffix}:${spec.end}`)
+          const sw = model.getCell(
+            this._canonicalSwitchCellId(docChannelIndex, link.lineIndex ?? 0, splitCount, spec.end)
+          )
           if (!sw) return
           const prevForTo = route.points.length > 0 ? route.points[route.points.length - 1] : route.source
           const firstTurnForSw = route.points[0] || route.target
@@ -2834,23 +3441,20 @@ export default class SvgLiaisonDrawioParser {
             model.setGeometry(sw, swGeo)
           }
         })
+      } finally {
+        model.endUpdate()
       }
-    } finally {
-      model.endUpdate()
+
+      this._alignChannelSwitchPairs(edgeSwitchPairs)
+      if (typeof window !== 'undefined' && edgeSwitchPairs.length) {
+        window.setTimeout(() => this._alignChannelSwitchPairs(edgeSwitchPairs), 0)
+      }
     }
 
-    this._alignChannelSwitchPairs(edgeSwitchPairs)
-    if (typeof window !== 'undefined' && edgeSwitchPairs.length) {
-      window.setTimeout(() => this._alignChannelSwitchPairs(edgeSwitchPairs), 0)
-    }
     if (graph.view) {
       graph.view.invalidate(jFrom, false, false)
       graph.view.invalidate(jTo, false, false)
       graph.view.invalidate(edge, false, false)
-    }
-    if (actualSuffix !== expectedSuffix) {
-      this._renameChannelCellSuffix(actualSuffix, expectedSuffix)
-      this.rebindEntityInfo()
     }
   }
 
@@ -2867,18 +3471,20 @@ export default class SvgLiaisonDrawioParser {
     }
     if (!affected.size) return
 
-    this.rebindEntityInfo()
     const ctx = this._buildChannelRouteContext()
-    const usedSuffixes = new Set()
-    affected.forEach((docChannelIndex) => {
-      this._relayoutChannelAtDocIndex(docChannelIndex, ctx, usedSuffixes)
+    const affectedList = [...affected]
+    affectedList.forEach((docChannelIndex) => {
+      this._relayoutChannelAtDocIndex(docChannelIndex, ctx, new Set())
     })
+    this._syncGraphSuffixesForDocChannels(affectedList)
+    this._realignSwitchesForDocChannels(affectedList, ctx)
+    this._realignSwitchesTouchingStations(stationIds)
     this.purgeOrphanChannelGraphCells()
+    this._purgeOrphanLineNameLabels()
     this._purgeDuplicateLineNameLabels()
+    this._purgeNonCanonicalLineNameLabels()
     if (graph.view?.validate) graph.view.validate()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   /** 从 CELLS_MOVED 事件中的图元解析被拖动的站 id（含 T 母线圆 busnode） */
@@ -3090,6 +3696,191 @@ export default class SvgLiaisonDrawioParser {
     return [...suffixes]
   }
 
+  /** 拆线通道旧版共用 sw:N:from/to → 每条线独立 sw:N:L:from/to 后清理遗留 */
+  _purgeLegacySharedChannelSwitches(docChannelIndex) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model || docChannelIndex == null) return
+    const toRemove = []
+    ;['from', 'to'].forEach((end) => {
+      const legacy = model.getCell(`sw:${docChannelIndex}:${end}`)
+      if (legacy) toRemove.push(legacy)
+    })
+    if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
+  }
+
+  _canonicalSwitchCellId(docChannelIndex, lineIndex, splitCount, end) {
+    const key = channelSwitchSuffix(docChannelIndex, lineIndex, splitCount)
+    return `sw:${key}:${end}`
+  }
+
+  /** 删站/resync 后：将错位开关 id 归并到规范 id，并清理无效遗留 */
+  _normalizeChannelSwitchIds() {
+    const graph = this.graph
+    const model = graph?.getModel()
+    const channels = this.data?.data?.channel_data || []
+    if (!graph || !model?.setId) return
+
+    const valid = buildValidChannelSwitchIds(channels)
+    const parent = graph.getDefaultParent()
+    const cells = graph.getChildCells(parent, true, true) || []
+    const toRemove = []
+
+    model.beginUpdate()
+    try {
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i]
+        const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+        const m = id.match(/^sw:(.+):(from|to)$/)
+        if (!m) continue
+        if (valid.has(id)) continue
+
+        const end = m[2]
+        const ei = cell.entityInfo
+        let docIdx = ei?.doc_channel_index
+        let lineIndex = ei?.line_index ?? 0
+
+        if (docIdx == null || docIdx < 0 || docIdx >= channels.length) {
+          const parsed = parseGraphChannelSuffix(m[1])
+          if (parsed && parsed.docChannelIndex >= 0 && parsed.docChannelIndex < channels.length) {
+            docIdx = parsed.docChannelIndex
+            lineIndex = parsed.lineIndex
+          }
+        }
+
+        if (docIdx != null && docIdx >= 0 && docIdx < channels.length) {
+          const splitCount = channelLineSplitCount(channels[docIdx])
+          const canonicalId = this._canonicalSwitchCellId(docIdx, lineIndex, splitCount, end)
+          if (valid.has(canonicalId)) {
+            const existing = model.getCell(canonicalId)
+            if (!existing) {
+              this._safeSetCellId(cell, canonicalId)
+              continue
+            }
+            if (existing !== cell) {
+              toRemove.push(cell)
+              continue
+            }
+          }
+        }
+
+        let migrated = false
+        for (let di = 0; di < channels.length && !migrated; di++) {
+          const ch = channels[di]
+          const splitCount = channelLineSplitCount(ch)
+          const lineCount = splitCount > 1 ? splitCount : 1
+          for (let li = 0; li < lineCount && !migrated; li++) {
+            for (const swEnd of ['from', 'to']) {
+              if (swEnd !== end) continue
+              if (!this._switchCellMatchesChannelLine(cell, ch, di, li, swEnd)) continue
+              const canonicalId = this._canonicalSwitchCellId(di, li, splitCount, swEnd)
+              if (!valid.has(canonicalId)) continue
+              const existing = model.getCell(canonicalId)
+              if (existing && existing !== cell) {
+                toRemove.push(cell)
+                migrated = true
+                break
+              }
+              if (!existing) {
+                this._safeSetCellId(cell, canonicalId)
+                migrated = true
+                break
+              }
+            }
+          }
+        }
+        if (migrated) continue
+
+        toRemove.push(cell)
+      }
+    } finally {
+      model.endUpdate()
+    }
+
+    if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
+  }
+
+  _safeSetCellId(cell, newId) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model?.setId || !cell || !newId) return
+    const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+    if (id === newId) return
+    model.beginUpdate()
+    try {
+      const existing = model.getCell(newId)
+      if (existing && existing !== cell) forceRemoveGraphCells(graph, [existing])
+      model.setId(cell, newId)
+    } finally {
+      model.endUpdate()
+    }
+  }
+
+  /** 按规范 id / entityInfo / 画布后缀遗留 id 查找开关，必要时迁移 id */
+  _resolveSwitchCell(docChannelIndex, lineIndex, splitCount, end, channel, graphSuffix = null) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model || docChannelIndex == null || !end) return null
+
+    const canonicalId = this._canonicalSwitchCellId(docChannelIndex, lineIndex, splitCount, end)
+    let sw = model.getCell(canonicalId)
+    if (sw) return sw
+
+    const tryMigrate = (cell) => {
+      if (!cell || model.getCell(canonicalId)) return model.getCell(canonicalId)
+      this._safeSetCellId(cell, canonicalId)
+      return model.getCell(canonicalId)
+    }
+
+    const tryId = (id) => {
+      const cell = model.getCell(id)
+      if (!cell) return null
+      return tryMigrate(cell)
+    }
+
+    sw = tryId(`sw:${docChannelIndex}:${end}`)
+    if (sw) return sw
+
+    if (splitCount > 1) {
+      sw = tryId(`sw:${docChannelIndex}:${lineIndex}:${end}`)
+      if (sw) return sw
+    }
+
+    if (graphSuffix != null && graphSuffix !== '') {
+      const parsed = parseGraphChannelSuffix(graphSuffix)
+      if (parsed) {
+        const graphKey =
+          splitCount > 1 ? `${parsed.docChannelIndex}:${parsed.lineIndex}` : String(parsed.docChannelIndex)
+        sw = tryId(`sw:${graphKey}:${end}`)
+        if (sw) return sw
+        if (String(graphSuffix) !== graphKey) {
+          sw = tryId(`sw:${graphSuffix}:${end}`)
+          if (sw) return sw
+        }
+      } else {
+        sw = tryId(`sw:${graphSuffix}:${end}`)
+        if (sw) return sw
+      }
+    }
+
+    const parent = graph.getDefaultParent()
+    const cells = graph.getChildCells(parent, true, true) || []
+
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]
+      const cid = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+      if (!cid.startsWith('sw:') || !cid.endsWith(`:${end}`)) continue
+      if (model.getCell(canonicalId)) break
+
+      if (this._switchCellMatchesChannelLine(cell, channel, docChannelIndex, lineIndex, end)) {
+        sw = tryMigrate(cell)
+        if (sw) return sw
+      }
+    }
+
+    return null
+  }
+
   /** 删除站后清理仍引用该站、或已无 liaison 边的线路名 / P·Q 飘字 */
   _purgeLineLabelsForStation(stationId) {
     const graph = this.graph
@@ -3155,15 +3946,9 @@ export default class SvgLiaisonDrawioParser {
       graph.orderCells(false, [cell])
     } else {
       const keepManualPos = isLineNameManuallyPlaced(graph, cell)
-      const existingLabel = parseLineLabelFromCell(graph, cell)
-      // 保留画布已有线路名，避免 resync/拖动误配通道后把「府干线」改成「府定线」
-      const valueHtml =
-        existingLabel && lineName && existingLabel !== lineName
-          ? buildLineNameHtml(existingLabel, showLabels, this.options.theme)
-          : html
       model.beginUpdate()
       try {
-        model.setValue(cell, valueHtml)
+        model.setValue(cell, html)
         const geo = model.getGeometry(cell)?.clone()
         if (geo) {
           if (!keepManualPos) {
@@ -3224,8 +4009,14 @@ export default class SvgLiaisonDrawioParser {
     ]
     if (!opts.skipSwitches) {
       const parsed = parseGraphChannelSuffix(s)
-      const chSuffix = parsed ? channelSwitchSuffix(parsed.docChannelIndex) : s
-      ids.push(`sw:${chSuffix}:from`, `sw:${chSuffix}:to`)
+      if (parsed) {
+        const channel = this.data?.data?.channel_data?.[parsed.docChannelIndex]
+        const splitCount = channelLineSplitCount(channel)
+        const swKey = channelSwitchSuffix(parsed.docChannelIndex, parsed.lineIndex, splitCount)
+        ids.push(`sw:${swKey}:from`, `sw:${swKey}:to`)
+      } else {
+        ids.push(`sw:${s}:from`, `sw:${s}:to`)
+      }
     }
     const out = []
     for (let i = 0; i < ids.length; i++) {
@@ -3259,16 +4050,28 @@ export default class SvgLiaisonDrawioParser {
         out.push(c)
       })
     })
-    const swSuffix = channelSwitchSuffix(docChannelIndex)
-    ;['from', 'to'].forEach((end) => {
-      const sw = graph.getModel().getCell(`sw:${swSuffix}:${end}`)
-      if (sw) {
-        const id = typeof sw.getId === 'function' ? String(sw.getId()) : ''
-        if (!seen.has(id)) {
-          seen.add(id)
-          out.push(sw)
-        }
+    const channel = this.data?.data?.channel_data?.[docChannelIndex]
+    const splitCount = channelLineSplitCount(channel)
+    const switchKeys = new Set()
+    if (splitCount > 1) {
+      for (let li = 0; li < splitCount; li++) {
+        switchKeys.add(channelSwitchSuffix(docChannelIndex, li, splitCount))
       }
+      switchKeys.add(String(docChannelIndex))
+    } else {
+      switchKeys.add(channelSwitchSuffix(docChannelIndex, 0, 1))
+    }
+    switchKeys.forEach((swKey) => {
+      ;['from', 'to'].forEach((end) => {
+        const sw = graph.getModel().getCell(`sw:${swKey}:${end}`)
+        if (sw) {
+          const id = typeof sw.getId === 'function' ? String(sw.getId()) : ''
+          if (!seen.has(id)) {
+            seen.add(id)
+            out.push(sw)
+          }
+        }
+      })
     })
     return out
   }
@@ -3290,12 +4093,22 @@ export default class SvgLiaisonDrawioParser {
         }
       })
     })
-    const switchBases = new Set([channelSwitchSuffix(docChannelIndex)])
+    const splitCount = channelLineSplitCount(channel)
+    const switchKeys = new Set([String(docChannelIndex)])
+    if (splitCount > 1) {
+      for (let li = 0; li < splitCount; li++) {
+        switchKeys.add(channelSwitchSuffix(docChannelIndex, li, splitCount))
+      }
+    } else {
+      switchKeys.add(channelSwitchSuffix(docChannelIndex, 0, 1))
+    }
     suffixes.forEach((s) => {
       const parsed = parseGraphChannelSuffix(s)
-      if (parsed) switchBases.add(String(parsed.docChannelIndex))
+      if (parsed) {
+        switchKeys.add(channelSwitchSuffix(parsed.docChannelIndex, parsed.lineIndex, splitCount))
+      }
     })
-    switchBases.forEach((base) => {
+    switchKeys.forEach((base) => {
       ;['from', 'to'].forEach((end) => {
         const sw = graph.getModel().getCell(`sw:${base}:${end}`)
         if (sw) toRemove.push(sw)
@@ -3314,11 +4127,12 @@ export default class SvgLiaisonDrawioParser {
     return switch_doc_index
   }
 
-  _bindSwitchEntityInfo(sw, spec, docChannelIndex, channel, from, to, lineColor, lineW, pFromMw, qFromMvar) {
+  _bindSwitchEntityInfo(sw, spec, docChannelIndex, channel, from, to, lineColor, lineW, pFromMw, qFromMvar, lineIndex = 0) {
     sw.entityType = 'switch'
     sw.entityInfo = {
       type: 'switch',
       doc_channel_index: docChannelIndex,
+      line_index: lineIndex,
       switch_doc_index: this._resolveSwitchDocIndex(channel, spec),
       switch_end: spec.end,
       switch_item: spec.item,
@@ -3538,9 +4352,7 @@ export default class SvgLiaisonDrawioParser {
     if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
     this._purgeLineLabelsForStation(stationId)
     this.purgeOrphanChannelGraphCells()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   _channelPairMatchesStations(fromA, toA, channel) {
@@ -3556,55 +4368,36 @@ export default class SvgLiaisonDrawioParser {
     return lineItem?.name ? String(lineItem.name).trim() : primaryLineNameFromChannel(channel)
   }
 
-  /** 画布边 entityInfo 起终点是否与 JSON 通道一致 */
-  _graphBundleStationMatch(bundle, channel) {
-    if (!bundle?.edge || !channel) return false
-    const info = bundle.edge.entityInfo
-    if (!info?.from_station || !info?.to_station) return true
-    return this._channelPairMatchesStations(info.from_station, info.to_station, channel)
-  }
-
   /** 画布图元是否对应该 JSON 通道（及可选 line_data 行） */
   _graphBundleMatchesChannel(bundle, channel, lineIndex = 0) {
     if (!bundle?.edge || !channel) return false
-    if (!this._graphBundleStationMatch(bundle, channel)) return false
-
     const graph = this.graph
+    const info = bundle.edge.entityInfo
     const lineName = this._lineNameForChannelLine(channel, lineIndex)
+
+    const fromCells = this._endpointCellsForStation(channel.from_station)
+    const toCells = this._endpointCellsForStation(channel.to_station)
+    const geoOk =
+      fromCells.length > 0 &&
+      toCells.length > 0 &&
+      bundle.jFrom &&
+      bundle.jTo &&
+      this._channelEndpointDistanceScore(bundle.jFrom, bundle.jTo, fromCells, toCells) <= 500
+
+    if (info?.from_station && info?.to_station) {
+      if (!this._channelPairMatchesStations(info.from_station, info.to_station, channel) && !geoOk) {
+        return false
+      }
+    } else if (!geoOk) {
+      return false
+    }
+
     if (lineName && graph) {
       const nameCell = graph.getModel()?.getCell(`liaison-name:${bundle.suffix}`)
       const labelName = nameCell ? parseLineLabelFromCell(graph, nameCell) : ''
       if (labelName && labelName !== lineName) return false
     }
     return true
-  }
-
-  /**
-   * 拖动站/开关后重算线路几何时解析图元：suffix 已 resync 时优先按下标取；
-   * 不用 junction↔站距离（结点尚未更新，距离会误判）。
-   */
-  _resolveChannelGraphCellsForRelayout(link, channel, usedSuffixes = new Set()) {
-    const docChannelIndex = link.docChannelIndex
-    const lineIndex = link.lineIndex ?? 0
-    const splitCount = link.splitCount || 1
-    const expectedSuffix = visualLinkCellSuffix(docChannelIndex, lineIndex, splitCount)
-
-    const tryBundle = (bundle) => {
-      if (!bundle?.edge || !bundle.jFrom || !bundle.jTo) return null
-      if (usedSuffixes.has(bundle.suffix)) return null
-      if (!this._graphBundleStationMatch(bundle, channel)) return null
-      return bundle
-    }
-
-    let bundle = tryBundle(this._resolveChannelGraphCellsBySuffix(expectedSuffix))
-    if (bundle) return bundle
-
-    const pickSuffix = this._findGraphSuffixForDocChannel(channel, usedSuffixes, lineIndex)
-    if (pickSuffix) {
-      bundle = tryBundle(this._resolveChannelGraphCellsBySuffix(pickSuffix))
-      if (bundle) return bundle
-    }
-    return null
   }
 
   _channelEndpointDistanceScore(jFrom, jTo, fromCells, toCells) {
@@ -3658,19 +4451,15 @@ export default class SvgLiaisonDrawioParser {
       if (!jFrom || !jTo) continue
 
       if (lineName && g.lineName && g.lineName !== lineName) continue
-      // 文档有线路名时，不用无标签的边做几何猜配（府城多出线易误配）
-      if (lineName && !g.lineName) continue
-
-      const info = g.edge?.entityInfo
-      if (info?.from_station && info?.to_station) {
-        if (!this._channelPairMatchesStations(info.from_station, info.to_station, channel)) continue
-        const li = info.line_index ?? 0
-        if (lineIndex != null && li !== lineIndex) continue
-        // 府城等多出线共用起点：必须线路名一致，不能仅凭起终点 early-return
-        if (lineName) {
-          if (!g.lineName || g.lineName !== lineName) continue
+      if (lineName && !g.lineName) {
+        const info = g.edge?.entityInfo
+        if (
+          !info?.from_station ||
+          !info?.to_station ||
+          !this._channelPairMatchesStations(info.from_station, info.to_station, channel)
+        ) {
+          continue
         }
-        return g.suffix
       }
 
       let score = this._channelEndpointDistanceScore(jFrom, jTo, fromCells, toCells)
@@ -3688,160 +4477,256 @@ export default class SvgLiaisonDrawioParser {
     return bestSuffix
   }
 
-  _getGraphLineNameForSuffix(suffix) {
-    const graph = this.graph
-    if (!graph || suffix == null || suffix === '') return ''
-    const s = String(suffix)
-    const nameCell = graph.getModel()?.getCell(`liaison-name:${s}`)
-    if (nameCell) {
-      const n = parseLineLabelFromCell(graph, nameCell)
-      if (n) return n
+  /** 画布边是否对应该 JSON 通道（起终点 + 线路名，可选几何校验） */
+  _graphEdgeMatchesDocChannel(graphEdge, channel, lineIndex = 0, opts = {}) {
+    if (!graphEdge?.edge || !channel) return false
+    const lineName = this._lineNameForChannelLine(channel, lineIndex)
+    const from = graphEdge.from || graphEdge.edge?.entityInfo?.from_station
+    const to = graphEdge.to || graphEdge.edge?.entityInfo?.to_station
+
+    if (from && to && this._channelPairMatchesStations(from, to, channel)) {
+      if (lineName && graphEdge.lineName && graphEdge.lineName !== lineName) return false
+      if (opts.skipGeometry) return true
+      const bundle = this._resolveChannelGraphCellsBySuffix(graphEdge.suffix)
+      if (!bundle) return true
+      const info = graphEdge.edge.entityInfo
+      if (info?.from_station && info?.to_station && this._channelPairMatchesStations(info.from_station, info.to_station, channel)) {
+        return true
+      }
+      return this._graphBundleMatchesChannel(bundle, channel, lineIndex)
     }
+
+    if (opts.skipGeometry) return false
+    const bundle = this._resolveChannelGraphCellsBySuffix(graphEdge.suffix)
+    return bundle ? this._graphBundleMatchesChannel(bundle, channel, lineIndex) : false
+  }
+
+  _graphEdgeMatchesAnyDocChannel(graphEdge) {
+    const channels = this.data?.data?.channel_data || []
+    for (let di = 0; di < channels.length; di++) {
+      const ch = channels[di]
+      const lines = Array.isArray(ch.line_data) && ch.line_data.length > 0 ? ch.line_data : [null]
+      for (let li = 0; li < lines.length; li++) {
+        if (this._graphEdgeMatchesDocChannel(graphEdge, ch, li, { skipGeometry: true })) return true
+      }
+    }
+    return false
+  }
+
+  /** resync/拖动：几何匹配失败时仍可按起终点 + 线路名认领画布后缀 */
+  _pickGraphSuffixForDocChannel(channel, usedSuffixes = new Set(), lineIndex = 0, docChannelIndex = null) {
+    let pickSuffix = this._findGraphSuffixForDocChannel(channel, usedSuffixes, lineIndex)
+    if (pickSuffix) return pickSuffix
+
+    const docIdx =
+      docChannelIndex != null && docChannelIndex >= 0
+        ? docChannelIndex
+        : (this.data?.data?.channel_data || []).indexOf(channel)
+    if (docIdx >= 0) {
+      const atNew = visualLinkCellSuffix(
+        docIdx,
+        lineIndex,
+        channelLineSplitCount(channel) > 1 ? channelLineSplitCount(channel) : 1
+      )
+      if (!usedSuffixes.has(atNew)) {
+        const bundle = this._resolveChannelGraphCellsBySuffix(atNew)
+        if (
+          bundle?.edge &&
+          this._graphEdgeMatchesDocChannel(
+            {
+              suffix: atNew,
+              edge: bundle.edge,
+              from: bundle.edge.entityInfo?.from_station,
+              to: bundle.edge.entityInfo?.to_station,
+              lineName: this._lineNameForChannelLine(channel, lineIndex),
+            },
+            channel,
+            lineIndex,
+            { skipGeometry: true }
+          )
+        ) {
+          return atNew
+        }
+      }
+    }
+
     const edges = this._enumerateGraphChannelEdges()
     for (let i = 0; i < edges.length; i++) {
       const g = edges[i]
-      if (g.suffix === s && g.lineName) return g.lineName
-    }
-    const edge = graph.getModel()?.getCell(`liaison:${s}`)
-    if (edge) return parseLineLabelFromCell(graph, edge)
-    return ''
-  }
-
-  /**
-   * 画布 liaison 后缀 → JSON 通道下标（删站后 suffix 数字与下标常不一致，不能只看 id 里的数字）
-   */
-  _resolveDocChannelForGraphSuffix(suffix) {
-    const s = String(suffix ?? '').trim()
-    if (!s) return null
-    const parsed = parseGraphChannelSuffix(s)
-    const lineIndexHint = parsed?.lineIndex ?? 0
-    const channels = this.data?.data?.channel_data || []
-    const graphLineName = this._getGraphLineNameForSuffix(s)
-    const bundle = this._resolveChannelGraphCellsBySuffix(s)
-    const edgeInfo = bundle?.edge?.entityInfo
-
-    const stationIds = new Set((this.data?.data?.station_data || []).map((st) => st.station_id))
-
-    const matchesChannel = (docIdx, li, ch) => {
-      if (graphLineName) {
-        const expected = this._lineNameForChannelLine(ch, li)
-        if (expected && expected !== graphLineName) return false
-      }
-      if (edgeInfo?.from_station && edgeInfo?.to_station) {
-        if (!stationIds.has(edgeInfo.from_station) || !stationIds.has(edgeInfo.to_station)) return false
-        if (!this._channelPairMatchesStations(edgeInfo.from_station, edgeInfo.to_station, ch)) return false
-      }
-      return true
-    }
-
-    if (graphLineName) {
-      let hit = null
-      for (let i = 0; i < channels.length; i++) {
-        const ch = channels[i]
-        const lines = ch.line_data?.length ? ch.line_data : [null]
-        for (let li = 0; li < lines.length; li++) {
-          if (this._lineNameForChannelLine(ch, li) !== graphLineName) continue
-          if (!matchesChannel(i, li, ch)) continue
-          if (hit) return null
-          hit = { docChannelIndex: i, lineIndex: li }
-        }
-      }
-      if (hit) return hit
-    }
-
-    if (edgeInfo?.from_station && edgeInfo?.to_station && stationIds.has(edgeInfo.from_station)) {
-      for (let i = 0; i < channels.length; i++) {
-        const ch = channels[i]
-        if (!this._channelPairMatchesStations(edgeInfo.from_station, edgeInfo.to_station, ch)) continue
-        const li = lineIndexHint
-        if (matchesChannel(i, li, ch)) return { docChannelIndex: i, lineIndex: li }
-      }
-    }
-
-    for (let i = 0; i < channels.length; i++) {
-      const ch = channels[i]
-      const lines = ch.line_data?.length ? ch.line_data : [null]
-      for (let li = 0; li < lines.length; li++) {
-        if (this._findGraphSuffixForDocChannel(ch, new Set(), li) === s) {
-          return { docChannelIndex: i, lineIndex: li }
-        }
-      }
-    }
-
-    if (parsed && parsed.docChannelIndex >= 0 && parsed.docChannelIndex < channels.length) {
-      const ch = channels[parsed.docChannelIndex]
-      if (matchesChannel(parsed.docChannelIndex, lineIndexHint, ch)) {
-        return { docChannelIndex: parsed.docChannelIndex, lineIndex: lineIndexHint }
-      }
+      if (usedSuffixes.has(g.suffix)) continue
+      if (this._graphEdgeMatchesDocChannel(g, channel, lineIndex, { skipGeometry: true })) return g.suffix
     }
     return null
   }
 
+  /** 文档通道在画布上是否已有图元（含旧 suffix 几何匹配） */
+  _docChannelHasGraphRepresentation(docChannelIndex) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    const channel = this.data?.data?.channel_data?.[docChannelIndex]
+    if (!graph || !model || !channel) return false
+
+    const splitCount = channelLineSplitCount(channel)
+    const lineCount = splitCount > 1 ? splitCount : 1
+    for (let li = 0; li < lineCount; li++) {
+      const suffix = visualLinkCellSuffix(docChannelIndex, li, splitCount)
+      if (model.getCell(`liaison:${suffix}`)) return true
+      if (this._resolveChannelGraphCells(docChannelIndex, li)?.edge) return true
+    }
+    return false
+  }
+
+  /** 仅当画布上完全缺线时才补插（避免与旧 suffix 重复成图导致布局乱） */
+  _insertMissingDocChannelsIfAbsent() {
+    const channels = this.data?.data?.channel_data || []
+    for (let docIdx = 0; docIdx < channels.length; docIdx++) {
+      if (!this._docChannelHasGraphRepresentation(docIdx)) {
+        this.insertChannelAtDocIndex(docIdx)
+      }
+    }
+  }
+
+  /** 删站/resync 后只清理线路名标签，不重算位置（保持画布布局不变） */
+  _cleanupLineNameLabelsAfterResync() {
+    this._purgeStaleTempChannelCells()
+    this._purgeOrphanLineNameLabels()
+    this._purgeDuplicateLineNameLabels()
+    this._purgeNonCanonicalLineNameLabels()
+  }
+
+  /** 文档通道在画布上缺边时补插（删站 resync 后防线路丢失） */
+  _ensureDocChannelsOnGraph() {
+    this._insertMissingDocChannelsIfAbsent()
+  }
+
+  /** 按文档规范 suffix 刷新线路名文本（会重算标签位置，仅用于显式同步场景） */
+  _syncCanonicalLineNameLabels() {
+    const graph = this.graph
+    const channels = this.data?.data?.channel_data || []
+    if (!graph || !channels.length) return
+    const ctx = this._buildChannelRouteContext()
+
+    for (let docIdx = 0; docIdx < channels.length; docIdx++) {
+      const ch = channels[docIdx]
+      const splitCount = channelLineSplitCount(ch)
+      const lineCount = splitCount > 1 ? splitCount : 1
+      for (let li = 0; li < lineCount; li++) {
+        const suffix = visualLinkCellSuffix(docIdx, li, splitCount)
+        const bundle = this._resolveChannelGraphCellsBySuffix(suffix)
+        if (!bundle?.edge) continue
+        const link = (ctx.visualLinks || []).find((l) => l.docChannelIndex === docIdx && l.lineIndex === li)
+        let route = link ? this._computeVisualLinkRoute(link, ctx) : null
+        if (!route) route = routeFromChannelBundle(graph, bundle, bundle.edge)
+        const lineName = this._lineNameForChannelLine(ch, li)
+        if (!route || !lineName) continue
+        this._syncLineNameLabel({
+          suffix,
+          route,
+          lineName,
+          lineEntityInfo: bundle.edge.entityInfo,
+          showLabels: this.options.showLabels,
+        })
+      }
+    }
+    this._purgeOrphanLineNameLabels()
+    this._purgeDuplicateLineNameLabels()
+    this._purgeNonCanonicalLineNameLabels()
+  }
+
+  /** 同线路名+起终点只保留文档规范 suffix 的标签（如删站后旧的 liaison-name:4） */
+  _purgeNonCanonicalLineNameLabels() {
+    const graph = this.graph
+    const model = graph?.getModel()
+    const channels = this.data?.data?.channel_data || []
+    if (!graph || !model) return
+
+    const canonicalByKey = new Map()
+    for (let docIdx = 0; docIdx < channels.length; docIdx++) {
+      const ch = channels[docIdx]
+      const splitCount = channelLineSplitCount(ch)
+      const lines = ch.line_data?.length ? ch.line_data : [null]
+      for (let li = 0; li < lines.length; li++) {
+        const name = this._lineNameForChannelLine(ch, li)
+        if (!name) continue
+        const key = `${name}::${[ch.from_station, ch.to_station].sort().join('::')}`
+        canonicalByKey.set(key, visualLinkCellSuffix(docIdx, li, splitCount > 1 ? splitCount : 1))
+      }
+    }
+
+    const toRemove = []
+    const cells = graph.getChildCells(graph.getDefaultParent(), true, true) || []
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]
+      const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+      if (!id.startsWith('liaison-name:')) continue
+      const suffix = id.slice('liaison-name:'.length)
+      if (suffix.includes('__t')) {
+        toRemove.push(cell)
+        continue
+      }
+      const lineName = parseLineLabelFromCell(graph, cell)
+      if (!lineName) continue
+      let from = cell.entityInfo?.from_station
+      let to = cell.entityInfo?.to_station
+      const edge = model.getCell(`liaison:${suffix}`)
+      if (edge?.entityInfo) {
+        from = edge.entityInfo.from_station || from
+        to = edge.entityInfo.to_station || to
+      }
+      if (!from || !to) continue
+      const key = `${lineName}::${[from, to].sort().join('::')}`
+      const canonical = canonicalByKey.get(key)
+      if (!canonical || canonical === suffix) continue
+      if (model.getCell(`liaison:${canonical}`)) toRemove.push(cell)
+    }
+    if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
+  }
+
   _docIndexForGraphSuffix(suffix) {
-    return this._resolveDocChannelForGraphSuffix(suffix)?.docChannelIndex ?? null
+    const parsed = parseGraphChannelSuffix(suffix)
+    if (parsed) {
+      const channels = this.data?.data?.channel_data || []
+      if (parsed.docChannelIndex >= 0 && parsed.docChannelIndex < channels.length) {
+        return parsed.docChannelIndex
+      }
+    }
+    const channels = this.data?.data?.channel_data || []
+    const s = String(suffix)
+    for (let i = 0; i < channels.length; i++) {
+      if (this._findGraphSuffixForDocChannel(channels[i], new Set()) === s) return i
+    }
+    return null
   }
 
   /** 从点击的图元解析文档通道下标 */
   resolveDocChannelIndexFromCell(cell) {
-    if (!cell || !this.graph) return null
-    const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
-    let suffix = null
-    let m = id.match(/^liaison:(.+)$/)
-    if (m) suffix = m[1]
-    else {
-      m = id.match(/^liaison-j-(?:from|to):(.+)$/)
-      if (m) suffix = m[1]
-      else {
-        m = id.match(/^sw:(.+):(from|to)$/)
-        if (m) suffix = m[1]
-        else {
-          m = id.match(/^liaison-pq:(.+)$/)
-          if (m) suffix = m[1]
-          else {
-            m = id.match(/^liaison-name:(.+)$/)
-            if (m) suffix = m[1]
-          }
-        }
-      }
-    }
-    if (suffix != null) {
-      const resolved = this._resolveDocChannelForGraphSuffix(suffix)
-      if (resolved) return resolved.docChannelIndex
-    }
-    const ei = cell.entityInfo?.doc_channel_index
-    return ei != null && ei >= 0 ? ei : null
+    const resolved = this.resolveDocChannelFromCell(cell)
+    return resolved?.docChannelIndex ?? null
   }
 
-  /** 从图元解析文档通道下标与 line_data 行号 */
+  /** 从图元解析文档通道下标与 line_data 行号（供点击编辑侧栏） */
   resolveDocChannelFromCell(cell) {
     if (!cell || !this.graph) return null
     const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
-    let suffix = null
-    let m = id.match(/^liaison:(.+)$/)
-    if (m) suffix = m[1]
-    else {
-      m = id.match(/^liaison-j-(?:from|to):(.+)$/)
-      if (m) suffix = m[1]
-      else {
-        m = id.match(/^sw:(.+):(from|to)$/)
-        if (m) suffix = m[1]
-        else {
-          m = id.match(/^liaison-pq:(.+)$/)
-          if (m) suffix = m[1]
-          else {
-            m = id.match(/^liaison-name:(.+)$/)
-            if (m) suffix = m[1]
-          }
-        }
-      }
+    let suffix = parseLiaisonGraphCellSuffix(id)
+    if (!suffix) {
+      const swMatch = id.match(/^sw:(.+):(from|to)$/)
+      if (swMatch) suffix = swMatch[1]
     }
     if (suffix != null) {
-      const resolved = this._resolveDocChannelForGraphSuffix(suffix)
-      if (resolved) return resolved
+      const parsed = parseGraphChannelSuffix(suffix)
+      if (parsed) return parsed
+      const docChannelIndex = this._docIndexForGraphSuffix(suffix)
+      if (docChannelIndex != null) {
+        return { docChannelIndex, lineIndex: 0, suffix: String(suffix) }
+      }
     }
     const ei = cell.entityInfo
     if (ei?.doc_channel_index != null && ei.doc_channel_index >= 0) {
-      return { docChannelIndex: ei.doc_channel_index, lineIndex: ei.line_index ?? 0 }
+      return {
+        docChannelIndex: ei.doc_channel_index,
+        lineIndex: ei.line_index != null && ei.line_index >= 0 ? ei.line_index : 0,
+      }
     }
     return null
   }
@@ -3876,15 +4761,30 @@ export default class SvgLiaisonDrawioParser {
       splitCount > 1 ? splitCount : 1
     )
 
-    const direct = this._resolveChannelGraphCellsBySuffix(expectedSuffix)
-    if (direct && this._graphBundleStationMatch(direct, channel)) {
-      if (this._graphBundleMatchesChannel(direct, channel, lineIndex)) return direct
+    const acceptBundle = (bundle) => {
+      if (!bundle?.jFrom || !bundle?.jTo || !bundle?.edge) return null
+      if (this._graphBundleMatchesChannel(bundle, channel, lineIndex)) return bundle
+      const fromCells = this._endpointCellsForStation(channel.from_station)
+      const toCells = this._endpointCellsForStation(channel.to_station)
+      if (
+        fromCells.length > 0 &&
+        toCells.length > 0 &&
+        this._channelEndpointDistanceScore(bundle.jFrom, bundle.jTo, fromCells, toCells) <= 500
+      ) {
+        return bundle
+      }
+      return null
     }
 
-    const pickSuffix = this._findGraphSuffixForDocChannel(channel, new Set(), lineIndex)
+    const direct = this._resolveChannelGraphCellsBySuffix(expectedSuffix)
+    const fromDirect = acceptBundle(direct)
+    if (fromDirect) return fromDirect
+
+    const pickSuffix = this._pickGraphSuffixForDocChannel(channel, new Set(), lineIndex, docChannelIndex)
     if (pickSuffix) {
       const picked = this._resolveChannelGraphCellsBySuffix(pickSuffix)
-      if (picked && this._graphBundleMatchesChannel(picked, channel, lineIndex)) return picked
+      const fromPicked = acceptBundle(picked)
+      if (fromPicked) return fromPicked
     }
     return null
   }
@@ -4019,7 +4919,7 @@ export default class SvgLiaisonDrawioParser {
       return this._stationCellById(raw.station_id)
     }
 
-    const trafoRows = trafoRowsForGraphDisplay(raw)
+    const trafoRows = this.trafoRowsForDisplay(raw)
     const { x, y, w, h } = this._placeNewStationRect(graph, kv, trafoRows, isVirt)
 
     if (isVirt) {
@@ -4070,10 +4970,9 @@ export default class SvgLiaisonDrawioParser {
 
     const { html: label, topAlign } = buildStationVertexLabelHtml(
       { name, kv, trafoRows, isVirtual: isVirt },
-      this.options.showLabels,
-      this.options.showMeasurements
+      this.options.showLabels
     )
-    const trafoLabel = Boolean(!isVirt && trafoRows?.length && this.options.showMeasurements)
+    const trafoLabel = Boolean(!isVirt && trafoRows.length)
     const cell = graph.insertVertex(
       parent,
       `station:${raw.station_id}`,
@@ -4137,9 +5036,7 @@ export default class SvgLiaisonDrawioParser {
     if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
     this._purgeLineLabelsForStation(stationId)
     this.purgeOrphanChannelGraphCells()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   updateStationFromDoc(docStationIndex) {
@@ -4154,13 +5051,12 @@ export default class SvgLiaisonDrawioParser {
     const kv = normalizeKV(raw.vn_kv)
     const name = shortStationName(raw.station_name)
     const isVirt = isVirtualT10Station(name)
-    const trafoRows = trafoRowsForGraphDisplay(raw)
+    const trafoRows = this.trafoRowsForDisplay(raw)
     const { html: label, topAlign } = buildStationVertexLabelHtml(
       { name, kv, trafoRows, isVirtual: isVirt },
-      this.options.showLabels,
-      this.options.showMeasurements
+      this.options.showLabels
     )
-    const trafoLabel = Boolean(!isVirt && trafoRows?.length && this.options.showMeasurements)
+    const trafoLabel = Boolean(!isVirt && trafoRows.length)
     graph.getModel().setValue(cell, label)
     graph.setCellStyle(
       isVirt ? virtualT10StationStyle(kv, topAlign) : stationStyleByKV(kv, topAlign, trafoLabel),
@@ -4230,10 +5126,7 @@ export default class SvgLiaisonDrawioParser {
     this._alignEdgeSwitchPairsToRenderedEdges(edgeSwitchPairs)
     this.rebindEntityInfo()
     this.enableManualEdit()
-    if (this._shouldAnimateFlow()) {
-      graph._liaisonFlowMotionDurationSec = this.options.flowMotionDurationSec
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   /** 插入单条 visual link 图元（与 parseSvg 拆线逻辑一致） */
@@ -4257,14 +5150,11 @@ export default class SvgLiaisonDrawioParser {
     const lineName = lineItem?.name ? String(lineItem.name).trim() : primaryLineNameFromChannel(channel)
     const pFromMw = lineItem ? pickLinePFromMw(lineItem) : pickChannelPFromMw(channel)
     const qFromMvar = lineItem ? pickLineQFromMvar(lineItem) : pickChannelQFromMvar(channel)
-    const lineColor = linkStrokeColor(fromStation.kv, toStation.kv)
-    const lineW = linkStrokeWidthPx(fromStation.kv, toStation.kv)
-    const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
-    const showFlowArrow = pFromMw != null && Math.abs(pFromMw) >= FLOW_P_EPS
-    const arrowStyle = showFlowArrow
-      ? 'endArrow=classic;endFill=1;startArrow=none;'
-      : 'endArrow=none;startArrow=none;'
-    const style = `noEdgeStyle=1;edgeStyle=none;rounded=0;orthogonalLoop=0;jettySize=0;strokeColor=${lineColor};strokeWidth=${lineW};${arrowStyle}movable=0;bendable=0;locked=1;editable=0;html=1;flag=svgLiaisonLine;`
+    const { style, lineColor, lineW, reverseFlow } = buildLiaisonChannelEdgeStyle(
+      fromStation.kv,
+      toStation.kv,
+      pFromMw
+    )
 
     const jw = 6
     const jh = 6
@@ -4332,11 +5222,10 @@ export default class SvgLiaisonDrawioParser {
 
     const pqBlock = computeLongestSegmentPQBlockPosition(route)
     if (pqBlock) {
-      const pqHtml = buildPqMetricHtml(pFromMw, qFromMvar, this.options.theme)
       const pqLbl = graph.insertVertex(
         parent,
         `liaison-pq:${cellSuffix}`,
-        pqHtml,
+        '',
         pqBlock.x,
         pqBlock.y,
         pqBlock.w,
@@ -4345,6 +5234,7 @@ export default class SvgLiaisonDrawioParser {
       )
       pqLbl.entityType = 'line'
       pqLbl.entityInfo = lineEntityInfo
+      this._syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar)
       out.pqMetricCells.push(pqLbl)
     }
 
@@ -4360,9 +5250,12 @@ export default class SvgLiaisonDrawioParser {
 
     const closedFill = switchClosedFill(fromStation.kv, toStation.kv)
     const switchSpecs = buildChannelSwitchSpecs(channel)
-    const swSuffix = channelSwitchSuffix(docChannelIndex)
-    if ((lineIndex ?? 0) === 0) {
-      switchSpecs.forEach((spec) => {
+    const effectiveSplit = splitCount > 1 ? splitCount : channelLineSplitCount(channel)
+    const swSuffix = channelSwitchSuffix(docChannelIndex, lineIndex ?? 0, effectiveSplit)
+    if (effectiveSplit > 1 && (lineIndex ?? 0) === 0) {
+      this._purgeLegacySharedChannelSwitches(docChannelIndex)
+    }
+    switchSpecs.forEach((spec) => {
         const sd = channel.switch_data || []
         let switch_doc_index = null
         if (spec.item != null) {
@@ -4428,7 +5321,6 @@ export default class SvgLiaisonDrawioParser {
         }
         out.edgeSwitchPairs.push({ edge, sw, switchLogicalEnd: spec.end, channelRoute: route, reverseFlow })
       })
-    }
   }
 
   _alignEdgeSwitchPairsToRenderedEdges(edgeSwitchPairs) {
@@ -4503,9 +5395,7 @@ export default class SvgLiaisonDrawioParser {
     if (!graph || docChannelIndex == null) return
     const cells = this._collectChannelGraphCells(docChannelIndex)
     if (cells.length) forceRemoveGraphCells(graph, cells)
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   _renameChannelCellSuffix(oldSuffix, newSuffix) {
@@ -4522,8 +5412,25 @@ export default class SvgLiaisonDrawioParser {
       [`liaison-pq:${os}`, `liaison-pq:${ns}`],
       [`liaison-name:${os}`, `liaison-name:${ns}`],
     ]
-    if (!os.includes(':')) {
+    if (!os.includes(':') && !ns.startsWith('__t')) {
       pairs.push([`sw:${os}:from`, `sw:${ns}:from`], [`sw:${os}:to`, `sw:${ns}:to`])
+    } else if (os.startsWith('__t') && !ns.startsWith('__t')) {
+      const op = parseGraphChannelSuffix(os.slice(3))
+      const np = parseGraphChannelSuffix(ns)
+      if (op && np) {
+        const oHasLine = os.slice(3).includes(':')
+        const nHasLine = ns.includes(':')
+        const oSw = oHasLine ? `${op.docChannelIndex}:${op.lineIndex}` : String(op.docChannelIndex)
+        const nSw = nHasLine ? `${np.docChannelIndex}:${np.lineIndex}` : String(np.docChannelIndex)
+        if (oSw !== nSw) {
+          pairs.push(
+            [`sw:${oSw}:from`, `sw:${nSw}:from`],
+            [`sw:${oSw}:to`, `sw:${nSw}:to`],
+            [`sw:__t${oSw}:from`, `sw:${nSw}:from`],
+            [`sw:__t${oSw}:to`, `sw:${nSw}:to`]
+          )
+        }
+      }
     }
     model.beginUpdate()
     try {
@@ -4567,23 +5474,104 @@ export default class SvgLiaisonDrawioParser {
     }
   }
 
+  /** 清理 resync 两阶段重命名遗留的 __t 临时 id 图元 */
+  _purgeStaleTempChannelCells() {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model) return
+    const toRemove = []
+    const seen = new Set()
+    const add = (cell) => {
+      if (!cell) return
+      const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+      if (!id || seen.has(id)) return
+      seen.add(id)
+      toRemove.push(cell)
+    }
+    const cells = graph.getChildCells(graph.getDefaultParent(), true, true) || []
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]
+      const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+      if (!id.includes('__t')) continue
+      if (id.startsWith('sw:__t')) add(cell)
+      else if (id.startsWith('liaison-name:__t')) add(cell)
+      else if (id.startsWith('liaison-pq:__t')) add(cell)
+    }
+    if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
+  }
+
+  /** 无对应 liaison 边的线路名标签 */
+  _purgeOrphanLineNameLabels() {
+    const graph = this.graph
+    const model = graph?.getModel()
+    if (!graph || !model) return
+    const toRemove = []
+    const cells = graph.getChildCells(graph.getDefaultParent(), true, true) || []
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]
+      const id = typeof cell.getId === 'function' ? String(cell.getId()) : ''
+      if (!id.startsWith('liaison-name:')) continue
+      const suffix = id.slice('liaison-name:'.length)
+      if (suffix.includes('__t') || !model.getCell(`liaison:${suffix}`)) {
+        toRemove.push(cell)
+      }
+    }
+    if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
+  }
+
+  /** resync 映射完成后，将开关 id 与文档下标对齐（修复 __t 临时 id 遗留） */
+  _repairSwitchIdsAfterResync(mappings) {
+    const graph = this.graph
+    const model = graph?.getModel()
+    const channels = this.data?.data?.channel_data || []
+    if (!graph || !model || !mappings?.length) return
+
+    const switchSwKey = (suffix) => {
+      const parsed = parseGraphChannelSuffix(suffix)
+      if (!parsed) return String(suffix)
+      const splitCount = channelLineSplitCount(channels[parsed.docChannelIndex])
+      if (splitCount > 1) return `${parsed.docChannelIndex}:${parsed.lineIndex}`
+      return String(parsed.docChannelIndex)
+    }
+
+    model.beginUpdate()
+    try {
+      for (let mi = 0; mi < mappings.length; mi++) {
+        const { oldSuffix, newSuffix } = mappings[mi]
+        const oSw = switchSwKey(oldSuffix)
+        const nSw = switchSwKey(newSuffix)
+        if (oSw === nSw) continue
+        ;['from', 'to'].forEach((end) => {
+          const dst = `sw:${nSw}:${end}`
+          if (model.getCell(dst)) return
+          for (const src of [`sw:${oSw}:${end}`, `sw:__t${oSw}:${end}`]) {
+            const cell = model.getCell(src)
+            if (!cell) continue
+            this._safeSetCellId(cell, dst)
+            break
+          }
+        })
+      }
+    } finally {
+      model.endUpdate()
+    }
+  }
+
   /** 删站/删通道后：按当前站位置重算全部线路几何与名称（suffix 须已 resync） */
   relayoutAllChannelsFromGraph() {
     const graph = this.graph
     const channels = this.data?.data?.channel_data || []
     if (!graph || !channels.length) return
-    this.rebindEntityInfo()
     const ctx = this._buildChannelRouteContext()
     const usedSuffixes = new Set()
     for (let i = 0; i < channels.length; i++) {
       this._relayoutChannelAtDocIndex(i, ctx, usedSuffixes)
     }
     this.purgeOrphanChannelGraphCells()
+    this._purgeOrphanLineNameLabels()
     this._purgeDuplicateLineNameLabels()
     this.rebindEntityInfo()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   /** 同线路名 + 起终点重复的名称标签只保留与 liaison 边 suffix 一致的一条 */
@@ -4595,6 +5583,7 @@ export default class SvgLiaisonDrawioParser {
     const parent = graph.getDefaultParent()
     const cells = graph.getChildCells(parent, true, true) || []
     const groups = new Map()
+    const toRemove = []
 
     for (let i = 0; i < cells.length; i++) {
       const cell = cells[i]
@@ -4611,13 +5600,29 @@ export default class SvgLiaisonDrawioParser {
         from = edge.entityInfo.from_station || from
         to = edge.entityInfo.to_station || to
       }
-      if (!from || !to) continue
+      if (!from || !to) {
+        for (let ci = 0; ci < channels.length; ci++) {
+          const ch = channels[ci]
+          const lines = ch.line_data?.length ? ch.line_data : [null]
+          for (let li = 0; li < lines.length; li++) {
+            const name = this._lineNameForChannelLine(ch, li)
+            if (name !== lineName) continue
+            from = ch.from_station
+            to = ch.to_station
+            break
+          }
+          if (from && to) break
+        }
+      }
+      if (!from || !to) {
+        if (!edge) toRemove.push(cell)
+        continue
+      }
       const key = `${lineName}::${[from, to].sort().join('::')}`
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key).push({ cell, suffix, lineName, from, to })
     }
 
-    const toRemove = []
     groups.forEach((items) => {
       if (items.length <= 1) return
       const canonical = new Set()
@@ -4677,26 +5682,15 @@ export default class SvgLiaisonDrawioParser {
 
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const newSuffix = visualLinkCellSuffix(docIdx, lineIndex, splitCount > 1 ? splitCount : 1)
-        let pickSuffix = this._findGraphSuffixForDocChannel(ch, usedSuffixes, lineIndex)
-
-        if (!pickSuffix) {
-          const lineName = lines[lineIndex]?.name ? String(lines[lineIndex].name).trim() : ''
-          for (let i = 0; i < graphEdges.length; i++) {
-            const g = graphEdges[i]
-            if (usedSuffixes.has(g.suffix)) continue
-            const info = g.edge?.entityInfo
-            if (info?.from_station !== ch.from_station || info?.to_station !== ch.to_station) continue
-            const li = info.line_index ?? 0
-            if (li !== lineIndex) continue
-            if (lineName && g.lineName && g.lineName !== lineName) continue
-            pickSuffix = g.suffix
-            break
-          }
-        }
+        let pickSuffix = this._pickGraphSuffixForDocChannel(ch, usedSuffixes, lineIndex, docIdx)
 
         if (!pickSuffix) {
           const atNew = this._resolveChannelGraphCellsBySuffix(newSuffix)
-          if (atNew?.edge && this._graphBundleMatchesChannel(atNew, ch, lineIndex)) {
+          if (atNew?.edge && this._graphEdgeMatchesDocChannel(
+            { suffix: newSuffix, edge: atNew.edge, from: atNew.edge.entityInfo?.from_station, to: atNew.edge.entityInfo?.to_station, lineName: null },
+            ch,
+            lineIndex
+          )) {
             pickSuffix = newSuffix
           }
         }
@@ -4709,7 +5703,9 @@ export default class SvgLiaisonDrawioParser {
       }
     }
 
-    const orphans = graphEdges.filter((g) => !usedSuffixes.has(g.suffix))
+    const orphans = graphEdges.filter(
+      (g) => !usedSuffixes.has(g.suffix) && !this._graphEdgeMatchesAnyDocChannel(g)
+    )
     if (orphans.length) {
       const toRemove = []
       const seen = new Set()
@@ -4717,7 +5713,7 @@ export default class SvgLiaisonDrawioParser {
       orphans.forEach((g) => {
         const parsed = parseGraphChannelSuffix(g.suffix)
         if (parsed) orphanBases.add(String(parsed.docChannelIndex))
-        this._collectChannelGraphCellsBySuffix(g.suffix, { skipSwitches: true }).forEach((c) => {
+        this._collectChannelGraphCellsBySuffix(g.suffix).forEach((c) => {
           const id = typeof c.getId === 'function' ? String(c.getId()) : ''
           if (id && !seen.has(id)) {
             seen.add(id)
@@ -4738,6 +5734,18 @@ export default class SvgLiaisonDrawioParser {
             }
           }
         })
+        for (let li = 0; li < 8; li++) {
+          ;['from', 'to'].forEach((end) => {
+            const sw = model.getCell(`sw:${base}:${li}:${end}`)
+            if (sw) {
+              const id = typeof sw.getId === 'function' ? String(sw.getId()) : ''
+              if (id && !seen.has(id)) {
+                seen.add(id)
+                toRemove.push(sw)
+              }
+            }
+          })
+        }
       })
       if (toRemove.length) forceRemoveGraphCells(graph, toRemove)
     }
@@ -4745,34 +5753,38 @@ export default class SvgLiaisonDrawioParser {
     for (let i = 0; i < mappings.length; i++) {
       this._renameChannelCellSuffix(mappings[i].oldSuffix, `__t${mappings[i].oldSuffix}`)
     }
-    for (let i = 0; i < mappings.length; i++) {
-      this._renameChannelCellSuffix(`__t${mappings[i].oldSuffix}`, mappings[i].newSuffix)
+    const phase2 = [...mappings].sort((a, b) => {
+      const ao = parseGraphChannelSuffix(a.oldSuffix)?.docChannelIndex ?? 0
+      const bo = parseGraphChannelSuffix(b.oldSuffix)?.docChannelIndex ?? 0
+      return bo - ao
+    })
+    for (let i = 0; i < phase2.length; i++) {
+      this._renameChannelCellSuffix(`__t${phase2[i].oldSuffix}`, phase2[i].newSuffix)
     }
 
-    const switchBaseMap = new Map()
-    mappings.forEach(({ oldSuffix, newSuffix }) => {
+    this._repairSwitchIdsAfterResync(mappings)
+
+    for (let mi = 0; mi < mappings.length; mi++) {
+      const { oldSuffix, newSuffix } = mappings[mi]
       const op = parseGraphChannelSuffix(oldSuffix)
       const np = parseGraphChannelSuffix(newSuffix)
-      if (op && np && op.docChannelIndex !== np.docChannelIndex) {
-        switchBaseMap.set(String(op.docChannelIndex), String(np.docChannelIndex))
-      }
-    })
-    if (switchBaseMap.size) {
-      const switchMappings = [...switchBaseMap.entries()].sort((a, b) => Number(b[0]) - Number(a[0]))
-      for (let i = 0; i < switchMappings.length; i++) {
-        this._renameChannelSwitchBase(switchMappings[i][0], `__ts${switchMappings[i][0]}`)
-      }
-      for (let i = 0; i < switchMappings.length; i++) {
-        this._renameChannelSwitchBase(`__ts${switchMappings[i][0]}`, switchMappings[i][1])
-      }
+      if (!op || !np || !String(oldSuffix).includes(':') || op.lineIndex !== 0) continue
+      const splitCount = channelLineSplitCount(channels[np.docChannelIndex])
+      if (splitCount <= 1) continue
+      ;['from', 'to'].forEach((end) => {
+        const legacy = model.getCell(`sw:${op.docChannelIndex}:${end}`)
+        const canonicalId = this._canonicalSwitchCellId(np.docChannelIndex, np.lineIndex, splitCount, end)
+        if (!legacy || model.getCell(canonicalId)) return
+        this._safeSetCellId(legacy, canonicalId)
+      })
     }
 
     this.purgeOrphanChannelGraphCells()
-    this._purgeDuplicateLineNameLabels()
+    this._insertMissingDocChannelsIfAbsent()
+    this._cleanupLineNameLabelsAfterResync()
+    this._normalizeChannelSwitchIds()
     this.rebindEntityInfo()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   renameStationCellId(oldId, newId) {
@@ -4808,17 +5820,13 @@ export default class SvgLiaisonDrawioParser {
     if (!bundle?.edge) {
       this.insertChannelAtDocIndex(docChannelIndex)
       this.rebindEntityInfo()
-      if (this._shouldAnimateFlow()) {
-        scheduleLiaisonFlowMotionArrows(graph)
-      }
+      this._applyFlowMotionState(graph)
       return
     }
     const ctx = this._buildChannelRouteContext()
     this._relayoutChannelAtDocIndex(docChannelIndex, ctx)
     this.rebindEntityInfo()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph)
-    }
+    this._applyFlowMotionState(graph)
   }
 
   /** 仅刷新线路名独立文本（不删线重画） */
@@ -4876,6 +5884,10 @@ export default class SvgLiaisonDrawioParser {
         if (id.startsWith('liaison-pq:')) {
           const info = cell.entityInfo
           if (!info) return
+          if (!this.measurementsVisible()) {
+            model.setValue(cell, '')
+            return
+          }
           model.setValue(cell, buildPqMetricHtml(info.p_from_mw, info.q_from_mvar, t))
           graph.setCellStyle(pqStyle, [cell])
         }
@@ -4893,7 +5905,6 @@ export default class SvgLiaisonDrawioParser {
   syncMeasurementsFromDoc() {
     const graph = this.graph
     if (!graph) return
-    this._syncGraphMeasurementFlag()
 
     const payload = this.data?.data || {}
     const rawStations = Array.isArray(payload.station_data) ? payload.station_data : []
@@ -4908,11 +5919,7 @@ export default class SvgLiaisonDrawioParser {
     }
 
     this.rebindEntityInfo()
-    if (this._shouldAnimateFlow()) {
-      scheduleLiaisonFlowMotionArrows(graph, { deferMs: 0 })
-    } else {
-      removeLiaisonFlowMotionArrowsFromOverlay(graph)
-    }
+    this._applyFlowMotionState(graph, { deferMs: 0 })
     if (graph.view?.invalidate) graph.view.invalidate()
     if (graph.view?.validate) graph.view.validate()
   }
@@ -4928,13 +5935,12 @@ export default class SvgLiaisonDrawioParser {
     const kv = normalizeKV(raw.vn_kv)
     const name = shortStationName(raw.station_name)
     const isVirt = isVirtualT10Station(name)
-    const trafoRows = trafoRowsForGraphDisplay(raw)
+    const trafoRows = this.trafoRowsForDisplay(raw)
     const { html: label, topAlign } = buildStationVertexLabelHtml(
       { name, kv, trafoRows, isVirtual: isVirt },
-      this.options.showLabels,
-      this.options.showMeasurements
+      this.options.showLabels
     )
-    const trafoLabel = Boolean(!isVirt && trafoRows?.length && this.options.showMeasurements)
+    const trafoLabel = Boolean(!isVirt && trafoRows.length)
     graph.getModel().setValue(cell, label)
     graph.setCellStyle(
       isVirt ? virtualT10StationStyle(kv, topAlign) : stationStyleByKV(kv, topAlign, trafoLabel),
@@ -4967,12 +5973,7 @@ export default class SvgLiaisonDrawioParser {
     const toKv = normalizeKV(toRaw?.vn_kv)
     const pFromMw = lineItem ? pickLinePFromMw(lineItem) : pickChannelPFromMw(channel)
     const qFromMvar = lineItem ? pickLineQFromMvar(lineItem) : pickChannelQFromMvar(channel)
-    const { style, lineColor, lineW, reverseFlow } = buildLiaisonChannelEdgeStyle(
-      fromKv,
-      toKv,
-      pFromMw,
-      this.options.showMeasurements
-    )
+    const { style, lineColor, lineW, reverseFlow } = buildLiaisonChannelEdgeStyle(fromKv, toKv, pFromMw)
     const closedFill = switchClosedFill(fromKv, toKv)
 
     const wantSource = reverseFlow ? bundle.jTo : bundle.jFrom
@@ -5006,26 +6007,17 @@ export default class SvgLiaisonDrawioParser {
 
     const pqLbl = model.getCell(`liaison-pq:${suffix}`)
     if (pqLbl) {
-      if (this.options.showMeasurements) {
-        const pqHtml = buildPqMetricHtml(pFromMw, qFromMvar, this.options.theme)
-        model.setValue(pqLbl, pqHtml)
-        graph.setCellStyle(pqMetricStyle(this.options.theme), [pqLbl])
-        graph.setCellStyles('visible', '1', [pqLbl])
-      } else {
-        model.setValue(pqLbl, '')
-        graph.setCellStyles('visible', '0', [pqLbl])
-      }
+      this._syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar)
     }
 
     const switchSpecs = buildChannelSwitchSpecs(channel)
-    const swSuffix = channelSwitchSuffix(docChannelIndex)
-    if ((lineIndex ?? 0) === 0) {
-      switchSpecs.forEach((spec) => {
-        const sw = model.getCell(`sw:${swSuffix}:${spec.end}`)
-        if (!sw) return
-        graph.setCellStyle(switchStyle(spec.closed, lineColor, closedFill), [sw])
-      })
-    }
+    const splitCount = channelLineSplitCount(channel)
+    const swSuffix = channelSwitchSuffix(docChannelIndex, lineIndex, splitCount)
+    switchSpecs.forEach((spec) => {
+      const sw = model.getCell(`sw:${swSuffix}:${spec.end}`)
+      if (!sw) return
+      graph.setCellStyle(switchStyle(spec.closed, lineColor, closedFill), [sw])
+    })
   }
 
   _drawOneChannel(ctx) {
@@ -5069,14 +6061,7 @@ export default class SvgLiaisonDrawioParser {
     const lineName = primaryLineNameFromChannel(channel)
     const pFromMw = pickChannelPFromMw(channel)
     const qFromMvar = pickChannelQFromMvar(channel)
-    const lineColor = linkStrokeColor(from.kv, to.kv)
-    const lineW = linkStrokeWidthPx(from.kv, to.kv)
-    const reverseFlow = pFromMw != null && pFromMw < -FLOW_P_EPS
-    const showFlowArrow = pFromMw != null && Math.abs(pFromMw) >= FLOW_P_EPS
-    const arrowStyle = showFlowArrow
-      ? 'endArrow=classic;endFill=1;startArrow=none;'
-      : 'endArrow=none;startArrow=none;'
-    const style = `noEdgeStyle=1;edgeStyle=none;rounded=0;orthogonalLoop=0;jettySize=0;strokeColor=${lineColor};strokeWidth=${lineW};${arrowStyle}movable=0;bendable=0;locked=1;editable=0;html=1;flag=svgLiaisonLine;`
+    const { style, lineColor, lineW, reverseFlow } = buildLiaisonChannelEdgeStyle(from.kv, to.kv, pFromMw)
 
     const jw = 6
     const jh = 6
@@ -5117,17 +6102,17 @@ export default class SvgLiaisonDrawioParser {
     const pqBlock = computeLongestSegmentPQBlockPosition(route)
     const pqMetricCells = []
     if (pqBlock) {
-      const pqHtml = buildPqMetricHtml(pFromMw, qFromMvar, this.options.theme)
       const pqLbl = graph.insertVertex(
         parent,
         `liaison-pq:${docChannelIndex}`,
-        pqHtml,
+        '',
         pqBlock.x,
         pqBlock.y,
         pqBlock.w,
         pqBlock.h,
         pqMetricStyle(this.options.theme)
       )
+      this._syncPqLabelContent(graph, pqLbl, pFromMw, qFromMvar)
       pqMetricCells.push(pqLbl)
     }
 

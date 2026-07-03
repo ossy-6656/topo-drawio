@@ -329,7 +329,24 @@
             "q_from_mvar": -1.1641368440249061e-10
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "府牧线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "府牧线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             38.19044969463331,
@@ -427,7 +444,24 @@
             "q_from_mvar": -8.849049066571175e-11
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "府区线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "府区线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             38.19044969463331,
@@ -486,7 +520,24 @@
             "q_from_mvar": -5.099626003962993
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "府干线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "府干线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             38.19044969463331,
@@ -545,7 +596,24 @@
             "q_from_mvar": -1.1733420158537148e-10
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "定干线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "定干线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             32.119547045669066,
@@ -604,7 +672,24 @@
             "q_from_mvar": -3.0920613385109346
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "府定线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "府定线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             38.19044969463331,
@@ -702,7 +787,24 @@
             "q_from_mvar": -2.8190958673065127
           }
         ],
-        "switch_data": [],
+        "switch_data": [
+          {
+            "name": "Ⅰ府学线-送端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 0
+          },
+          {
+            "name": "Ⅰ府学线-受端开关",
+            "closed": true,
+            "color": "",
+            "in_ka": null,
+            "line_types": "solid",
+            "index": 1
+          }
+        ],
         "coords": [
           [
             38.19044969463331,

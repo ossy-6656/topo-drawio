@@ -41,6 +41,16 @@
           class="action-btn"
           type="button"
           :disabled="!liaisonDoc || !uiEditor || loading"
+          title="所有变电站向几何中心收缩 5%，并重算线路"
+          @click="shrinkLayoutTowardCenter"
+          v-if="false"
+        >
+          收缩布局
+        </button>
+        <button
+          class="action-btn"
+          type="button"
+          :disabled="!liaisonDoc || !uiEditor || loading"
           title="保留已保存布局，仅从 JSON 刷新 P/Q、潮流箭头与开关状态"
           @click="refreshMeasurementsFromJson"
         >
@@ -81,7 +91,7 @@
 
     <div class="content-wrap">
       <div id="graphCon" class="canvas-wrapper" :class="[`canvas-theme-${canvasTheme}`, { 'editor-booting': !editorReady }]">
-        <div class="geEditor liaison-drawio-root" :id="editorId"></div>
+        <div :key="editorId" class="geEditor liaison-drawio-root" :id="editorId"></div>
         <div v-show="loading" class="loading-mask">正在生成 draw.io 站间联络图...</div>
       </div>
 
@@ -668,6 +678,7 @@ function liaisonParserOptions() {
     showLabels: true,
     showMeasurements: false,
     theme: canvasTheme.value,
+    layoutMode: 'auto',
   }
 }
 
@@ -1021,7 +1032,7 @@ function getGraph() {
 }
 
 /**
- * 视口稳定后再居中并刷新量测/运动箭头（setGraphXml 会重置 scale；保存的 translate 在 remount 后易偏位）。
+ * 视口稳定后再居中；按 showMeasurements 同步量测层（默认隐藏，点「刷新量测」后再展示）。
  */
 function finishLiaisonEditorAfterGraphReady(
   ui,
@@ -1091,6 +1102,7 @@ function mountEditor(parser) {
   pauseBuiltinPanelHideObserver()
   hideBuiltinPanels()
 
+  App.isMainCalled = false
   App.main(
     (ui) => {
       uiEditor = ui
@@ -1525,6 +1537,7 @@ async function regenerateFromJson() {
     liaisonParser.value.skipInitialParseSvg = false
 
     destroyEditor()
+    editorId.value = `svg_liaison_drawio_${Date.now()}`
     await nextTick()
     mountEditor(liaisonParser.value)
     ElMessage.success('已清除本地缓存并按 JSON 重新成图')
@@ -1821,6 +1834,20 @@ function refreshChannelGraph(docChannelIndex, { fullRedraw = false } = {}) {
   if (g) applyLiaisonFlowMotionArrows(g)
 }
 
+/** 所有变电站向几何中心收缩 5%，并重算全部线路 */
+function shrinkLayoutTowardCenter() {
+  const parser = getParser()
+  const graph = getGraph()
+  if (!parser || !graph || !liaisonDoc.value) return
+  const result = parser.shrinkLayoutTowardCenter()
+  if (!result?.ok) {
+    ElMessage.warning('当前画布上没有可收缩的变电站')
+    return
+  }
+  applyLiaisonFlowMotionArrows(graph)
+  ElMessage.success(`已向中心收缩 5%（${result.moved} 个站/母线点）`)
+}
+
 /**
  * 策略 B：后台仅更新 JSON 量测、graphXml 不变时调用。
  * 演示：重新拉取当前样例 JSON，合并进内存并刷新画布量测层（不改动布局 XML）。
@@ -2101,7 +2128,7 @@ function bindClickInfo(graph) {
       cell.entityType === 'junction'
     ) {
       const parser = getParser()
-      const resolved = parser?.resolveDocChannelFromCell(cell)
+      const resolved = parser?.resolveDocChannelFromCell?.(cell)
       const docIdx = resolved?.docChannelIndex ?? parser?.resolveDocChannelIndexFromCell(cell) ?? info.doc_channel_index
       if (docIdx == null || docIdx < 0) {
         editSelection.value = null

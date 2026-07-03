@@ -191,10 +191,15 @@ function buildPsrRefAttrs(dom, psrType) {
     const keyid = dom.getAttribute('keyid') || dom.getAttribute('keyid1');
     const rtkeyid = dom.getAttribute('rtkeyid') || dom.getAttribute('rtkeyid1');
     const keyName = dom.getAttribute('key_name') || dom.getAttribute('key_name1');
-    const voltype = dom.getAttribute('voltype') || dom.getAttribute('voltype1');
+    const keyName1 = dom.getAttribute('key_name1');
+    const voltype =
+        nodeName === 'Transformer3'
+            ? dom.getAttribute('voltype1') || dom.getAttribute('voltype')
+            : dom.getAttribute('voltype') || dom.getAttribute('voltype1');
     attrs = appendXmlAttr(attrs, 'keyid', keyid);
     attrs = appendXmlAttr(attrs, 'rtkeyid', rtkeyid);
     attrs = appendXmlAttr(attrs, 'key_name', keyName);
+    attrs = appendXmlAttr(attrs, 'key_name1', keyName1);
     attrs = appendXmlAttr(attrs, 'voltype', voltype);
     return attrs;
 }
@@ -324,10 +329,357 @@ function parse_node_area(node_area_str) {
     }
     return res;
 }
+
+/** 馈线全称/出线端短名 → 段号 + 核心名（保留 Ⅰ/Ⅱ/Ⅲ，避免多条同芯线串列） */
+function feederMatchParts(label) {
+    let s = String(label || '')
+        .replace(/^\(原?/, '')
+        .replace(/\)$/, '')
+        .replace(/线$/, '')
+        .replace(/\d+$/, '');
+    let section = '';
+    if (/^Ⅲ/.test(s)) {
+        section = '3';
+        s = s.slice(1);
+    } else if (/^Ⅱ/.test(s)) {
+        section = '2';
+        s = s.slice(1);
+    } else if (/^Ⅰ/.test(s)) {
+        section = '1';
+        s = s.slice(1);
+    } else if (/^III/.test(s)) {
+        section = '3';
+        s = s.slice(3);
+    } else if (/^II/.test(s)) {
+        section = '2';
+        s = s.slice(2);
+    } else if (/^I[\u4e00-\u9fff]/.test(s)) {
+        section = '1';
+        s = s.slice(1);
+    }
+    return { section, core: s };
+}
+
+/** @deprecated 用于简单相等比较；段号与核心名拼接 */
+function feederNameKey(label) {
+    const { section, core } = feederMatchParts(label);
+    return section + core;
+}
+
+function facFeederSummaryBand(y) {
+    if (y < 120) return 'north';
+    if (y > 500) return 'south';
+    return 'middle';
+}
+
+function facFeederAnchorBand(anchorY) {
+    return anchorY < 400 ? 'north' : 'south';
+}
+
+function facFeederSameBand(lineY, anchorY) {
+    const lineBand = facFeederSummaryBand(lineY);
+    const anchorBand = facFeederAnchorBand(anchorY);
+    if (lineBand === 'middle') return true;
+    return lineBand === anchorBand;
+}
+
+function pickFacFeederNearestByX(items, refX) {
+    return items.reduce(
+        (best, cur) => (!best || Math.abs(cur.x - refX) < Math.abs(best.x - refX) ? cur : best)
+    );
+}
+
+/** 按段号 + 汇总区/出线端纵向分区配对馈线全称与出线短名 */
+function matchFacFeederAnchor(line, anchors) {
+    const lp = feederMatchParts(line.ts);
+    if (lp.core.length < 2) return null;
+    const sorted = anchors
+        .filter(
+            (a) =>
+                facFeederSameBand(line.y, a.y) &&
+                feederMatchParts(a.ts).core === lp.core
+        )
+        .sort((a, b) => a.x - b.x);
+    if (!sorted.length) return null;
+
+    if (lp.section) {
+        const exact = sorted.filter((a) => feederMatchParts(a.ts).section === lp.section);
+        if (exact.length) return pickFacFeederNearestByX(exact, line.x);
+        const idx = Math.min(parseInt(lp.section, 10) - 1, sorted.length - 1);
+        return sorted[idx];
+    }
+    return pickFacFeederNearestByX(sorted, line.x);
+}
+
+function isFacFeederLineLabel(text) {
+    const s = String(text || '').trim();
+    if (!s) return false;
+    if (/^\([^)]+\)$/.test(s)) return false;
+    return /线$/.test(s);
+}
+
+/** 出线端短名：府客1、Ⅱ府正1、I卫府2 等 */
+function isFacFeederAnchorLabel(text) {
+    const s = String(text || '').trim();
+    if (!s || isFacFeederLineLabel(s)) return false;
+    return /^[ⅠⅡⅢI]?[\u4e00-\u9fff]+?\d+$/.test(s) || /^I[\u4e00-\u9fff]+\d+$/.test(s);
+}
+
+/** 馈线附属说明：（重合闸长投）、（延津县）等，随馈线全称一起移动 */
+function isFacFeederAuxLabel(text) {
+    const s = String(text || '').trim();
+    if (!s || isFacFeederLineLabel(s) || isFacFeederAnchorLabel(s)) return false;
+    return /^\([^)]+\)$/.test(s);
+}
+
+/** 附属标签与馈线全称原位置的横向、纵向配对容差 */
+const FAC_FEEDER_AUX_MATCH_DX = 120;
+const FAC_FEEDER_AUX_MATCH_DY = 50;
+/** 馈线末端名称/附属说明字号上限，避免并列馈线文字互相遮挡 */
+const FAC_FEEDER_LINE_MAX_FS = 14;
+const FAC_FEEDER_AUX_MAX_FS = 12;
+/** SymbolParse.parseText 固定偏移，G 坐标需反算才能使文字中心落在馈线列上 */
+const FAC_FEEDER_TEXT_PARSE_OFFSET_X = 20;
+/** 馈线名称与附属说明（延津县/重合闸长投）行间距 */
+const FAC_FEEDER_AUX_LINE_GAP = 15;
+/** 母线上方馈线名称相对馈线末端额外上移间距 */
+const FAC_FEEDER_ABOVE_LINE_EXTRA_GAP = 15;
+
+function shrinkFacFeederTextFont(dom, maxFs) {
+    const raw = parseFloat(dom.getAttribute('fs'));
+    const base = Number.isFinite(raw) ? raw : 18;
+    const next = Math.min(base, maxFs);
+    dom.setAttribute('fs', String(next));
+    return next;
+}
+
+/** 与 TextUtil.getStrWidth 一致的文字宽度估算 */
+function estimateFacTextWidth(text, fs) {
+    let len = 0;
+    for (let i = 0; i < text.length; i++) {
+        len += text.charCodeAt(i) > 0xff ? fs : fs / 2;
+    }
+    return len;
+}
+
+function facFeederDomXFromCenter(centerX) {
+    return centerX - FAC_FEEDER_TEXT_PARSE_OFFSET_X;
+}
+
+/** 文字左缘对齐时，由左缘与字宽反算 G 文件 x */
+function facFeederDomXFromLeft(textLeft, textWidth) {
+    return textLeft + textWidth / 2 - FAC_FEEDER_TEXT_PARSE_OFFSET_X;
+}
+
+function markFacFeederTextHidden(dom) {
+    dom.setAttribute('data-fac-hide', '1');
+}
+
+/** 出线端 x/y 附近 ConnectLine 列中心（并列馈线列 x 接近时需按 y 区分） */
+function resolveFeederColumnX(linePts, refX, refY, tol = 45) {
+    let pool = linePts.filter((p) => Math.abs(p.x - refX) <= tol);
+    if (!pool.length) return refX;
+    if (Number.isFinite(refY)) {
+        const nearAnchorY = pool.filter((p) => Math.abs(p.y - refY) <= 120);
+        if (nearAnchorY.length >= 3) pool = nearAnchorY;
+    }
+    const buckets = new Map();
+    for (const p of pool) {
+        const k = Math.round(p.x);
+        buckets.set(k, (buckets.get(k) || 0) + 1);
+    }
+    let bestX = refX;
+    let bestCount = 0;
+    for (const [k, count] of buckets) {
+        const x = Number(k);
+        if (count > bestCount || (count === bestCount && Math.abs(x - refX) < Math.abs(bestX - refX))) {
+            bestCount = count;
+            bestX = x;
+        }
+    }
+    return bestX;
+}
+
+function collectFacLinePoints(children) {
+    const pts = [];
+    for (const dom of children) {
+        if (dom.nodeType !== 1) continue;
+        const nodeName = dom.nodeName;
+        if (nodeName !== 'ConnectLine' && nodeName !== 'ACLineEnd') continue;
+        const d = dom.getAttribute('d');
+        if (!d) continue;
+        for (const part of d.trim().split(/\s+/)) {
+            const [x, y] = part.split(',').map(Number);
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                pts.push({ x, y });
+            }
+        }
+    }
+    return pts;
+}
+
+/** 从 Bus 读取 10kV 北母/中母 y，用于判断馈线 outward 方向 */
+function detectFac10kVBusY(children) {
+    let northY = null;
+    let midY = null;
+    for (const dom of children) {
+        if (dom.nodeType !== 1 || dom.nodeName !== 'Bus') continue;
+        const keyName = dom.getAttribute('key_name') || '';
+        const y1 = parseFloat(dom.getAttribute('y1'));
+        if (!Number.isFinite(y1)) continue;
+        if (keyName.includes('10kV') && keyName.includes('北')) northY = y1;
+        if (keyName.includes('10kV') && keyName.includes('中')) midY = y1;
+    }
+    return { northY, midY };
+}
+
+/** 在馈线列（x 相近）上取 outward 方向最外端 y；横向始终用列心 columnX */
+function feederColumnOuterPoint(linePts, anchorX, anchorY, northY, midY, tol = 45) {
+    if (!linePts.length || !Number.isFinite(anchorX) || !Number.isFinite(anchorY)) return null;
+    const columnX = resolveFeederColumnX(linePts, anchorX, anchorY, tol);
+    let col = linePts.filter((p) => Math.abs(p.x - columnX) <= tol);
+    if (!col.length) return null;
+
+    const busY = anchorY < 350 ? northY : midY;
+    const outwardUp = Number.isFinite(busY) ? anchorY < busY : anchorY < 350;
+
+    if (Number.isFinite(busY)) {
+        const branch = col.filter((p) => (outwardUp ? p.y <= busY + 8 : p.y >= busY - 8));
+        if (branch.length) col = branch;
+    }
+
+    let onCol = col.filter((p) => Math.abs(p.x - columnX) <= 12);
+    if (!onCol.length) onCol = col;
+
+    const outerY = outwardUp
+        ? onCol.reduce((a, b) => (a.y < b.y ? a : b)).y
+        : onCol.reduce((a, b) => (a.y > b.y ? a : b)).y;
+
+    return { columnX, outerY };
+}
+
+/**
+ * G 文件常把馈线全称放在画布顶部/底部汇总区。
+ * 按名称配对出线端短名后，将全称标签移到该列馈线几何末端。
+ */
+function repositionFacFeederLineLabels(children) {
+    const linePts = collectFacLinePoints(children);
+    if (!linePts.length) return;
+
+    const { northY, midY } = detectFac10kVBusY(children);
+
+    const entries = [];
+    for (const dom of children) {
+        if (dom.nodeType !== 1 || dom.nodeName !== 'Text') continue;
+        const ts = dom.getAttribute('ts') || '';
+        if (!ts) continue;
+        const x = parseFloat(dom.getAttribute('x')) || 0;
+        const y = parseFloat(dom.getAttribute('y')) || 0;
+        const fs = parseFloat(dom.getAttribute('fs')) || 18;
+        entries.push({
+            dom,
+            ts,
+            x,
+            y,
+            fs,
+            isLine: isFacFeederLineLabel(ts),
+            isAnchor: isFacFeederAnchorLabel(ts),
+            isAux: isFacFeederAuxLabel(ts),
+        });
+    }
+
+    const lineLabels = entries.filter(e => e.isLine);
+    const anchors = entries.filter(e => e.isAnchor);
+    const auxLabels = entries.filter(e => e.isAux);
+    if (!lineLabels.length || !anchors.length) return;
+
+    for (const line of lineLabels) {
+        line.fs = shrinkFacFeederTextFont(line.dom, FAC_FEEDER_LINE_MAX_FS);
+    }
+    for (const aux of auxLabels) {
+        aux.fs = shrinkFacFeederTextFont(aux.dom, FAC_FEEDER_AUX_MAX_FS);
+    }
+
+    const lineMoves = new Map();
+    const placements = [];
+
+    for (const line of lineLabels) {
+        const best = matchFacFeederAnchor(line, anchors);
+        if (!best) continue;
+
+        const outer = feederColumnOuterPoint(linePts, best.x, best.y, northY, midY);
+        if (!outer) continue;
+
+        const busY = best.y < 350 ? northY : midY;
+        const gap = Math.max(10, line.fs * 0.7);
+        const outwardUp = Number.isFinite(busY) ? best.y < busY : best.y < 350;
+        const lineGap = outwardUp ? gap + FAC_FEEDER_ABOVE_LINE_EXTRA_GAP : gap;
+        placements.push({
+            line,
+            columnX: outer.columnX,
+            centerX: outer.columnX,
+            width: estimateFacTextWidth(line.ts, line.fs),
+            newY: outwardUp ? outer.outerY - lineGap : outer.outerY + lineGap,
+            outwardUp,
+        });
+    }
+
+    for (const item of placements) {
+        const { line, centerX, newY } = item;
+        const domX = facFeederDomXFromCenter(centerX);
+        line.dom.setAttribute('x', String(domX));
+        line.dom.setAttribute('y', String(newY));
+        lineMoves.set(line.dom, {
+            oldX: line.x,
+            oldY: line.y,
+            newX: domX,
+            newY,
+            centerX,
+            lineWidth: item.width,
+            lineFs: line.fs,
+        });
+    }
+
+    const auxMoved = new Set();
+    for (const aux of auxLabels) {
+        let pairedLine = null;
+        let bestScore = Infinity;
+        for (const line of lineLabels) {
+            const dy = Math.abs(aux.y - line.y);
+            if (dy > FAC_FEEDER_AUX_MATCH_DY) continue;
+            const dx = Math.abs(aux.x - line.x);
+            if (dx > FAC_FEEDER_AUX_MATCH_DX) continue;
+            const score = dx + dy;
+            if (score < bestScore) {
+                bestScore = score;
+                pairedLine = line;
+            }
+        }
+        if (!pairedLine) continue;
+        const move = lineMoves.get(pairedLine.dom);
+        if (!move) continue;
+        const lineLeft = move.centerX - move.lineWidth / 2;
+        const auxWidth = estimateFacTextWidth(aux.ts, aux.fs);
+        const auxDomX = facFeederDomXFromLeft(lineLeft, auxWidth);
+        const auxDomY = move.newY + FAC_FEEDER_AUX_LINE_GAP;
+        aux.dom.setAttribute('x', String(auxDomX));
+        aux.dom.setAttribute('y', String(auxDomY));
+        auxMoved.add(aux.dom);
+    }
+
+    for (const line of lineLabels) {
+        if (!lineMoves.has(line.dom)) markFacFeederTextHidden(line.dom);
+    }
+    for (const aux of auxLabels) {
+        if (!auxMoved.has(aux.dom)) markFacFeederTextHidden(aux.dom);
+    }
+}
+
 /**
  * LGSvgParser 要求：svg 下直接子节点为各 *_Layer 的 &lt;g&gt;，设备/线/文本为带 metadata 的分组。
  */
 function buildLgCompatibleBody(children, onWarn) {
+    repositionFacFeederLineLabels(children);
     // console.log(children);
     const textParts = [];
     const deviceParts = [];
@@ -461,6 +813,7 @@ function buildLgCompatibleBody(children, onWarn) {
                 break;
             }
             case 'Text': {
+                if (dom.getAttribute('data-fac-hide') === '1') break;
                 const inner = SymbolParse.parseText(dom);
                 if (inner) textParts.push(wrapTextBlock(dom, inner));
                 break;

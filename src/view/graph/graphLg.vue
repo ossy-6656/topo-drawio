@@ -1260,6 +1260,10 @@ function poleHelperHandler() {
 onMounted(() => {
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = true
+        const stationName = route.query.name != null ? String(route.query.name).trim() : ''
+        if (stationName) {
+            window.__lgInSiteStationName = stationName
+        }
     }
     if (isDatasetMode.value || isGFileMode.value) {
         window.__lgSimulationMenuEnabled = true
@@ -1368,6 +1372,7 @@ onBeforeUnmount(() => {
     }
     if (isGFileMode.value) {
         window.__lgInSiteSvgMode = false
+        delete window.__lgInSiteStationName
     }
     if (isDatasetMode.value || isGFileMode.value) {
         window.__lgSimulationMenuEnabled = false
