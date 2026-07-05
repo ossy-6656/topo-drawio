@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 本地 G 图调试脚本，不参与构建
+scripts/tmp-debug-*.cjs
