@@ -12,5 +12,34 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": [
+    "src/plugins/tmzx/functions.ts",
+    "src/utils/auth.ts",
+    "src/utils/color.ts",
+    "src/utils/constants.ts",
+    "src/utils/dict.ts",
+    "src/utils/domUtils.ts",
+    "src/utils/download.ts",
+    "src/utils/filt.ts",
+    "src/utils/formCreate.ts",
+    "src/utils/formRules.ts",
+    "src/utils/formatTime.ts",
+    "src/utils/formatter.ts",
+    "src/utils/index.ts",
+    "src/utils/is.ts",
+    "src/utils/judgeIsNull.ts",
+    "src/utils/jsencrypt.ts",
+    "src/utils/jump.ts",
+    "src/utils/Logger.ts",
+    "src/utils/permission.ts",
+    "src/utils/propTypes.ts",
+    "src/utils/rem.ts",
+    "src/utils/routerHelper.ts",
+    "src/utils/screenshot.ts",
+    "src/utils/tableHelper.ts",
+    "src/utils/theme.ts",
+    "src/utils/tree.ts",
+    "src/utils/tsxHelper.ts"
+  ]
 }

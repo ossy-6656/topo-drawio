@@ -148,6 +148,7 @@ import {
 
 // 导入 G 文件转换工具
 import { convertFacGBufferToSvg } from '@/view/graph/utils/facGToSvg.js' // G 文件转 SVG
+import { scheduleLgInSiteFixedOverLimitHighlight } from '@/view/graph/lg/lgRegionSimulation.js'
 // import { checkEditZjtPermission } from '@/api/tmzx/abnormalchange/index.ts'
 
 // 导入其他工具
@@ -813,6 +814,11 @@ async function loadGFromBuffer(arrayBuffer) {
         console.warn('[facG] 以下图元未在工程中加载:', missingSymbols)
     }
     loadSvgIntoEditor(svgStr)
+    if (isGFileMode.value) {
+        window.setTimeout(() => {
+            scheduleLgInSiteFixedOverLimitHighlight(uiEditor, lgsvgParser)
+        }, 1500)
+    }
     return svgStr
 }
 
@@ -1269,7 +1275,11 @@ onMounted(() => {
         window.__lgSimulationMenuEnabled = true
         window.__lgRegionFlowDataUrl =
             props.flowDataUrl ||
-            (isDatasetMode.value ? '/府城站配网潮流数据.json' : '')
+            (isDatasetMode.value
+                ? '/府城站配网潮流数据.json'
+                : isGFileMode.value
+                  ? '/新乡潮流计算结果（府城站）.json'
+                  : '')
     }
     if (isDatasetMode.value && typeof mxConstants !== 'undefined') {
         mxConstants.LINE_HEIGHT = LG_GRAPH_DATASET_NAME_LINE_HEIGHT

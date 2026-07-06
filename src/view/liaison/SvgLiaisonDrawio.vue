@@ -50,11 +50,21 @@
         <button
           class="action-btn"
           type="button"
+          :class="{ active: showLineNames }"
           :disabled="!liaisonDoc || !uiEditor || loading"
+          title="显示或隐藏图上线路名称（不影响站名）"
+          @click="toggleLineNames"
+        >
+          线路名称
+        </button>
+        <button
+          class="action-btn"
+          type="button"
+          :disabled="!liaisonDoc || !uiEditor || loading || refreshingMeasurements"
           title="保留已保存布局，仅从 JSON 刷新 P/Q、潮流箭头与开关状态"
           @click="refreshMeasurementsFromJson"
         >
-          刷新量测
+          {{ refreshingMeasurements ? '刷新中…' : '刷新量测' }}
         </button>
       </div>
       <div class="toolbar-right">
@@ -655,10 +665,10 @@ const msgboxConfirmOpts = {
   cancelButtonText: '取消',
 }
 
-/** 两级站间图示例：lv1 区域概览，lv2 站内展开 */
+/** 两级站间图示例：lv1 区域概览，lv2 新乡 35-220 含坐标详图 */
 const LIAISON_LEVEL_FILES = {
   lv1: '/svgLiaisonJson/新乡220-500.json',
-  lv2: '/svgLiaisonJson/府城站.json',
+  lv2: '/svgLiaisonJson/新乡35-220_含潮流_含坐标.json',
 }
 
 function resolveLiaisonLevelFromRoute(r = route) {
@@ -672,30 +682,82 @@ function resolveLiaisonFileFromRoute(r = route) {
 
 const liaisonDemoLevel = computed(() => resolveLiaisonLevelFromRoute())
 
+/** 新乡35-220：缩小 110/35kV 站框与字号（tier 2/1），35kV 为原档 70%，220kV 不变 */
+function resolveStationVisualScaleForFile(filePath) {
+  const p = String(filePath || '')
+  if (p.includes('新乡35-220')) {
+    return {
+      box: { 2: 0.82, 1: 0.62 },
+      font: { 2: 0.89, 1: 0.6 },
+    }
+  }
+  return null
+}
+
+/** 新乡演示图：按 JSON 文件使用独立 geoLayout 参数集 */
+function resolveGeoLayoutOptionsForFile(filePath) {
+  const p = String(filePath || '')
+  if (p.includes('新乡35-220')) {
+    return {
+      boundsPercentile: 0.07,
+      lonLogAlpha: 2.2,
+      latAxisPower: 0.72,
+      lonRankBlend: 0.38,
+      anchorWeight: 0.02,
+      boxEdgeGap: 20,
+      maxPush: 72,
+      maxIter: 220,
+      overlapResolveIters: 480,
+    }
+  }
+  if (p.includes('新乡220-500')) {
+    return {
+      boundsPercentile: 0.06,
+      /** 东侧多裁一点，使远端站进入「尾部压缩」区间 */
+      boundsPercentileLonMax: 0.12,
+      lonAxisPower: 0.88,
+      latAxisPower: 1.28,
+      /** 经度尾部压缩：孔雀~厨乡等东侧稀疏站群拉回主区域 */
+      lonTailStart: 0.52,
+      lonTailEnd: 0.8,
+      lonTailPower: 2.2,
+      lonTailCap: 1.3,
+      lonRankBlend: 0.12,
+      anchorWeight: 0.1,
+      boxEdgeGap: 8,
+      maxPush: 56,
+      maxIter: 120,
+      overlapResolveIters: 60,
+      layoutScale: 0.82,
+    }
+  }
+  return null
+}
+
 /** Parser 选项：演示默认不展示量测与潮流箭头，点「刷新量测」后再开 */
 function liaisonParserOptions() {
   return {
     showLabels: true,
+    showLineNames: showLineNames.value,
     showMeasurements: false,
     theme: canvasTheme.value,
     layoutMode: 'auto',
+    geoLayout: resolveGeoLayoutOptionsForFile(selectedFile.value),
+    stationVisualScale: resolveStationVisualScaleForFile(selectedFile.value),
   }
 }
 
 const sampleFiles = [
   { label: '新乡220-500.json', path: LIAISON_LEVEL_FILES.lv1 },
-  { label: '府城站.json', path: LIAISON_LEVEL_FILES.lv2 },
-  { label: '庆丰站.json', path: '/svgLiaisonJson/庆丰站.json' },
-  { label: '滨河站.json', path: '/svgLiaisonJson/滨河站.json' },
-  { label: '原武站.json', path: '/svgLiaisonJson/原武站.json' },
-  { label: '兰湾站.json', path: '/svgLiaisonJson/兰湾站.json' },
-  { label: '人民.json', path: '/svgLiaisonJson/人民.json' },
-  { label: '徐庄.json', path: '/svgLiaisonJson/徐庄.json' },
+  { label: '新乡35-220_含潮流_含坐标.json', path: LIAISON_LEVEL_FILES.lv2 },
+  { label: '府城站.json', path: '/svgLiaisonJson/府城站.json' },
 ]
 
 const selectedFile = ref(resolveLiaisonFileFromRoute())
 const loading = ref(false)
+const refreshingMeasurements = ref(false)
 const canvasTheme = ref('light')
+const showLineNames = ref(true)
 
 const CANVAS_THEMES = {
   dark: { bg: '#000000', grid: '#252525' },
@@ -1054,7 +1116,10 @@ function finishLiaisonEditorAfterGraphReady(
     requestAnimationFrame(() => {
       fitLiaisonGraphToWindow(ui)
       if (graph.view?.validate) graph.view.validate()
-      parser.syncMeasurementsFromDoc()
+      // 默认不展示量测时 parseSvg/已保存 XML 已含样式，跳过 600+ 单元格二次同步
+      if (parser.options.showMeasurements === true) {
+        void parser.syncMeasurementsFromDoc({ asyncYield: true })
+      }
     })
   }
 
@@ -1072,6 +1137,7 @@ function finalizeEditorMount(ui) {
   parser.setGraph(graph)
   parser.setData(liaisonDoc.value)
   parser.options.showLabels = true
+  parser.options.showLineNames = showLineNames.value
   parser.options.theme = canvasTheme.value
 
   if (pendingSavedGraphXml.value) {
@@ -1848,27 +1914,66 @@ function shrinkLayoutTowardCenter() {
   ElMessage.success(`已向中心收缩 5%（${result.moved} 个站/母线点）`)
 }
 
+/** 一键显示/隐藏图上线路名称（不改布局、不影响站名） */
+function toggleLineNames() {
+  const parser = getParser()
+  if (!parser) return
+  showLineNames.value = !showLineNames.value
+  parser.options.showLineNames = showLineNames.value
+  parser.syncAllLineNameLabels()
+}
+
+/** 演示：府城站负载率告警 */
+const DEMO_FUCHENG_LOAD_PERCENT = 85
+
+function stationNameIncludesFucheng(name) {
+  return String(name || '').includes('府城')
+}
+
+/** 写入演示负载率，返回 station_id 供闪烁 */
+function applyFuchengDemoLoadRate(doc) {
+  const stations = doc?.data?.station_data
+  if (!Array.isArray(stations)) return null
+  const st = stations.find((s) => stationNameIncludesFucheng(s.station_name))
+  if (!st?.station_id) return null
+  st.res_trafo_max_loading_percent = DEMO_FUCHENG_LOAD_PERCENT
+  return st.station_id
+}
+
+function startFuchengDemoBlink(parser, stationId) {
+  if (!parser || !stationId) return
+  parser.startStationAlarmBlink(stationId)
+}
+
 /**
  * 策略 B：后台仅更新 JSON 量测、graphXml 不变时调用。
  * 演示：重新拉取当前样例 JSON，合并进内存并刷新画布量测层（不改动布局 XML）。
  */
-async function refreshMeasurementsFromJson() {
+async function refreshMeasurementsFromJson({ silent = false } = {}) {
   const parser = getParser()
   const graph = getGraph()
-  if (!parser || !graph || !liaisonDoc.value) return
+  if (!parser || !graph || !liaisonDoc.value || refreshingMeasurements.value) return
 
+  refreshingMeasurements.value = true
   try {
     const response = await fetch(encodeURI(selectedFile.value))
     if (!response.ok) throw new Error(`请求失败: ${response.status}`)
-    const remote = normalizeLiaisonEnvelope(await response.json())
+    // 刷新量测只需合并字段，不必再跑一遍 slim（大图会阻塞主线程）
+    const remote = await response.json()
     mergeMeasurementFieldsIntoDoc(liaisonDoc.value, remote)
+    const fuchengId = applyFuchengDemoLoadRate(liaisonDoc.value)
     parser.setData(liaisonDoc.value)
     parser.options.showMeasurements = true
-    parser.syncMeasurementsFromDoc()
-    ElMessage.success('已刷新量测（布局未改）')
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await parser.syncMeasurementsFromDoc({ asyncYield: true })
+    if (fuchengId) startFuchengDemoBlink(parser, fuchengId)
+    else parser.stopStationAlarmBlink?.()
+    if (!silent) ElMessage.success('已刷新量测（布局未改）')
   } catch (error) {
     console.error(error)
-    ElMessage.error(`刷新量测失败：${error.message || '未知错误'}`)
+    if (!silent) ElMessage.error(`刷新量测失败：${error.message || '未知错误'}`)
+  } finally {
+    refreshingMeasurements.value = false
   }
 }
 
@@ -1882,7 +1987,13 @@ function mergeMeasurementFieldsIntoDoc(target, source) {
     const src = stById.get(st.station_id)
     if (!src) return
     if (Array.isArray(src.trafo_display_list)) {
-      st.trafo_display_list = JSON.parse(JSON.stringify(src.trafo_display_list))
+      st.trafo_display_list = src.trafo_display_list.map((row) => ({ ...row }))
+    }
+    if (src.res_trafo_max_loading_percent !== undefined) {
+      st.res_trafo_max_loading_percent = src.res_trafo_max_loading_percent
+    }
+    if (src.res_trafo_sum_loading_percent !== undefined) {
+      st.res_trafo_sum_loading_percent = src.res_trafo_sum_loading_percent
     }
   })
 
@@ -1902,7 +2013,7 @@ function mergeMeasurementFieldsIntoDoc(target, source) {
       })
     }
     if (Array.isArray(src.switch_data)) {
-      ch.switch_data = JSON.parse(JSON.stringify(src.switch_data))
+      ch.switch_data = src.switch_data.map((row) => ({ ...row }))
     }
   })
 }
@@ -2250,12 +2361,16 @@ function saveLiaisonWork() {
     return
   }
   const viewState = captureGraphViewState(uiEditor.editor.graph)
-  saveLiaisonBundle(selectedFile.value, liaisonDoc.value, graphXml, viewState)
+  const savedLocal = saveLiaisonBundle(selectedFile.value, liaisonDoc.value, graphXml, viewState)
   const base = selectedFile.value.split('/').pop() || 'liaison.json'
   downloadLiaisonBundle(base, liaisonDoc.value, graphXml, viewState)
   uiEditor.editor.setModified(false)
   if (uiEditor.editor.undoManager?.clear) uiEditor.editor.undoManager.clear()
-  ElMessage.success('已保存图形与 JSON（浏览器本地 + 已下载 bundle 文件）')
+  if (savedLocal) {
+    ElMessage.success('已保存图形与 JSON（浏览器本地 + 已下载 bundle 文件）')
+  } else {
+    ElMessage.success('大图已下载 bundle 文件（未写入浏览器缓存）')
+  }
 }
 
 function resetStationDialogForm() {
@@ -2670,7 +2785,12 @@ async function loadSelectedFile() {
     const jsonData = await response.json()
     let doc = normalizeLiaisonEnvelope(jsonData)
     const preferStatic = String(route.query?.bundle || '').toLowerCase() === 'static'
-    const bundle = await loadLiaisonBundleWithFallback(selectedFile.value, { preferStatic })
+    const { bundle, staticBundleSkippedLarge } = await loadLiaisonBundleWithFallback(selectedFile.value, {
+      preferStatic,
+    })
+    if (staticBundleSkippedLarge) {
+      ElMessage.info('bundles 中已保存图形过大，已跳过自动加载，将按 JSON 算法成图')
+    }
     if (bundle?.json) {
       doc = normalizeLiaisonEnvelope(bundle.json)
     }
@@ -2716,6 +2836,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleLiaisonUndoRedoShortcut)
+  getParser()?.stopStationAlarmBlink?.()
   destroyEditor()
 })
 </script>
@@ -2777,6 +2898,12 @@ onBeforeUnmount(() => {
 .action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.action-btn.active {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1e40af;
 }
 
 .rule-tag {

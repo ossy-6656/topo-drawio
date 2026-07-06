@@ -21,6 +21,7 @@ import {
     isLgRegionFeederCustomLink,
     resolveLgRegionFeederCellAt,
 } from '@/view/graph/lg/lgRegionFeederClick.js'
+import { resolveLgInSiteFeederCellAt } from '@/view/graph/lg/lgInSiteFeederClick.js'
 
 mxGraph.prototype.splitEnabled = false
 
@@ -129,8 +130,9 @@ function handleInSiteFeederCellClick(cell) {
     }
     const feederKey = cell.feederKeyName || cell.name || '';
     const payload = {
-        feeder: cell.name || feederShortNameFromKey(feederKey) || feederKey,
-        feederKey,
+        feeder: cell.lgInSiteFeederLabel || cell.name || feederShortNameFromKey(feederKey) || feederKey,
+        feederKey: cell.feederKeyName || cell.lgInSiteFeederLabel || feederKey,
+        dataset: cell.lgInSiteFeederDataset || '',
         keyid: cell.keyid || cell.id || '',
         rtkeyid: cell.rtkeyid || '',
     };
@@ -228,6 +230,15 @@ Graph.prototype.init = function (container) {
             if (rawEvt && sender?.container) {
                 const pt = mxUtils.convertPoint(sender.container, mxEvent.getClientX(rawEvt), mxEvent.getClientY(rawEvt))
                 const resolved = resolveLgRegionFeederCellAt(sender, pt.x, pt.y)
+                if (resolved) {
+                    cell = resolved
+                }
+            }
+        } else if (window.__lgInSiteSvgMode) {
+            const rawEvt = evt.getProperty('event')
+            if (rawEvt && sender?.container) {
+                const pt = mxUtils.convertPoint(sender.container, mxEvent.getClientX(rawEvt), mxEvent.getClientY(rawEvt))
+                const resolved = resolveLgInSiteFeederCellAt(sender, pt.x, pt.y)
                 if (resolved) {
                     cell = resolved
                 }

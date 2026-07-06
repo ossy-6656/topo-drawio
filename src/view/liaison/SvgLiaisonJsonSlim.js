@@ -14,6 +14,48 @@ export function isExternalBoundaryStation(stationName) {
   return /^竹贤站(?:\.|$)/.test(raw) || /^祥符站(?:\.|$)/.test(raw)
 }
 
+/** 名称含 T+数字（如 T1站、T2站.115.10）的虚拟 T 接点 */
+export function isVirtualT10Station(stationName, shortName) {
+  const full = String(stationName || shortName || '')
+  const short = String(shortName || '')
+  if (/T\d+站/i.test(full)) return true
+  if (/T\d+/i.test(full)) return true
+  if (short !== full && /T\d+/i.test(short)) return true
+  return false
+}
+
+/**
+ * 末端 T 接点：虚拟 T 站且仅参与 1 条 ≥35kV 通道（如慈云站下的 新乡.T2站.115.10）。
+ * 成图时不展示该接点及其线路。
+ */
+export function computeTerminalVirtualTStationIds(stationData, channelData) {
+  const stations = Array.isArray(stationData) ? stationData : []
+  const channels = Array.isArray(channelData) ? channelData : []
+  const virtualIds = new Set()
+  for (const raw of stations) {
+    if (!raw?.station_id) continue
+    if (isVirtualT10Station(raw.station_name)) virtualIds.add(raw.station_id)
+  }
+  const degree = new Map()
+  for (const ch of channels) {
+    if (Number(ch?.min_vn_kv || 0) < 35) continue
+    const from = ch.from_station
+    const to = ch.to_station
+    if (virtualIds.has(from)) degree.set(from, (degree.get(from) || 0) + 1)
+    if (virtualIds.has(to)) degree.set(to, (degree.get(to) || 0) + 1)
+  }
+  const terminal = new Set()
+  virtualIds.forEach((id) => {
+    if ((degree.get(id) || 0) <= 1) terminal.add(id)
+  })
+  return terminal
+}
+
+export function channelHasTerminalVirtualT(channel, terminalIds) {
+  if (!channel || !terminalIds?.size) return false
+  return terminalIds.has(channel.from_station) || terminalIds.has(channel.to_station)
+}
+
 function slimTrafoDisplayRow(row) {
   const o = {}
   if (row.p_mw != null && !Number.isNaN(Number(row.p_mw))) o.p_mw = Number(row.p_mw)
@@ -117,17 +159,23 @@ export function estimateLiaisonPayloadBytes(data) {
 export function slimLiaisonDataPayload(data) {
   const d = data && typeof data === 'object' ? data : {}
   const rawStations = Array.isArray(d.station_data) ? d.station_data : []
+  const rawChannels = Array.isArray(d.channel_data) ? d.channel_data : []
+  const terminalVirtualTIds = computeTerminalVirtualTStationIds(rawStations, rawChannels)
   const slimStationsAll = rawStations.map(slimStation)
   const stationsDraw = slimStationsAll.filter(
-    (s) => s.station_id && normalizeKV(s.vn_kv) >= 35 && !isExternalBoundaryStation(s.station_name)
+    (s) =>
+      s.station_id &&
+      normalizeKV(s.vn_kv) >= 35 &&
+      !isExternalBoundaryStation(s.station_name) &&
+      !terminalVirtualTIds.has(s.station_id)
   )
   const keptIds = new Set(stationsDraw.map((s) => s.station_id))
 
-  const rawChannels = Array.isArray(d.channel_data) ? d.channel_data : []
   const slimChannelsAll = rawChannels.map(slimChannel)
   const channelsDraw = slimChannelsAll.filter((c) => {
     const minKV = Number(c.min_vn_kv || 0)
     if (minKV < 35) return false
+    if (channelHasTerminalVirtualT(c, terminalVirtualTIds)) return false
     if (!keptIds.has(c.from_station) || !keptIds.has(c.to_station)) return false
     return true
   })

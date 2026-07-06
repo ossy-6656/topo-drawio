@@ -262,8 +262,14 @@ function wrapAclineEndGroup(dom, innerSvg, idx) {
 
 function wrapTextBlock(dom, textXml) {
     const rawId = dom.getAttribute('id') || 'TXT_misc';
-    const gId = rawId.indexOf('TXT-') === 0 ? rawId : `TXT-${rawId}`;
-    const pid = dom.getAttribute('pid');
+    const ts = dom.getAttribute('ts') || '';
+    const fatherId = dom.getAttribute('p_FatherObjId') || dom.getAttribute('FatherObjId') || '';
+    let textLinkId = rawId;
+    if (fatherId && /#\d+主变/.test(ts)) {
+        textLinkId = fatherId;
+    }
+    const gId = textLinkId.indexOf('TXT-') === 0 ? textLinkId : `TXT-${textLinkId}`;
+    const pid = dom.getAttribute('pid') || (fatherId && textLinkId !== rawId ? fatherId : '');
     const pidPart = pid ? ` pid="${escapeXmlAttr(pid)}"` : '';
     let inner = textXml.replace(/\s+id\s*=\s*"[^"]*"/i, ' ');
     const fs = dom.getAttribute('fs');

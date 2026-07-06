@@ -13,6 +13,7 @@ import PoleHandler from '@/plugins/tmzx/graph/PoleHandler';
 import { sbzlx2nameMap } from '@/plugins/tmzx/graph/graph.js';
 import { customShapeLs, isLgLoadShapeOrPsr, isLgPtUserShapeOrPsr, isLgSidebarRotatableShapeOrPsr, isLgSwitchShapeOrPsr, lgSidebarDeviceIdsByLengthDesc, LG_GRAPH_DATASET_NAME_LINE_HEIGHT, LG_IN_SITE_GFILE_SIDEBAR_SHAPE_KEYS } from './Constants.js';
 import { installLgBreakerEdgeDrop } from './lgBreakerOnEdge.js';
+import { scheduleLgInSiteFixedOverLimitHighlight } from './lgRegionSimulation.js';
 import {
     applyLgPvIconShineOverlays,
     installLgPvIconShineListeners,
@@ -3286,6 +3287,10 @@ export default class LGSvgParser extends SvgBase {
         this.initValidateEvt();
 
         installLgBreakerEdgeDrop(graph, this);
+
+        if (window.__lgInSiteSvgMode === true && this.ui) {
+            scheduleLgInSiteFixedOverLimitHighlight(this.ui, this)
+        }
 
         this.textBeauty = new TextBeauty(graph, this.getSymbolMap());
         // this.addEvent()

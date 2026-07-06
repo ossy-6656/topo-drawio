@@ -7,6 +7,15 @@
 
 export const LIAISON_BUNDLE_VERSION = 1
 
+/** 超过此体积的 bundle 不写 localStorage，仅下载本地文件 */
+export const LIAISON_LOCAL_STORAGE_MAX_BYTES = 512 * 1024
+
+/** 超过此体积的 public/bundles 静态 bundle 不自动加载（避免大图 import XML 卡死页面） */
+export const LIAISON_STATIC_BUNDLE_MAX_BYTES = 2 * 1024 * 1024
+
+/** ?bundle=static 时允许加载的静态 bundle 上限（仍可能较慢，需显式 opt-in） */
+export const LIAISON_STATIC_BUNDLE_FORCE_MAX_BYTES = 8 * 1024 * 1024
+
 export function liaisonStorageKey(filePath) {
   return `liaison_bundle_v1:${filePath || 'default'}`
 }
@@ -17,12 +26,52 @@ function parseLiaisonBundleObject(o) {
   return o
 }
 
-export function loadLiaisonBundle(filePath) {
+export function estimateBundleStorageBytes(json, graphXml, viewState) {
+  try {
+    return new TextEncoder().encode(
+      JSON.stringify({
+        version: LIAISON_BUNDLE_VERSION,
+        savedAt: '',
+        json,
+        graphXml,
+        viewState: viewState || null,
+      })
+    ).length
+  } catch {
+    return Number.POSITIVE_INFINITY
+  }
+}
+
+export function shouldPersistBundleToLocalStorage(json, graphXml, viewState) {
+  return estimateBundleStorageBytes(json, graphXml, viewState) <= LIAISON_LOCAL_STORAGE_MAX_BYTES
+}
+
+export function estimateLiaisonBundleObjectBytes(bundle) {
+  if (!bundle) return 0
+  return estimateBundleStorageBytes(bundle.json, bundle.graphXml, bundle.viewState)
+}
+
+function isBundleWithinMaxBytes(bundle, maxBytes) {
+  if (!bundle || !maxBytes || maxBytes <= 0) return true
+  return estimateLiaisonBundleObjectBytes(bundle) <= maxBytes
+}
+
+export function loadLiaisonBundle(filePath, options = {}) {
   if (typeof localStorage === 'undefined') return null
+  const { maxBytes = LIAISON_LOCAL_STORAGE_MAX_BYTES } = options
   try {
     const raw = localStorage.getItem(liaisonStorageKey(filePath))
     if (!raw) return null
-    return parseLiaisonBundleObject(JSON.parse(raw))
+    if (maxBytes > 0 && new TextEncoder().encode(raw).length > maxBytes) {
+      console.warn('[liaison] localStorage bundle too large, skipped', filePath)
+      return null
+    }
+    const bundle = parseLiaisonBundleObject(JSON.parse(raw))
+    if (!isBundleWithinMaxBytes(bundle, maxBytes)) {
+      console.warn('[liaison] localStorage bundle payload too large, skipped', filePath)
+      return null
+    }
+    return bundle
   } catch {
     return null
   }
@@ -53,16 +102,68 @@ export function pickNewerLiaisonBundle(localBundle, staticBundle) {
     : localBundle
 }
 
-export async function fetchStaticLiaisonBundle(filePath) {
+export async function fetchStaticLiaisonBundle(filePath, options = {}) {
   const staticPath = resolveStaticLiaisonBundlePath(filePath)
-  if (!staticPath) return null
+  if (!staticPath) return { bundle: null, skippedLarge: false }
+
+  const { maxBytes = LIAISON_STATIC_BUNDLE_MAX_BYTES } = options
 
   try {
     const response = await fetch(encodeURI(staticPath))
-    if (!response.ok) return null
-    return parseLiaisonBundleObject(await response.json())
+    if (!response.ok) return { bundle: null, skippedLarge: false }
+
+    const contentLength = Number(response.headers.get('Content-Length'))
+    if (contentLength > 0 && maxBytes > 0 && contentLength > maxBytes) {
+      console.warn('[liaison] static bundle too large, skipped auto-load', staticPath, contentLength)
+      return { bundle: null, skippedLarge: true }
+    }
+
+    let text
+    if (response.body && typeof response.body.getReader === 'function' && maxBytes > 0) {
+      const reader = response.body.getReader()
+      const chunks = []
+      let total = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        total += value.byteLength
+        if (total > maxBytes) {
+          console.warn('[liaison] static bundle too large, skipped auto-load', staticPath, total)
+          try {
+            await reader.cancel()
+          } catch {
+            /* ignore */
+          }
+          return { bundle: null, skippedLarge: true }
+        }
+        chunks.push(value)
+      }
+      text = new TextDecoder().decode(
+        chunks.reduce((acc, cur) => {
+          const merged = new Uint8Array(acc.length + cur.length)
+          merged.set(acc)
+          merged.set(cur, acc.length)
+          return merged
+        }, new Uint8Array(0))
+      )
+    } else {
+      text = await response.text()
+    }
+
+    const byteLen = new TextEncoder().encode(text).length
+    if (maxBytes > 0 && byteLen > maxBytes) {
+      console.warn('[liaison] static bundle too large, skipped auto-load', staticPath, byteLen)
+      return { bundle: null, skippedLarge: true }
+    }
+
+    const bundle = parseLiaisonBundleObject(JSON.parse(text))
+    if (!isBundleWithinMaxBytes(bundle, maxBytes)) {
+      console.warn('[liaison] static bundle payload too large, skipped auto-load', staticPath)
+      return { bundle: null, skippedLarge: true }
+    }
+    return { bundle, skippedLarge: false }
   } catch {
-    return null
+    return { bundle: null, skippedLarge: false }
   }
 }
 
@@ -72,11 +173,19 @@ export async function fetchStaticLiaisonBundle(filePath) {
  */
 export async function loadLiaisonBundleWithFallback(filePath, options = {}) {
   const { preferStatic = false } = options
-  const cached = loadLiaisonBundle(filePath)
-  const staticBundle = await fetchStaticLiaisonBundle(filePath)
+  const maxBytes = preferStatic
+    ? LIAISON_STATIC_BUNDLE_FORCE_MAX_BYTES
+    : LIAISON_STATIC_BUNDLE_MAX_BYTES
+  const cached = loadLiaisonBundle(filePath, { maxBytes })
+  const { bundle: staticBundle, skippedLarge: staticBundleSkippedLarge } = await fetchStaticLiaisonBundle(
+    filePath,
+    { maxBytes }
+  )
 
   let bundle = preferStatic && staticBundle ? staticBundle : pickNewerLiaisonBundle(cached, staticBundle)
-  if (!bundle) return null
+  if (!bundle) {
+    return { bundle: null, staticBundleSkippedLarge: staticBundleSkippedLarge && !preferStatic }
+  }
 
   const source =
     bundle === staticBundle ? 'static' : bundle === cached ? 'localStorage' : 'unknown'
@@ -84,10 +193,33 @@ export async function loadLiaisonBundleWithFallback(filePath, options = {}) {
     console.info('[liaison] bundle loaded from', source, filePath, bundle.savedAt || '')
   }
 
-  if (bundle === staticBundle || bundle !== cached) {
+  if (
+    (bundle === staticBundle || bundle !== cached) &&
+    shouldPersistBundleToLocalStorage(bundle.json, bundle.graphXml, bundle.viewState)
+  ) {
     saveLiaisonBundle(filePath, bundle.json, bundle.graphXml, bundle.viewState)
   }
-  return bundle
+  return { bundle, staticBundleSkippedLarge: false }
+}
+
+/** 小图写入 localStorage；大图跳过（由页面仅下载 bundle 文件） */
+export function saveLiaisonBundle(filePath, json, graphXml, viewState) {
+  if (typeof localStorage === 'undefined') return false
+  if (!shouldPersistBundleToLocalStorage(json, graphXml, viewState)) return false
+  const payload = {
+    version: LIAISON_BUNDLE_VERSION,
+    savedAt: new Date().toISOString(),
+    json,
+    graphXml,
+    viewState: viewState || null,
+  }
+  try {
+    localStorage.setItem(liaisonStorageKey(filePath), JSON.stringify(payload))
+    return true
+  } catch (err) {
+    console.warn('[liaison] localStorage save skipped', err)
+    return false
+  }
 }
 
 /** 捕获当前画布缩放与平移（setGraphXml 会重置 scale=1，须单独保存） */
@@ -144,19 +276,6 @@ export function fitLiaisonGraphToWindow(ui) {
       if (ui.toolbar?.updateZoom) ui.toolbar.updateZoom()
     }
   }
-}
-
-export function saveLiaisonBundle(filePath, json, graphXml, viewState) {
-  if (typeof localStorage === 'undefined') return
-  const payload = {
-    version: LIAISON_BUNDLE_VERSION,
-    savedAt: new Date().toISOString(),
-    json,
-    graphXml,
-    viewState: viewState || null,
-  }
-  localStorage.setItem(liaisonStorageKey(filePath), JSON.stringify(payload))
-  return payload
 }
 
 export function clearLiaisonBundle(filePath) {

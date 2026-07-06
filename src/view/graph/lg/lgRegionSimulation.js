@@ -1,5 +1,6 @@
 /**
  * 区域系统图仿真菜单：潮流数据上图、越限设备高亮（/in-site-svg 仅潮流上图，母线/主变专用标签）
+ * /in-site-svg 固定越限演示：#2主变、府馨线红色闪烁并展示负载率
  * 潮流匹配：SVG 图元 metadata 中 cge:PSR_Ref.GlobeID ↔ JSON 的 busid/lineid/trafoid
  * /graphLg 潮流数据上图：使用 public/府城站配网潮流数据.json，母线/线路/机组匹配 data.res_sub_system 的 res_bus / res_line / res_gen
  * /graphLg 越限设备高亮：匹配 data.res_sub_system 下的 res_bus / res_line / res_trafo 等
@@ -13,6 +14,12 @@ import {
     lgSwitchStatusLabel,
 } from '@/view/graph/lg/Constants.js'
 import { getLgFlowOverlayFontColor } from '@/view/graph/lg/lgCanvasTheme.js'
+import {
+    LG_IN_SITE_FUXIN_FEEDER_DATASET,
+    LG_IN_SITE_FUXIN_FEEDER_LABEL,
+    markLgInSiteFeederCell,
+    refreshLgInSiteFeederCellIndex,
+} from '@/view/graph/lg/lgInSiteFeederClick.js'
 
 /** /graphLg 默认潮流数据（配网子系统 res_sub_system） */
 const DEFAULT_FLOW_DATA_URL = '/府城站配网潮流数据.json'
@@ -39,12 +46,24 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 const LG_FLOW_MOTION_ATTR = 'data-lg-flow-motion'
 const WARN_HIGHLIGHT_STROKE = '#ff0000'
 const HIGHLIGHT_STROKE_WIDTH = 4
+const FEEDER_LINE_BLINK_STROKE_WIDTH = 1.5
 const BLINK_INTERVAL_MS = 600
 const SHAPE_TINT_SELECTOR = 'path,circle,ellipse,line,rect,polygon,polyline,text'
 
 const VM_LOW_LIMIT = 0.95
 const VM_HIGH_LIMIT = 1.05
 const LOADING_WARN_PERCENT = 80
+/** /in-site-svg 固定越限演示设备（JSON 负载率不足时回退为演示值） */
+const IN_SITE_FIXED_OVERLIMIT_DEMO = {
+    trafo2: 92.5,
+    fuxinFeeder: 92.5,
+}
+
+const LG_FEEDER_WARN_OVERLAY_ATTR = 'data-lg-feeder-warn'
+/** 府城站 G 文件（01124107000002）府馨线 ConnectLine 兜底 id（仅下口 23 板列） */
+const IN_SITE_FUXIN_FALLBACK_LINE_IDS = [
+    '34007588', '34007589', '34007590', '34007591',
+]
 
 let flowDataCache = null
 let flowDataUrlCache = ''
@@ -54,11 +73,16 @@ const highlightedCells = new Set()
 const savedHighlightStyles = new Map()
 /** @type {Map<string, Array<{stroke: string|null, fill: string|null, strokeWidth: string|null}>>} */
 const warnShapeColorTemplates = new Map()
+/** @type {Set<object>} 府馨线等馈线边：overlay 层红色线段闪烁 */
+const feederWarnEdgeCells = new Set()
 let overLimitHighlightOn = false
 let warnBlinkTimer = null
 let warnBlinkGraph = null
 let warnBlinkPhaseOn = true
 let warnBlinkSyncHandler = null
+/** @type {{ graph: object, parser: object, items: Array<{ id: string, label: string, kind: string, trafoCell?: object }> } | null} */
+let inSiteWarnOverlayContext = null
+let inSiteWarnOverlayRefreshTimer = null
 /** @type {{ graph: object, items: Array<{ edge: object, record: object }>, parser: object, indexes: object } | null} */
 let lgFlowMotionContext = null
 let lgFlowMotionRefreshTimer = null
@@ -81,7 +105,10 @@ function isLgInSiteSvgMode() {
 const IN_SITE_VOLTYPE_KV = { 1005: 230, 1006: 115, 1008: 10, 1010: 10 }
 
 /** /in-site-svg 主变：侧栏变压器 + G 文件 Transformer3(0304) / powertransformer 图元 */
-function isLgInSiteMainTransformerDevice(cell, graph) {
+function isLgInSiteMainTransformerDevice(cell, graph, parser) {
+    const pm = parser ? getCellPropMap(cell, parser) : null
+    const psrType = pm?.['cge:PSR_Ref']?.PSRType
+    if (psrType === '0304') return true
     const { shape, psrtype } = getCellShapeInfo(cell, graph)
     if (
         shape === 'potentialtransformer2w' ||
@@ -96,8 +123,9 @@ function isLgInSiteMainTransformerDevice(cell, graph) {
 }
 
 function getFlowDataUrl() {
-    if (window.__lgRegionFlowDataUrl) {
-        return window.__lgRegionFlowDataUrl
+    const custom = window.__lgRegionFlowDataUrl
+    if (custom != null && String(custom).trim()) {
+        return String(custom).trim()
     }
     return isLgInSiteSvgMode() ? IN_SITE_DEFAULT_FLOW_DATA_URL : DEFAULT_FLOW_DATA_URL
 }
@@ -788,7 +816,12 @@ function matchInSiteBusByVoltypeAndName(cell, graph, parser, indexes) {
 }
 
 function extractInSiteTrafoNum(text) {
-    const m = String(text || '').match(/#(\d+)主变/)
+    const s = String(text || '')
+    let m = s.match(/#(\d+)主变/)
+    if (m) return Number(m[1])
+    m = s.match(/(?:^|[.#\s])府#(\d+)主变/)
+    if (m) return Number(m[1])
+    m = s.match(/#(\d+)号主变/)
     return m ? Number(m[1]) : null
 }
 
@@ -805,7 +838,40 @@ function pickInSiteTrafoDisplayRecord(records) {
 function getInSiteTrafoLabelText(cell, parser) {
     const pm = getCellPropMap(cell, parser)
     const psr = pm?.['cge:PSR_Ref'] || {}
-    return psr.key_name || psr.key_name1 || psr.ObjectName || cell.name || ''
+    const candidates = [
+        psr.key_name,
+        psr.key_name1,
+        psr.key_name2,
+        psr.key_name3,
+        psr.ObjectName,
+        cell.name,
+    ]
+    for (const text of candidates) {
+        if (text && extractInSiteTrafoNum(text) != null) return String(text)
+    }
+
+    const txtCell = parser?.txtMap?.get?.(String(cell.id))
+    if (txtCell?.value) {
+        const linked = String(txtCell.value).replace(/\n/g, '')
+        if (extractInSiteTrafoNum(linked) != null) return linked
+    }
+
+    if (parser?.widgetMap && cell.geometry) {
+        const cx = cell.geometry.x + cell.geometry.width / 2
+        const cy = cell.geometry.y + cell.geometry.height / 2
+        for (const [, txt] of parser.widgetMap) {
+            if (!DeviceCategoryUtil?.isTextCell?.(txt)) continue
+            const t = String(txt.value || txt.name || '').replace(/\n/g, '')
+            if (extractInSiteTrafoNum(t) == null) continue
+            const g = txt.geometry
+            if (!g) continue
+            const dx = g.x + g.width / 2 - cx
+            const dy = g.y + g.height / 2 - cy
+            if (dx * dx + dy * dy < 140 * 140) return t
+        }
+    }
+
+    return candidates.find(Boolean) || ''
 }
 
 function matchInSiteTrafoByName(cell, graph, parser, indexes) {
@@ -1667,7 +1733,330 @@ function insertWarnOverlay(graph, cell, label) {
     return overlay
 }
 
+const IN_SITE_LOADING_LABEL_GAP = 5
+
+/** 文字标签在模型坐标下的外接框（优先用渲染 bbox，缩放/侧栏变化后仍准确） */
+function getInSiteTextLabelModelFrame(graph, labelCell) {
+    if (!labelCell) return null
+    graph.view.validate(labelCell)
+    const state = graph.view.getState(labelCell)
+    if (state) {
+        if (state.text?.boundingBox) {
+            const bb = state.text.boundingBox
+            const tl = viewPtToModel(graph, bb.x, bb.y)
+            const br = viewPtToModel(graph, bb.x + bb.width, bb.y + bb.height)
+            return {
+                x: Math.min(tl.x, br.x),
+                y: Math.min(tl.y, br.y),
+                width: Math.abs(br.x - tl.x),
+                height: Math.abs(br.y - tl.y),
+            }
+        }
+        if (state.width > 0 && state.height > 0) {
+            const tl = viewPtToModel(graph, state.x, state.y)
+            const br = viewPtToModel(graph, state.x + state.width, state.y + state.height)
+            return {
+                x: Math.min(tl.x, br.x),
+                y: Math.min(tl.y, br.y),
+                width: Math.abs(br.x - tl.x),
+                height: Math.abs(br.y - tl.y),
+            }
+        }
+    }
+    const geo = graph.getModel()?.getGeometry(labelCell)
+    if (geo && (geo.width > 0 || geo.height > 0)) {
+        return { x: geo.x, y: geo.y, width: geo.width, height: geo.height }
+    }
+    return null
+}
+
+function createInSiteLabelBelowOverlayPlacement(graph, labelCell, width, height) {
+    if (!labelCell) return null
+    const frame = getInSiteTextLabelModelFrame(graph, labelCell)
+    if (!frame) return null
+    const scale = graph.view.scale || 1
+    const gapModel = IN_SITE_LOADING_LABEL_GAP / scale
+    return {
+        parent: graph.getDefaultParent(),
+        x: frame.x + frame.width / 2 - width / 2,
+        y: frame.y + frame.height + gapModel,
+        width,
+        height,
+        relative: false,
+    }
+}
+
+/** #2主变名称文字（如 #2主变） */
+function findInSiteTrafo2NameLabelCell(parser, trafoCell) {
+    if (parser?.txtMap && trafoCell?.id) {
+        const linked = parser.txtMap.get(String(trafoCell.id))
+        if (linked && DeviceCategoryUtil?.isTextCell?.(linked)) {
+            const t = String(linked.value ?? linked.name ?? '').replace(/\n/g, '').trim()
+            if (extractInSiteTrafoNum(t) === 2) return linked
+        }
+    }
+    if (!parser?.widgetMap) return null
+    let fallback = null
+    for (const cell of parser.widgetMap.values()) {
+        if (!DeviceCategoryUtil?.isTextCell?.(cell)) continue
+        const t = String(cell.value ?? cell.name ?? '')
+            .replace(/\n/g, '')
+            .trim()
+        if (extractInSiteTrafoNum(t) !== 2 || !/主变/.test(t)) continue
+        if (t === '#2主变') return cell
+        fallback = cell
+    }
+    return fallback
+}
+
+/** 府馨线全称标签（如 23板府馨线），用于负载率定位 */
+function findInSiteFuxinFeederLineLabelCell(parser) {
+    if (!parser?.widgetMap) return null
+    let best = null
+    let bestLen = 0
+    for (const cell of parser.widgetMap.values()) {
+        if (!DeviceCategoryUtil?.isTextCell?.(cell)) continue
+        const t = String(cell.value ?? cell.name ?? '')
+            .replace(/\n/g, '')
+            .trim()
+        if (!/府馨线/.test(t) || /^府馨\d+$/.test(t)) continue
+        if (t.length >= bestLen) {
+            bestLen = t.length
+            best = cell
+        }
+    }
+    return best
+}
+
+function createInSiteFuxinFeederWarnOverlayPlacement(graph, parser, width, height) {
+    return createInSiteLabelBelowOverlayPlacement(
+        graph,
+        findInSiteFuxinFeederLineLabelCell(parser),
+        width,
+        height,
+    )
+}
+
+function createInSiteTrafoWarnOverlayPlacement(graph, parser, trafoCell, width, height) {
+    const labelCell = findInSiteTrafo2NameLabelCell(parser, trafoCell)
+    return createInSiteLabelBelowOverlayPlacement(graph, labelCell || trafoCell, width, height)
+}
+
+/** /in-site-svg：负载率贴在名称文字正下方（模型绝对坐标，随缩放/侧栏同步） */
+function mountInSiteWarnOverlay(graph, overlayId, label, placement) {
+    if (!placement || placement.relative) return null
+    const model = graph.getModel()
+    const { width, height } = getOverlaySize(label, WARN_OVERLAY_FONT_SIZE)
+    const style = [
+        'text',
+        'html=0',
+        'strokeColor=none',
+        'fillColor=none',
+        'align=center',
+        'verticalAlign=top',
+        `fontColor=${WARN_HIGHLIGHT_STROKE}`,
+        `fontSize=${WARN_OVERLAY_FONT_SIZE}`,
+        'fontStyle=1',
+        'fontFamily=SimSun',
+        'whiteSpace=nowrap',
+        'layer=Text_Layer',
+        'lgWarnOverlay=1',
+    ].join(';')
+
+    const existing = model.getCell(overlayId)
+    if (existing) {
+        graph.removeCells([existing], false)
+        warnOverlayCellIds.delete(overlayId)
+    }
+
+    const overlay = graph.insertVertex(
+        placement.parent,
+        overlayId,
+        label,
+        placement.x,
+        placement.y,
+        width,
+        height,
+        style,
+    )
+    overlay.setConnectable(false)
+    overlay.lgWarnOverlay = true
+    warnOverlayCellIds.add(overlayId)
+    return overlay
+}
+
+function registerInSiteWarnOverlay(graph, parser, item) {
+    if (!isLgInSiteSvgMode()) return
+    if (!inSiteWarnOverlayContext || inSiteWarnOverlayContext.graph !== graph) {
+        inSiteWarnOverlayContext = { graph, parser, items: [] }
+    } else {
+        inSiteWarnOverlayContext.parser = parser
+    }
+    const idx = inSiteWarnOverlayContext.items.findIndex((entry) => entry.id === item.id)
+    if (idx >= 0) {
+        inSiteWarnOverlayContext.items[idx] = item
+    } else {
+        inSiteWarnOverlayContext.items.push(item)
+    }
+    ensureInSiteWarnOverlayViewListeners(graph)
+}
+
+function rebuildInSiteWarnOverlays(graph) {
+    if (!graph || !inSiteWarnOverlayContext || inSiteWarnOverlayContext.graph !== graph) return
+    const { parser, items } = inSiteWarnOverlayContext
+    if (!items.length) return
+
+    graph.view.validate()
+    const model = graph.getModel()
+    model.beginUpdate()
+    try {
+        for (const item of items) {
+            const overlay = model.getCell(item.id)
+            if (!overlay) continue
+            let labelCell = null
+            if (item.kind === 'trafo2') {
+                labelCell = findInSiteTrafo2NameLabelCell(parser, item.trafoCell) || item.trafoCell
+            } else if (item.kind === 'fuxin') {
+                labelCell = findInSiteFuxinFeederLineLabelCell(parser)
+            }
+            if (!labelCell) continue
+            const { width, height } = getOverlaySize(item.label, WARN_OVERLAY_FONT_SIZE)
+            const placement = createInSiteLabelBelowOverlayPlacement(graph, labelCell, width, height)
+            if (!placement) continue
+            model.setGeometry(overlay, new mxGeometry(placement.x, placement.y, width, height))
+        }
+    } finally {
+        model.endUpdate()
+    }
+}
+
+function scheduleInSiteWarnOverlayRefresh(graph) {
+    if (typeof window === 'undefined' || !graph || !inSiteWarnOverlayContext) return
+    if (inSiteWarnOverlayRefreshTimer != null) {
+        window.clearTimeout(inSiteWarnOverlayRefreshTimer)
+    }
+    inSiteWarnOverlayRefreshTimer = window.setTimeout(() => {
+        inSiteWarnOverlayRefreshTimer = null
+        rebuildInSiteWarnOverlays(graph)
+    }, 90)
+}
+
+function ensureInSiteWarnOverlayViewListeners(graph) {
+    if (!graph?.view || graph._lgInSiteWarnOverlayListeners || typeof mxEvent === 'undefined') return
+    const schedule = () => scheduleInSiteWarnOverlayRefresh(graph)
+    graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, schedule)
+    graph.view.addListener(mxEvent.SCALE, schedule)
+    graph.view.addListener(mxEvent.TRANSLATE, schedule)
+    graph.addListener('cssTransformChanged', schedule)
+    graph.addListener(mxEvent.SIZE, schedule)
+    graph._lgInSiteWarnOverlayListeners = true
+}
+
+function clearInSiteWarnOverlayContext() {
+    inSiteWarnOverlayContext = null
+    if (inSiteWarnOverlayRefreshTimer != null) {
+        window.clearTimeout(inSiteWarnOverlayRefreshTimer)
+        inSiteWarnOverlayRefreshTimer = null
+    }
+}
+
+/** /in-site-svg：府馨线负载率贴在馈线名称正下方 */
+function insertInSiteFuxinFeederWarnOverlay(graph, parser, label, fallbackEdge) {
+    const { width, height } = getOverlaySize(label, WARN_OVERLAY_FONT_SIZE)
+    const placement =
+        createInSiteFuxinFeederWarnOverlayPlacement(graph, parser, width, height) ||
+        (fallbackEdge ? createWarnOverlayPlacement(graph, fallbackEdge, width, height) : null)
+    if (!placement) return null
+    if (!placement.relative) {
+        const overlayId = `${WARN_OVERLAY_PREFIX}fuxin-feeder`
+        const overlay = mountInSiteWarnOverlay(graph, overlayId, label, placement)
+        if (overlay && parser) {
+            registerInSiteWarnOverlay(graph, parser, { id: overlayId, label, kind: 'fuxin' })
+        }
+        return overlay
+    }
+    return insertWarnOverlay(graph, fallbackEdge, label)
+}
+
+/** /in-site-svg：#2主变负载率贴在主变名称正下方 */
+function insertInSiteTrafoWarnOverlay(graph, parser, label, trafoCell) {
+    const { width, height } = getOverlaySize(label, WARN_OVERLAY_FONT_SIZE)
+    const placement = createInSiteTrafoWarnOverlayPlacement(graph, parser, trafoCell, width, height)
+    if (!placement) return insertWarnOverlay(graph, trafoCell, label)
+    if (!placement.relative) {
+        const overlayId = `${WARN_OVERLAY_PREFIX}trafo2`
+        const overlay = mountInSiteWarnOverlay(graph, overlayId, label, placement)
+        if (overlay && parser) {
+            registerInSiteWarnOverlay(graph, parser, {
+                id: overlayId,
+                label,
+                kind: 'trafo2',
+                trafoCell,
+            })
+        }
+        return overlay
+    }
+    return insertWarnOverlay(graph, trafoCell, label)
+}
+
+function clearFeederWarnOverlays(graph) {
+    const overlay = graph?.view?.getOverlayPane?.()
+    if (!overlay?.querySelectorAll) return
+    overlay.querySelectorAll(`path[${LG_FEEDER_WARN_OVERLAY_ATTR}]`).forEach((el) => el.remove())
+    feederWarnEdgeCells.clear()
+}
+
+function getEdgeRenderPoints(graph, edge) {
+    graph.view.validate(edge)
+    const st = graph.view.getState(edge)
+    if (st?.absolutePoints?.length >= 2) return st.absolutePoints
+    if (st?.absPoints?.length >= 2) return st.absPoints
+    return getEdgeAbsPoints(edge, graph)
+}
+
+function rebuildFeederWarnOverlays(graph, visible = true) {
+    if (typeof document === 'undefined' || !graph?.view?.getOverlayPane) return 0
+    const overlay = graph.view.getOverlayPane()
+    if (!overlay) return 0
+
+    overlay.querySelectorAll(`path[${LG_FEEDER_WARN_OVERLAY_ATTR}]`).forEach((el) => el.remove())
+    if (!visible || feederWarnEdgeCells.size === 0) return 0
+
+    graph.view.validate()
+    const scale = graph.view.scale || 1
+    const strokeW = FEEDER_LINE_BLINK_STROKE_WIDTH * scale
+    let count = 0
+
+    for (const edge of feederWarnEdgeCells) {
+        const pts = getEdgeRenderPoints(graph, edge)
+        const d = buildPolylineMotionPathD(pts)
+        if (!d) continue
+        const path = createSvgEl('path')
+        path.setAttribute('d', d)
+        path.setAttribute('fill', 'none')
+        path.setAttribute('stroke', WARN_HIGHLIGHT_STROKE)
+        path.setAttribute('stroke-width', String(strokeW))
+        path.setAttribute('stroke-linecap', 'round')
+        path.setAttribute('stroke-linejoin', 'round')
+        path.setAttribute(LG_FEEDER_WARN_OVERLAY_ATTR, String(edge.id))
+        path.setAttribute('pointer-events', 'none')
+        path.style.opacity = visible ? '1' : '0.15'
+        overlay.appendChild(path)
+        count++
+    }
+    return count
+}
+
+function applyFeederWarnOverlayBlinkPhase(graph, on) {
+    const overlay = graph?.view?.getOverlayPane?.()
+    if (!overlay?.querySelectorAll) return
+    overlay.querySelectorAll(`path[${LG_FEEDER_WARN_OVERLAY_ATTR}]`).forEach((path) => {
+        path.style.opacity = on ? '1' : '0.12'
+    })
+}
+
 function clearWarnOverlays(graph) {
+    clearInSiteWarnOverlayContext()
     if (!graph || warnOverlayCellIds.size === 0) return
     const model = graph.getModel()
     const cells = Array.from(warnOverlayCellIds)
@@ -1727,6 +2116,22 @@ function getShapeTintElements(node) {
     return Array.from(node.querySelectorAll(SHAPE_TINT_SELECTOR))
 }
 
+function applyShapeOpacityBlink(graph, cell, on) {
+    const state = graph.view.getState(cell)
+    const node = state?.shape?.node
+    if (!node?.style) return false
+    node.style.opacity = on ? '1' : '0.25'
+    return true
+}
+
+function restoreShapeOpacity(graph, cell) {
+    const saved = savedHighlightStyles.get(cell.id)
+    const state = graph.view.getState(cell)
+    const node = state?.shape?.node
+    if (!node?.style) return
+    node.style.opacity = saved?.shapeOpacity || ''
+}
+
 function ensureShapeColorTemplate(cellId, elements) {
     const template = elements.map((el) => ({
         stroke: el.getAttribute('stroke'),
@@ -1752,7 +2157,7 @@ function restoreShapeElementStyle(el, orig) {
     }
 }
 
-function applyShapeWarnTint(graph, cell, on) {
+function applyShapeWarnTint(graph, cell, on, strokeOnly = false, thickStroke = false) {
     const state = graph.view.getState(cell)
     const elements = getShapeTintElements(state?.shape?.node)
     if (!elements.length) return
@@ -1770,11 +2175,17 @@ function applyShapeWarnTint(graph, cell, on) {
             if (orig.stroke && orig.stroke !== 'none') {
                 el.setAttribute('stroke', WARN_HIGHLIGHT_STROKE)
                 const w = parseFloat(orig.strokeWidth)
-                if (!Number.isNaN(w) && w > 0) {
+                if (thickStroke) {
+                    if (!Number.isNaN(w) && w > 0) {
+                        el.setAttribute('stroke-width', String(Math.max(w * 2, w + 1.5, 3)))
+                    } else {
+                        el.setAttribute('stroke-width', String(HIGHLIGHT_STROKE_WIDTH))
+                    }
+                } else if (!Number.isNaN(w) && w > 0) {
                     el.setAttribute('stroke-width', String(Math.max(w * 1.6, w + 0.4)))
                 }
             }
-            if (orig.fill && orig.fill !== 'none') {
+            if (!strokeOnly && orig.fill && orig.fill !== 'none') {
                 el.setAttribute('fill', WARN_HIGHLIGHT_STROKE)
             }
         } else {
@@ -1787,7 +2198,10 @@ function clearShapeWarnTints(graph) {
     for (const cell of highlightedCells) {
         const saved = savedHighlightStyles.get(cell.id)
         if (saved?.useShapeTint) {
-            applyShapeWarnTint(graph, cell, false)
+            applyShapeWarnTint(graph, cell, false, saved.strokeOnlyTint, saved.thickStrokeTint)
+        }
+        if (saved?.useShapeOpacity) {
+            restoreShapeOpacity(graph, cell)
         }
     }
     warnShapeColorTemplates.clear()
@@ -1797,12 +2211,16 @@ function installWarnBlinkSync(graph) {
     if (warnBlinkSyncHandler || !graph?.view || typeof mxEvent === 'undefined') return
     warnBlinkSyncHandler = () => {
         if (warnBlinkGraph && highlightedCells.size > 0) {
+            rebuildFeederWarnOverlays(warnBlinkGraph, warnBlinkPhaseOn)
             applyWarnBlinkPhase(warnBlinkGraph, warnBlinkPhaseOn)
         }
+        scheduleInSiteWarnOverlayRefresh(warnBlinkGraph)
     }
     graph.view.addListener(mxEvent.SCALE, warnBlinkSyncHandler)
     graph.view.addListener(mxEvent.TRANSLATE, warnBlinkSyncHandler)
     graph.view.addListener(mxEvent.SCALE_AND_TRANSLATE, warnBlinkSyncHandler)
+    graph.addListener('cssTransformChanged', warnBlinkSyncHandler)
+    graph.addListener(mxEvent.SIZE, warnBlinkSyncHandler)
 }
 
 function restoreHighlightedCellStyles(graph, cell) {
@@ -1828,22 +2246,38 @@ function restoreHighlightedCellStyles(graph, cell) {
 function applyWarnBlinkPhase(graph, on) {
     warnBlinkPhaseOn = on
     let needInvalidate = false
+    let hasFeederOverlay = false
     for (const cell of highlightedCells) {
         const saved = savedHighlightStyles.get(cell.id)
+        if (saved?.feederOverlayBlink) {
+            hasFeederOverlay = true
+            continue
+        }
         if (saved?.useShapeTint) {
-            applyShapeWarnTint(graph, cell, on)
+            applyShapeWarnTint(graph, cell, on, saved.strokeOnlyTint, saved.thickStrokeTint)
+            continue
+        }
+        if (saved?.useShapeOpacity) {
+            applyShapeOpacityBlink(graph, cell, on)
             continue
         }
         needInvalidate = true
         if (on) {
             graph.setCellStyles('strokeColor', WARN_HIGHLIGHT_STROKE, [cell])
-            graph.setCellStyles('strokeWidth', HIGHLIGHT_STROKE_WIDTH, [cell])
+            graph.setCellStyles(
+                'strokeWidth',
+                saved?.feederEdgeBlink ? FEEDER_LINE_BLINK_STROKE_WIDTH : HIGHLIGHT_STROKE_WIDTH,
+                [cell],
+            )
             if (saved?.isBus) {
                 graph.setCellStyles('fillColor', WARN_HIGHLIGHT_STROKE, [cell])
             }
         } else {
             restoreHighlightedCellStyles(graph, cell)
         }
+    }
+    if (hasFeederOverlay) {
+        applyFeederWarnOverlayBlinkPhase(graph, on)
     }
     if (needInvalidate) {
         graph.view.invalidate()
@@ -1857,6 +2291,7 @@ function startWarnBlink(graph) {
     warnBlinkGraph = graph
     installWarnBlinkSync(graph)
     warnBlinkPhaseOn = true
+    rebuildFeederWarnOverlays(graph, true)
     applyWarnBlinkPhase(graph, true)
 
     warnBlinkTimer = setInterval(() => {
@@ -1872,6 +2307,7 @@ function startWarnBlink(graph) {
 function clearOverLimitHighlight(graph) {
     stopWarnBlink()
     clearShapeWarnTints(graph)
+    clearFeederWarnOverlays(graph)
     clearWarnOverlays(graph)
     if (!graph || highlightedCells.size === 0) {
         overLimitHighlightOn = false
@@ -1912,17 +2348,588 @@ function buildOverLimitOverlayLabel(record) {
     return ''
 }
 
-function applyHighlight(graph, cell) {
+function buildForcedLoadingOverlayLabel(record) {
+    if (record?.loading_percent == null || record.loading_percent === '') return ''
+    return `负载率:${formatNumber(Math.abs(Number(record.loading_percent)), 1)}%`
+}
+
+function ensureForcedLoadingPercent(record, demoPercent, alwaysUseDemo = false) {
+    const base = record && typeof record === 'object' ? { ...record } : {}
+    if (alwaysUseDemo) {
+        base.loading_percent = demoPercent
+        return base
+    }
+    const loading = Number(base.loading_percent)
+    if (!Number.isFinite(loading) || loading < LOADING_WARN_PERCENT) {
+        base.loading_percent = demoPercent
+    }
+    return base
+}
+
+function isInSiteTrafo2Cell(cell, graph, parser) {
+    const pm = getCellPropMap(cell, parser)
+    const psrType = pm?.['cge:PSR_Ref']?.PSRType || getCellShapeInfo(cell, graph).psrtype
+    const isTrafo = psrType === '0304' || isLgInSiteMainTransformerDevice(cell, graph, parser)
+    if (!isTrafo) return false
+    return extractInSiteTrafoNum(getInSiteTrafoLabelText(cell, parser)) === 2
+}
+
+function getInSiteFuxinNameText(cell, parser) {
+    const pm = getCellPropMap(cell, parser)
+    const psr = pm?.['cge:PSR_Ref'] || {}
+    return `${cell.name || ''}${cell.feederKeyName || ''}${psr.ObjectName || ''}${psr.key_name || ''}`
+}
+
+function isInSiteFuxinName(text) {
+    return /府馨线/.test(String(text || ''))
+}
+
+/** 府馨线：ACLineEnd 出线端，或 G 文件 EnergyConsumer「府馨线负荷」 */
+function isInSiteFuxinFeederDevice(cell, graph, parser) {
+    if (!cell?.id || graph?.getModel?.()?.isEdge?.(cell)) return false
+    const nameText = getInSiteFuxinNameText(cell, parser)
+    if (!isInSiteFuxinName(nameText)) return false
+    if (cell.lgInSiteFeeder) return true
+    const { shape, psrtype } = getCellShapeInfo(cell, graph)
+    return isLgLoadShapeOrPsr(shape, psrtype) || psrtype === '0302'
+}
+
+function collectInSiteFuxinFeederHighlightCells(cells, graph, parser) {
+    const out = []
+    const seen = new Set()
+
+    for (const cell of cells) {
+        if (!cell?.id || seen.has(cell.id) || shouldSkipFlowOverlayCell(cell)) continue
+        if (!isInSiteFuxinFeederDevice(cell, graph, parser)) continue
+        out.push(cell)
+        seen.add(cell.id)
+    }
+
+    if (!out.length) return out
+
+    const anchor = out[0]
+    const edges = graph.getEdges?.(anchor) || []
+    for (const edge of edges) {
+        if (!edge?.id || seen.has(edge.id) || shouldSkipFlowOverlayCell(edge)) continue
+        out.push(edge)
+        seen.add(edge.id)
+    }
+
+    return out
+}
+
+function findInSiteFuxinColumnAnchorCell(parser) {
+    if (!parser?.widgetMap) return null
+    for (const cell of parser.widgetMap.values()) {
+        if (!DeviceCategoryUtil?.isTextCell?.(cell)) continue
+        const t = String(cell.value ?? cell.name ?? '')
+            .replace(/\n/g, '')
+            .trim()
+        if (t === '府馨1' || t === '府馨线' || /^府馨\d+$/.test(t)) return cell
+    }
+    return null
+}
+
+function resolveInSiteFuxinLoadCell(cells, graph, parser) {
+    for (const cell of cells) {
+        if (!cell?.id || shouldSkipFlowOverlayCell(cell)) continue
+        if (isInSiteFuxinFeederDevice(cell, graph, parser)) return cell
+    }
+    if (!parser?.attrMap || !graph?.getModel) return null
+    const model = graph.getModel()
+    for (const [idStr, pm] of parser.attrMap) {
+        const psr = pm?.['cge:PSR_Ref'] || {}
+        const nameText = `${psr.key_name || ''}${psr.ObjectName || ''}`
+        if (!isInSiteFuxinName(nameText)) continue
+        if (String(psr.PSRType || '') !== '0302') continue
+        const cell = model.getCell(idStr)
+        if (cell && !shouldSkipFlowOverlayCell(cell)) return cell
+    }
+    return null
+}
+
+function getCellCenterX(cell, graph) {
+    graph.view.validate(cell)
+    const st = graph.view.getState(cell)
+    if (st && Number.isFinite(st.x) && Number.isFinite(st.width)) {
+        return st.x + st.width / 2
+    }
+    const g = cell?.geometry
+    if (!g) return null
+    return g.x + g.width / 2
+}
+
+function getEdgeAbsPoints(cell, graph) {
+    graph.view.validate(cell)
+    const st = graph.view.getState(cell)
+    if (st?.absPoints?.length) return st.absPoints
+    const geo = cell?.geometry
+    if (!geo) return []
+    const pts = []
+    if (geo.sourcePoint) pts.push(geo.sourcePoint)
+    if (geo.points) pts.push(...geo.points)
+    if (geo.targetPoint) pts.push(geo.targetPoint)
+    return pts
+}
+
+/** 府馨线列 x 容差（过大会误匹配府东/府河等邻列） */
+const IN_SITE_FUXIN_COLUMN_TOL = 28
+
+function isInSiteOtherFeederAnchorText(text) {
+    const t = String(text || '').replace(/\n/g, '').trim()
+    if (!t || /府馨/.test(t)) return false
+    return t === '府东线' || t === '府河线' || /^府东\d+$/.test(t) || /^府河\d+$/.test(t)
+}
+
+function collectInSiteOtherFeederColumnXs(graph, parser) {
+    const xs = []
+    const seen = new Set()
+    const pushX = (x) => {
+        if (x == null || !Number.isFinite(x)) return
+        const key = Math.round(x)
+        if (seen.has(key)) return
+        seen.add(key)
+        xs.push(x)
+    }
+
+    if (parser?.widgetMap) {
+        for (const cell of parser.widgetMap.values()) {
+            if (!DeviceCategoryUtil?.isTextCell?.(cell)) continue
+            const t = String(cell.value ?? cell.name ?? '')
+            if (!isInSiteOtherFeederAnchorText(t)) continue
+            pushX(getCellCenterX(cell, graph))
+        }
+    }
+
+    if (parser?.attrMap && graph?.getModel) {
+        const model = graph.getModel()
+        for (const [idStr, pm] of parser.attrMap) {
+            const psr = pm?.['cge:PSR_Ref'] || {}
+            const nameText = `${psr.key_name || ''}${psr.ObjectName || ''}`
+            if (!/府东|府河/.test(nameText) || /府馨/.test(nameText)) continue
+            const cell = model.getCell(idStr)
+            if (!cell) continue
+            pushX(getCellCenterX(cell, graph))
+        }
+    }
+
+    return xs
+}
+
+function edgeBelongsToInSiteFuxinColumn(edge, graph, fuxinX, anchorY, otherColumnXs, tol = IN_SITE_FUXIN_COLUMN_TOL) {
+    if (fuxinX == null || !Number.isFinite(fuxinX)) return false
+    const pts = getEdgeAbsPoints(edge, graph)
+    if (pts.length < 2) return false
+
+    const xs = pts.map((p) => p.x)
+    const ys = pts.map((p) => p.y)
+    const xSpread = Math.max(...xs) - Math.min(...xs)
+    const ySpread = Math.max(...ys) - Math.min(...ys)
+    if (xSpread > tol * 2.2 && ySpread < 10) return false
+
+    const onFuxin = pts.filter((p) => Math.abs(p.x - fuxinX) <= tol)
+    if (!onFuxin.length) return false
+
+    if (Number.isFinite(anchorY)) {
+        // 府馨1 在下口区：收窄 y，避免误匹配上口府东列（y≈210）
+        const yMin = anchorY - 150
+        const yMax = anchorY + 85
+        if (!onFuxin.some((p) => p.y >= yMin && p.y <= yMax)) return false
+    }
+
+    const avgX = onFuxin.reduce((sum, p) => sum + p.x, 0) / onFuxin.length
+    for (const ox of otherColumnXs) {
+        if (Math.abs(avgX - ox) <= Math.abs(avgX - fuxinX)) return false
+    }
+
+    return true
+}
+
+function getCellCenterY(cell, graph) {
+    graph.view.validate(cell)
+    const st = graph.view.getState(cell)
+    if (st && Number.isFinite(st.y) && Number.isFinite(st.height)) {
+        return st.y + st.height / 2
+    }
+    const g = cell?.geometry
+    if (!g) return null
+    return g.y + g.height / 2
+}
+
+function resolveInSiteFuxinColumnAnchor(cells, graph, parser) {
+    const anchorCell = findInSiteFuxinColumnAnchorCell(parser)
+    let anchorX = anchorCell ? getCellCenterX(anchorCell, graph) : null
+    let anchorY = anchorCell ? getCellCenterY(anchorCell, graph) : null
+
+    if (anchorX == null) {
+        const loadCell = resolveInSiteFuxinLoadCell(cells, graph, parser)
+        if (loadCell) {
+            anchorX = getCellCenterX(loadCell, graph)
+            anchorY = getCellCenterY(loadCell, graph)
+        }
+    }
+
+    if (anchorX == null && parser?.attrMap && graph?.getModel) {
+        const model = graph.getModel()
+        for (const [idStr, pm] of parser.attrMap) {
+            const psr = pm?.['cge:PSR_Ref'] || {}
+            const nameText = `${psr.ObjectName || ''}${psr.key_name || ''}`
+            if (!isInSiteFuxinName(nameText)) continue
+            const cell = model.getCell(idStr)
+            if (!cell) continue
+            anchorX = getCellCenterX(cell, graph)
+            anchorY = getCellCenterY(cell, graph)
+            if (anchorX != null) break
+        }
+    }
+
+    if (anchorX == null) return null
+    return { anchorX, anchorY }
+}
+
+/** 府馨线：仅匹配府馨列 ConnectLine，排除府东/府河邻列 */
+function collectInSiteFuxinFeederLineCells(cells, graph, parser) {
+    const anchor = resolveInSiteFuxinColumnAnchor(cells, graph, parser)
+    if (!anchor) return collectInSiteFuxinFeederLineCellsByKnownIds(graph, parser)
+
+    const { anchorX, anchorY } = anchor
+    const otherColumnXs = collectInSiteOtherFeederColumnXs(graph, parser)
+    const model = graph.getModel()
+    const edges = []
+    const seen = new Set()
+
+    for (const cell of cells) {
+        if (!cell?.id || seen.has(cell.id) || !model.isEdge(cell)) continue
+        if (shouldSkipFlowOverlayCell(cell)) continue
+        if (!edgeBelongsToInSiteFuxinColumn(cell, graph, anchorX, anchorY, otherColumnXs)) continue
+        edges.push(cell)
+        seen.add(cell.id)
+    }
+
+    if (edges.length) return edges
+    return collectInSiteFuxinFeederLineCellsByKnownIds(graph, parser)
+}
+
+/** 府城站 G 文件府馨线 ConnectLine id 兜底（不含邻列 34007600 等） */
+function collectInSiteFuxinFeederLineCellsByKnownIds(graph, parser) {
+    if (!graph?.getModel) return []
+    const model = graph.getModel()
+    const edges = []
+    for (const id of IN_SITE_FUXIN_FALLBACK_LINE_IDS) {
+        const cell = model.getCell(id)
+        if (!cell || !model.isEdge(cell) || shouldSkipFlowOverlayCell(cell)) continue
+        edges.push(cell)
+    }
+    return edges
+}
+
+/** /in-site-svg：标记府馨线线段/名称/负荷可点击，跳转 /graphLg */
+export function refreshLgInSiteFuxinFeederClickMarks(graph, parser) {
+    if (!isLgInSiteSvgMode() || !graph || !parser) return
+    const model = graph.getModel()
+    const cells = Object.values(model.cells || {}).filter((c) => c && c.id && c.id !== '0')
+    const info = {
+        dataset: LG_IN_SITE_FUXIN_FEEDER_DATASET,
+        label: LG_IN_SITE_FUXIN_FEEDER_LABEL,
+    }
+
+    for (const cell of collectInSiteFuxinFeederLineCells(cells, graph, parser)) {
+        markLgInSiteFeederCell(cell, info)
+    }
+    const labelCell = findInSiteFuxinFeederLineLabelCell(parser)
+    if (labelCell) {
+        markLgInSiteFeederCell(labelCell, info)
+    }
+    for (const cell of collectInSiteFuxinFeederHighlightCells(cells, graph, parser)) {
+        if (!model.isEdge(cell)) {
+            markLgInSiteFeederCell(cell, info)
+        }
+    }
+    refreshLgInSiteFeederCellIndex(graph)
+}
+
+/** 从 attrMap 兜底查找 #2主变（G 文件 Transformer3） */
+function resolveInSiteTrafo2Cell(cells, graph, parser) {
+    for (const cell of cells) {
+        if (isInSiteTrafo2Cell(cell, graph, parser)) return cell
+    }
+    if (!parser?.attrMap || !graph?.getModel) return null
+    const model = graph.getModel()
+    for (const [idStr, pm] of parser.attrMap) {
+        const psr = pm?.['cge:PSR_Ref']
+        if (!psr || String(psr.PSRType || '') !== '0304') continue
+        const label =
+            psr.key_name1 || psr.key_name || psr.key_name2 || psr.key_name3 || psr.ObjectName || ''
+        if (extractInSiteTrafoNum(label) !== 2) continue
+        const cell = model.getCell(idStr)
+        if (cell && !shouldSkipFlowOverlayCell(cell)) return cell
+    }
+    return null
+}
+
+/** 从 attrMap 兜底查找府馨线负荷 / 出线端；优先闪烁馈线线段 */
+function resolveInSiteFuxinHighlightCells(cells, graph, parser) {
+    const lineCells = collectInSiteFuxinFeederLineCells(cells, graph, parser)
+    if (lineCells.length) return lineCells
+
+    const fromCells = collectInSiteFuxinFeederHighlightCells(cells, graph, parser)
+    if (fromCells.length) return fromCells
+
+    if (!parser?.attrMap || !graph?.getModel) return []
+    const model = graph.getModel()
+    for (const [idStr, pm] of parser.attrMap) {
+        const psr = pm?.['cge:PSR_Ref'] || {}
+        const nameText = `${psr.ObjectName || ''}${psr.key_name || ''}`
+        if (!isInSiteFuxinName(nameText)) continue
+        const pt = String(psr.PSRType || '')
+        if (pt !== '0302' && pt !== '12104104') continue
+        const cell = model.getCell(idStr)
+        if (!cell || shouldSkipFlowOverlayCell(cell)) continue
+        return collectInSiteFuxinFeederHighlightCells([cell, ...cells], graph, parser)
+    }
+    return []
+}
+
+function resolveInSiteTrafo2FlowRecord(cell, graph, parser, indexes) {
+    const byName = matchInSiteTrafoByName(cell, graph, parser, indexes)
+    if (byName) return byName
+    return matchFlowRecord(cell, graph, parser, indexes)
+}
+
+function resolveInSiteFuxinFeederFlowRecord(cell, graph, parser, indexes) {
+    const byFlow = matchFlowRecord(cell, graph, parser, indexes)
+    if (byFlow) return byFlow
+    const loadName = normalizeName('府城站.府馨线负荷')
+    if (indexes.loadByName?.has(loadName)) {
+        return indexes.loadByName.get(loadName)
+    }
+    return null
+}
+
+function collectInSiteFixedOverLimitTargets(cells, graph, parser, indexes) {
+    const targets = []
+    const seen = new Set()
+
+    const trafo2Cell = resolveInSiteTrafo2Cell(cells, graph, parser)
+    if (trafo2Cell?.id && !seen.has(trafo2Cell.id)) {
+        const record = ensureForcedLoadingPercent(
+            resolveInSiteTrafo2FlowRecord(trafo2Cell, graph, parser, indexes),
+            IN_SITE_FIXED_OVERLIMIT_DEMO.trafo2,
+        )
+        targets.push({ cell: trafo2Cell, record, highlightMode: 'trafo-symbol' })
+        seen.add(trafo2Cell.id)
+    }
+
+    const fuxinCells = resolveInSiteFuxinHighlightCells(cells, graph, parser)
+    if (fuxinCells.length) {
+        const record = ensureForcedLoadingPercent(
+            resolveInSiteFuxinFeederFlowRecord(fuxinCells[0], graph, parser, indexes),
+            IN_SITE_FIXED_OVERLIMIT_DEMO.fuxinFeeder,
+            true,
+        )
+        for (const cell of fuxinCells) {
+            if (!cell?.id || seen.has(cell.id)) continue
+            targets.push({ cell, record, highlightMode: 'feeder-line' })
+            seen.add(cell.id)
+        }
+    }
+
+    return targets
+}
+
+function applyOverLimitTargets(graph, targets, labelBuilder = buildForcedLoadingOverlayLabel, parser = null) {
+    const model = graph.getModel()
+    let count = 0
+    const insertedWarnOverlays = []
+    model.beginUpdate()
+    try {
+        let fuxinOverlayDone = false
+        for (const { cell, record, highlightMode } of targets) {
+            const highlightOptions = {}
+            if (highlightMode === 'trafo-symbol') {
+                highlightOptions.isMainTrafo = true
+            } else if (highlightMode === 'feeder-line') {
+                highlightOptions.isFeederLine = true
+            }
+            applyHighlight(graph, cell, highlightOptions)
+            const label = labelBuilder(record)
+            if (label) {
+                if (highlightMode === 'feeder-line') {
+                    if (!fuxinOverlayDone) {
+                        const overlay =
+                            parser && isLgInSiteSvgMode()
+                                ? insertInSiteFuxinFeederWarnOverlay(graph, parser, label, cell)
+                                : insertWarnOverlay(graph, cell, label)
+                        if (overlay) insertedWarnOverlays.push(overlay)
+                        fuxinOverlayDone = true
+                    }
+                } else if (highlightMode === 'trafo-symbol') {
+                    const overlay =
+                        parser && isLgInSiteSvgMode()
+                            ? insertInSiteTrafoWarnOverlay(graph, parser, label, cell)
+                            : insertWarnOverlay(graph, cell, label)
+                    if (overlay) insertedWarnOverlays.push(overlay)
+                } else {
+                    const overlay = insertWarnOverlay(graph, cell, label)
+                    if (overlay) insertedWarnOverlays.push(overlay)
+                }
+            }
+            count++
+        }
+        if (insertedWarnOverlays.length) {
+            graph.orderCells(false, insertedWarnOverlays)
+        }
+    } finally {
+        model.endUpdate()
+    }
+    return count
+}
+
+/** 多次调度，避免 G 文件解析/视图尚未就绪 */
+export function scheduleLgInSiteFixedOverLimitHighlight(ui, parserHint, flowDataUrl) {
+    if (!isLgInSiteSvgMode()) return
+    for (const delay of [800, 1600, 2800, 4500, 7000]) {
+        window.setTimeout(() => {
+            applyLgInSiteFixedOverLimitHighlight(ui, flowDataUrl, 0, parserHint)
+        }, delay)
+    }
+}
+
+/** /in-site-svg：#2主变、府馨线固定红色闪烁并展示负载率 */
+export function applyLgInSiteFixedOverLimitHighlight(ui, flowDataUrl, retry = 0, parserHint) {
+    if (!isLgInSiteSvgMode()) return Promise.resolve(0)
+
+    const graph = ui?.editor?.graph
+    const parser = ui?.svgParser || parserHint
+    if (!graph || !parser) {
+        if (retry < 3) {
+            return new Promise((resolve) => {
+                window.setTimeout(() => {
+                    applyLgInSiteFixedOverLimitHighlight(ui, flowDataUrl, retry + 1, parserHint).then(resolve)
+                }, 400)
+            })
+        }
+        return Promise.resolve(0)
+    }
+
+    return loadFlowData(flowDataUrl || getFlowDataUrl())
+        .catch((e) => {
+            console.warn('[lgRegionSimulation] 潮流数据不可用，固定越限演示仍继续', e)
+            return null
+        })
+        .then((data) => {
+            const wasEnabled = graph.isEnabled()
+            if (!wasEnabled) {
+                graph.setEnabled(true)
+            }
+
+            try {
+                const indexes = buildFlowIndexes(data || {})
+                const model = graph.getModel()
+                const cells = Object.values(model.cells || {}).filter((c) => c && c.id && c.id !== '0')
+
+                clearOverLimitHighlight(graph)
+                graph.view.validate()
+                refreshLgInSiteFuxinFeederClickMarks(graph, parser)
+
+                const targets = collectInSiteFixedOverLimitTargets(cells, graph, parser, indexes)
+                const count = applyOverLimitTargets(graph, targets, buildForcedLoadingOverlayLabel, parser)
+
+                overLimitHighlightOn = count > 0
+                if (count > 0) {
+                    startWarnBlink(graph)
+                    rebuildFeederWarnOverlays(graph, warnBlinkPhaseOn)
+                    rebuildInSiteWarnOverlays(graph)
+                    graph.view.invalidate()
+                } else if (retry < 5) {
+                    return new Promise((resolve) => {
+                        window.setTimeout(() => {
+                            applyLgInSiteFixedOverLimitHighlight(ui, flowDataUrl, retry + 1, parserHint).then(resolve)
+                        }, 600)
+                    })
+                }
+                return count
+            } finally {
+                if (!wasEnabled && !isLgInSiteSvgMode()) {
+                    graph.setEnabled(false)
+                }
+            }
+        })
+        .catch((e) => {
+            console.error('[lgRegionSimulation] /in-site-svg 固定越限高亮失败', e)
+            return 0
+        })
+}
+
+function applyHighlight(graph, cell, options = {}) {
     if (!cell || highlightedCells.has(cell)) return
+
+    graph.view.validate(cell)
     const st = graph.getCurrentCellStyle(cell) || {}
-    savedHighlightStyles.set(cell.id, {
+    const state = graph.view.getState(cell)
+    const shapeNode = state?.shape?.node
+    const shapeElements = getShapeTintElements(shapeNode)
+
+    const saved = {
         strokeColor: st.strokeColor,
         strokeWidth: st.strokeWidth,
         fillColor: st.fillColor,
         isBus: DeviceCategoryUtil?.isBusCell?.(cell),
-        useShapeTint: usesShapeTintBlink(graph, cell),
-    })
+        useShapeTint: false,
+        strokeOnlyTint: false,
+        thickStrokeTint: false,
+        useShapeOpacity: false,
+        shapeOpacity: shapeNode?.style?.opacity || '',
+    }
+
+    if (options.isFeederLine) {
+        const model = graph.getModel()
+        if (model.isEdge(cell)) {
+            saved.feederOverlayBlink = true
+            savedHighlightStyles.set(cell.id, saved)
+            highlightedCells.add(cell)
+            feederWarnEdgeCells.add(cell)
+            return
+        }
+    }
+
+    if (options.isMainTrafo || options.isFeederLine) {
+        const hasTintableStroke =
+            shapeElements.length > 0 &&
+            shapeElements.some((el) => {
+                const s = el.getAttribute('stroke')
+                return s && s !== 'none'
+            })
+        if (hasTintableStroke) {
+            saved.useShapeTint = true
+            saved.strokeOnlyTint = true
+            saved.thickStrokeTint = !!options.isFeederLine
+        } else if (shapeNode?.style) {
+            saved.useShapeOpacity = true
+        }
+        savedHighlightStyles.set(cell.id, saved)
+        highlightedCells.add(cell)
+        if (saved.useShapeTint) {
+            applyShapeWarnTint(graph, cell, true, true)
+        }
+        if (!saved.useShapeTint && !saved.useShapeOpacity) {
+            graph.setCellStyles('strokeColor', WARN_HIGHLIGHT_STROKE, [cell])
+            graph.setCellStyles('strokeWidth', HIGHLIGHT_STROKE_WIDTH, [cell])
+        }
+        return
+    }
+
+    saved.useShapeTint = usesShapeTintBlink(graph, cell) && shapeElements.length > 0
+    savedHighlightStyles.set(cell.id, saved)
     highlightedCells.add(cell)
+
+    if (!saved.useShapeTint) {
+        graph.setCellStyles('strokeColor', WARN_HIGHLIGHT_STROKE, [cell])
+        graph.setCellStyles('strokeWidth', HIGHLIGHT_STROKE_WIDTH, [cell])
+        if (saved.isBus) {
+            graph.setCellStyles('fillColor', WARN_HIGHLIGHT_STROKE, [cell])
+        }
+    }
 }
 
 export async function applyLgPowerFlowOverlay(ui, flowDataUrl) {
@@ -2060,29 +3067,16 @@ export function toggleLgOverLimitHighlight(ui, flowDataUrl) {
                 graph.view.validate()
 
                 let count = 0
-                const insertedWarnOverlays = []
-                model.beginUpdate()
-                try {
-                    for (const cell of cells) {
-                        if (shouldSkipFlowOverlayCell(cell)) {
-                            continue
-                        }
-                        const record = matchFlowRecord(cell, graph, parser, indexes)
-                        if (!shouldHighlightOverLimitCell(cell, graph, parser, record)) continue
-                        applyHighlight(graph, cell)
-                        const label = buildOverLimitOverlayLabel(record)
-                        if (label) {
-                            const overlay = insertWarnOverlay(graph, cell, label)
-                            if (overlay) insertedWarnOverlays.push(overlay)
-                        }
-                        count++
+                const targets = []
+                for (const cell of cells) {
+                    if (shouldSkipFlowOverlayCell(cell)) {
+                        continue
                     }
-                    if (insertedWarnOverlays.length) {
-                        graph.orderCells(false, insertedWarnOverlays)
-                    }
-                } finally {
-                    model.endUpdate()
+                    const record = matchFlowRecord(cell, graph, parser, indexes)
+                    if (!shouldHighlightOverLimitCell(cell, graph, parser, record)) continue
+                    targets.push({ cell, record })
                 }
+                count = applyOverLimitTargets(graph, targets, buildOverLimitOverlayLabel)
 
                 overLimitHighlightOn = count > 0
                 if (count > 0) {
