@@ -1733,7 +1733,8 @@ function insertWarnOverlay(graph, cell, label) {
     return overlay
 }
 
-const IN_SITE_LOADING_LABEL_GAP = 5
+/** /in-site-svg：主变/馈线负载率标签与名称的屏幕像素间距 */
+const IN_SITE_LOADING_LABEL_GAP = 0
 
 /** 文字标签在模型坐标下的外接框（优先用渲染 bbox，缩放/侧栏变化后仍准确） */
 function getInSiteTextLabelModelFrame(graph, labelCell) {
