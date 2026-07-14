@@ -136,7 +136,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 		let tfr = dom.getAttribute('tfr');
 		if (tfr) {
@@ -195,7 +195,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 		let tfr = dom.getAttribute('tfr');
 		if (tfr) {
@@ -267,7 +267,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 		let fc = dom.getAttribute('fc');
 		if (fm != '0' && fc) {
@@ -340,7 +340,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 		let fc = dom.getAttribute('fc');
 		if (fm != '0' && fc) {
@@ -389,7 +389,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + (lw + 0) + '" ');
+			sb.push('stroke-width="' + (lw + 1) + '" ');
 		}
 
 		let tfr = dom.getAttribute('tfr');
@@ -409,62 +409,13 @@ export default {
 		sb.push('/>');
 		return sb.join('');
 	},
-	// 解析菱形（根据x,y,w,h计算四个顶点，输出为polygon）
-	parseDiamond(dom, iscommon) {
-		let sb = [];
-		sb.push('<polygon ');
-		let x = parseFloat(dom.getAttribute('x'));
-		let y = parseFloat(dom.getAttribute('y'));
-		let w = parseFloat(dom.getAttribute('w'));
-		let h = parseFloat(dom.getAttribute('h'));
-
-		// 菱形四个顶点：上、右、下、左
-		let points = [
-			(x + w / 2) + ',' + y,
-			(x + w) + ',' + (y + h / 2),
-			(x + w / 2) + ',' + (y + h),
-			x + ',' + (y + h / 2)
-		].join(' ');
-		sb.push('points="' + points + '" ');
-
-		// 填充模式，0不填充
-		let fm = dom.getAttribute('fm');
-
-		let id = dom.getAttribute('id');
-		if (id) {
-			sb.push('id="' + id + '" ');
-		}
-
-		let lc = dom.getAttribute('lc');
-		if (lc) {
-			sb.push('stroke="rgb(' + lc + ')" ');
-		}
-
-		let lw = dom.getAttribute('lw');
-		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
-		}
-
-		let tfr = dom.getAttribute('tfr');
-		if (tfr) {
-			sb.push('transform="' + tfr + '" ');
-		}
-		let fc = dom.getAttribute('fc');
-		if (fm != '0' && fc) {
-			sb.push('fill="rgb(' + fc + ')" ');
-		} else {
-			sb.push('fill="transparent" ')
-		}
-		sb.push('/>');
-		return sb.join('');
-	},
 	// 解析多边形
 	parsePolygon(dom, iscommon) {
 		let attrList = dom.getAttributeNames();
 		let sb = [];
 		sb.push('<polygon ');
-		let points = dom.getAttribute('points');
-		sb.push('points="' + points + '" ');
+		let d = dom.getAttribute('d');
+		sb.push('points="' + d + '" ');
 
 		// 填充模式，0不填充
 		let fm = dom.getAttribute('fm');
@@ -491,7 +442,7 @@ export default {
 
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 
 		let tfr = dom.getAttribute('tfr');
@@ -507,7 +458,6 @@ export default {
 		sb.push('/>');
 		return sb.join('');
 	},
-    
 	// 解析矩形
 	parseRect(dom, iscommon) {
 		let attrList = dom.getAttributeNames();
@@ -547,7 +497,7 @@ export default {
 		}
 		let lw = dom.getAttribute('lw');
 		if (lw) {
-			sb.push('stroke-width="' + lw + '" ');
+			sb.push('line-width="' + lw + '" ');
 		}
 		let tfr = dom.getAttribute('tfr');
 		if (tfr) {
@@ -574,14 +524,9 @@ export default {
 		let w = parseInt(dom.getAttribute('w'));
 		let h = parseInt(dom.getAttribute('h'))  * 3/4;
 		let ts = dom.getAttribute('ts'); // 文本内容
-        
-        // 文字宽高
-        let th = parseInt(dom.getAttribute('p_FontHeight'));
-        let tw = parseInt(dom.getAttribute('p_FontWidth'))*ts.length/2;
-        
 		sb.push('flag="text" ');
-		sb.push('x="' + (x + tw) + '" ');
-		sb.push('y="' + (y + th) + '" ');
+		sb.push('x="' + (x + 20) + '" ');
+		sb.push('y="' + (y + 15) + '" ');
 		// for(let name of attrList) {
 		// 	let v = dom.getAttribute(name);
 		// 	if (name == 'lc') {
@@ -635,6 +580,7 @@ export default {
         if(ts.indexOf('号码') == -1&&ts.indexOf('电话') == -1&&ts.indexOf('温度') == -1) {
             sb.push(ts);
         }
+        
 		sb.push('</text>');
 		return sb.join('');
 	},
@@ -646,13 +592,11 @@ export default {
 		let y = parseInt(dom.getAttribute('y'));
 
 		let w = parseInt(dom.getAttribute('w'));
-		let h = parseInt(dom.getAttribute('p_FontHeight')) * 3/4;
+		let h = parseInt(dom.getAttribute('h')) * 3/4;
 
 		let ts = dom.getAttribute('ts'); // 文本内容
 		sb.push('flag="dtext" ');
-        // 文字宽高
-        let th = parseInt(dom.getAttribute('p_FontHeight'));
-        let tw = parseInt(dom.getAttribute('p_FontWidth'))*ts.length/2;
+
 
 		// for(let name of attrList) {
 		// 	if (name == 'lc') {
@@ -700,19 +644,20 @@ export default {
 			sb.push('fill="rgb(' + lc + ')" ');
 		}
 
-		let _y = (isNaN(y) || isNaN(h)) ? y : (y + h);
-		// 始终输出 x/y 属性（LGSvgParser.parseTxt 依赖 x/y 定位）
-		sb.push('x="' + (x + tw) + '" ');
-		sb.push('y="' + _y + '" ');
-
+		let _y = y + h;
 		let tfr = dom.getAttribute('tfr');
 		if (tfr) {
 			let param = this.getTransform(tfr);
 			let tmpsb = [];
+			tmpsb.push('translate(' + x + ',' +  + _y + ') ');
 			tmpsb.push('scale(' + param.scale + ') ');
 			tmpsb.push('rotate(' + param.rotate + ')');
 			sb.push('transform="' + tmpsb.join('') + '" ');
+		} else {
+			sb.push('x="' + x + '" ');
+			sb.push('y="' + _y + '" ');
 		}
+		// 特殊样式
 		let ff = dom.getAttribute('ff'); // 字体名
 		let fs = dom.getAttribute('fs'); // 字体大小
 		let wm = dom.getAttribute('wm'); // 字体走向，默认1，1：水平，2：垂直
@@ -734,34 +679,34 @@ export default {
 		sb.push('</text>');
 		return sb.join('');
 	},
-    /**
-     * G 文件设备 state（遥信码）→ 图元 symbol 索引（_0 / _1）。
-     * 个位 1=合闸，2=分闸（CIM-G 常见约定）；刀闸/地刀 _0=分 _1=合，断路器 _0=合 _1=分。
-     */
-    deviceStateToSymbolIndex(nodeName, state) {
-    	const s = parseInt(state, 10);
-    	if (!Number.isFinite(s)) return 0;
-    	const closed = s % 10 === 1;
-    	switch (nodeName) {
-    		case 'Disconnector':
-    		case 'GroundDisconnector':
-    			return closed ? 1 : 0;
-    		case 'CBreaker':
-    		case 'DollyBreaker':
-    			return closed ? 0 : 1;
-    		default:
-    			return 0;
-    	}
-    },
-    resolveSymbolIdWithState(baseId, symbolProps, staIndex) {
-    	const candidate = baseId + '_' + staIndex;
-    	if (symbolProps[candidate]) return candidate;
-    	const fallback0 = baseId + '_0';
-    	if (symbolProps[fallback0]) return fallback0;
-    	const fallback1 = baseId + '_1';
-    	if (symbolProps[fallback1]) return fallback1;
-    	return candidate;
-    },
+	/**
+	 * G 文件设备 state（遥信码）→ 图元 symbol 索引（_0 / _1）。
+	 * 个位 1=合闸，2=分闸（CIM-G 常见约定）；刀闸/地刀 _0=分 _1=合，断路器 _0=合 _1=分。
+	 */
+	deviceStateToSymbolIndex(nodeName, state) {
+		const s = parseInt(state, 10);
+		if (!Number.isFinite(s)) return 0;
+		const closed = s % 10 === 1;
+		switch (nodeName) {
+			case 'Disconnector':
+			case 'GroundDisconnector':
+				return closed ? 1 : 0;
+			case 'CBreaker':
+			case 'DollyBreaker':
+				return closed ? 0 : 1;
+			default:
+				return 0;
+		}
+	},
+	resolveSymbolIdWithState(baseId, symbolProps, staIndex) {
+		const candidate = baseId + '_' + staIndex;
+		if (symbolProps[candidate]) return candidate;
+		const fallback0 = baseId + '_0';
+		if (symbolProps[fallback0]) return fallback0;
+		const fallback1 = baseId + '_1';
+		if (symbolProps[fallback1]) return fallback1;
+		return candidate;
+	},
 	/**
 	 * 特殊设备
 	 * @param dom
@@ -777,16 +722,16 @@ export default {
 		let x = dom.getAttribute('x');
 		let y = dom.getAttribute('y');
 		let tfr = dom.getAttribute('tfr');
-		if (dom.nodeName == 'DollyBreaker'){
-		    tfr = 'rotate(0) scale(1,1)'
-		}
+        if (dom.nodeName == 'DollyBreaker'){
+            tfr = 'rotate(0) scale(1,1)'
+        }
 		let keyid = dom.getAttribute('keyid');
 		let keyname = dom.getAttribute('keyname');
 		let devref = dom.getAttribute('devref'); // 文本内容
 
 		let symbolId = devref.substring(1);
-        const staIndex = this.deviceStateToSymbolIndex(dom.nodeName, dom.getAttribute('state'));
-        symbolId = this.resolveSymbolIdWithState(symbolId, symbolProps, staIndex);
+		const staIndex = this.deviceStateToSymbolIndex(dom.nodeName, dom.getAttribute('state'));
+		symbolId = this.resolveSymbolIdWithState(symbolId, symbolProps, staIndex);
 		let width, height;
 		try {
 			let props = symbolProps[symbolId];
@@ -797,7 +742,7 @@ export default {
 			return;
 		}
 
-		sb.push('x="' + -width/2 +'" ');
+		sb.push('x="' + -width/2 + '" ');
 		sb.push('y="' + -height/2 + '" ');
 
 		// sb.push('x="0" ');
@@ -811,9 +756,6 @@ export default {
 
 		let xstep = parseFloat(x) + width/2;
 		let ystep = parseFloat(y) + height/2;
-        if (dom.tagName == 'Sensitive') {
-            ystep += 0
-        }
 
 		// let xstep = parseFloat(x);
 		// let ystep = parseFloat(y);
@@ -897,9 +839,6 @@ export default {
 			case 'ellipsear':
 				html = this.parseEllipsear(dom);
 				break;
-			case 'diamond':
-				html = this.parseDiamond(dom);
-				break;
 		}
 		return html;
     },
@@ -912,6 +851,7 @@ export default {
     parse(symbol, id) {
         let sb = [];
 	    let state = symbol.getAttribute('state');
+
 		for(let i = 0; i < state; i++) {
 			let symbolId = id + '_' + i;
 			let conStr = this.getContainer(symbol, symbolId);

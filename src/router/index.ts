@@ -5,6 +5,7 @@ import graphLg from "../view/graph/graphLg.vue";
 import inSiteSvg from "../view/graph/inSiteSvg.vue";
 import regionSystemSvg from "../view/graph/regionSystemSvg.vue";
 import SvgLiaisonDrawio from "../view/liaison/SvgLiaisonDrawio.vue";
+import interstationSvg from "../view/interstation/graphLg.vue";
  
 const routes = [
   {
@@ -35,6 +36,11 @@ const routes = [
     path: "/svg-liaison-drawio",
     name: "svgLiaisonDrawio",
     component: SvgLiaisonDrawio
+  },
+  {
+    path: "/interstation-Svg",
+    name: "interstationSvg",
+    component: interstationSvg
   }
 ];
  
