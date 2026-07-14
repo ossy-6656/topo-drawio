@@ -168,12 +168,73 @@ function normalizeFacUseFragment(useXml) {
     return s;
 }
 
+function appendPsrRefAttrs(sb, dom, attrNames) {
+    for (const attr of attrNames) {
+        const val = dom.getAttribute(attr);
+        if (val) sb.push(` ${attr}="${escapeXmlAttr(val)}"`);
+    }
+}
+
 function wrapDeviceUseGroup(dom, useInner) {
     const id = dom.getAttribute('id') || 'PD_unknown';
     const name = escapeXmlAttr(dom.getAttribute('keyname') || dom.getAttribute('keyid') || id);
     const psr = psrTypeForGNode(dom.nodeName);
     const frag = normalizeFacUseFragment(useInner);
     return `<g id="${escapeXmlAttr(id)}">` + frag + `<metadata>` + `<cge:PSR_Ref ObjectID="${escapeXmlAttr(id)}" ObjectName="${name}" PSRType="${psr}"/>` + `<cge:Layer_Ref ObjectName="Breaker_Layer"/>` + `</metadata></g>`;
+}
+
+/** 站内母线：仍用 G 文件 polyline 原线宽渲染，metadata 供潮流 res_bus 匹配 */
+function wrapBusLineGroup(dom, innerSvg, idx) {
+    const id = dom.getAttribute('id') || `PD_bus_${idx}`;
+    const oid = escapeXmlAttr(id);
+    const keyName = dom.getAttribute('key_name') || dom.getAttribute('keyname') || '';
+    const name = escapeXmlAttr(keyName || id);
+    const psrParts = [
+        `<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="0311"`,
+    ];
+    appendPsrRefAttrs(psrParts, dom, ['key_name', 'keyid', 'rtkeyid', 'voltype']);
+    psrParts.push('/>');
+    return (
+        `<g id="${oid}">` +
+        innerSvg +
+        `<metadata>` +
+        psrParts.join('') +
+        `<cge:Layer_Ref ObjectName="ACLineSegment_Layer"/>` +
+        `</metadata></g>`
+    );
+}
+
+/** 三卷主变 → 写入 key_name1/2/3、keyid1/2/3 等，供潮流 res_trafo 按主变编号匹配 */
+function wrapTransformerGroup(dom, useInner) {
+    const id = dom.getAttribute('id') || 'PD_trafo';
+    const oid = escapeXmlAttr(id);
+    const keyName1 = dom.getAttribute('key_name1') || dom.getAttribute('keyname1') || '';
+    const name = escapeXmlAttr(keyName1 || dom.getAttribute('keyid') || id);
+    const psrParts = [`<cge:PSR_Ref ObjectID="${oid}" ObjectName="${name}" PSRType="0304"`];
+    appendPsrRefAttrs(psrParts, dom, [
+        'key_name1',
+        'key_name2',
+        'key_name3',
+        'keyid1',
+        'keyid2',
+        'keyid3',
+        'rtkeyid1',
+        'rtkeyid2',
+        'rtkeyid3',
+        'voltype1',
+        'voltype2',
+        'voltype3',
+    ]);
+    psrParts.push('/>');
+    const frag = normalizeFacUseFragment(useInner);
+    return (
+        `<g id="${oid}">` +
+        frag +
+        `<metadata>` +
+        psrParts.join('') +
+        `<cge:Layer_Ref ObjectName="Breaker_Layer"/>` +
+        `</metadata></g>`
+    );
 }
 
 function lineGToPolylineSvg(dom) {
@@ -421,7 +482,11 @@ function buildLgCompatibleBody(children, onWarn) {
                 break;
             }
             case 'BusbarSection':
-            case 'Bus':
+            case 'Bus': {
+                const inner = lineGToPolylineSvg(dom);
+                lineParts.push(wrapBusLineGroup(dom, inner, i));
+                break;
+            }
             case 'ACLineSegment':
             case 'line': {
                 const inner = lineGToPolylineSvg(dom);
@@ -446,11 +511,15 @@ function buildLgCompatibleBody(children, onWarn) {
             case 'Protect':
             case 'Gzp':
             case 'EnergyConsumer':
-            case 'Transformer3':
             case 'DollyBreaker':
             case 'poke': {
                 const inner = SymbolParse.parseDev(dom);
                 if (inner) deviceParts.push(wrapDeviceUseGroup(dom, inner));
+                break;
+            }
+            case 'Transformer3': {
+                const inner = SymbolParse.parseDev(dom);
+                if (inner) deviceParts.push(wrapTransformerGroup(dom, inner));
                 break;
             }
             default:
@@ -459,7 +528,12 @@ function buildLgCompatibleBody(children, onWarn) {
     }
 
     return {
-        body: `<g id="Breaker_Layer">${deviceParts.join('')}</g>` + `<g id="ACLineSegment_Layer">${lineParts.join('')}</g>` + `<g id="Text_Layer">${textParts.join('')}</g>` + `<g id="Hot_Layer"></g>` + `<g id="Point_Layer"></g>`,
+        body:
+            `<g id="Breaker_Layer">${deviceParts.join('')}</g>` +
+            `<g id="ACLineSegment_Layer">${lineParts.join('')}</g>` +
+            `<g id="Text_Layer">${textParts.join('')}</g>` +
+            `<g id="Hot_Layer"></g>` +
+            `<g id="Point_Layer"></g>`,
         inlineDefs: inlineDefs.join(''),
     };
 }
